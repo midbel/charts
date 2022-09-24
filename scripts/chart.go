@@ -72,11 +72,22 @@ func (p Placement) Reverse() bool {
 type Axis struct {
 	Placement
 	Domain []float64
-	Ticks  int
-	Label  string
-	Stroke string
+	// Domain struct {
+	// 	Values []float64
+	// 	Start  float64
+	// 	End    float64
+	// }
+	Ticks int
+	Label string
+	Color string
 
-	WithLabel      bool
+	Font struct {
+		Size   int
+		Family string
+		Color  string
+	}
+
+	WithTickLabel  bool
 	WithInnerTicks bool
 	WithOuterTicks bool
 }
@@ -84,8 +95,8 @@ type Axis struct {
 func DefaultAxis() Axis {
 	return Axis{
 		Ticks:          10,
-		Stroke:         "black",
-		WithLabel:      true,
+		Color:          "black",
+		WithTickLabel:  true,
 		WithInnerTicks: true,
 		WithOuterTicks: true,
 	}
@@ -146,6 +157,20 @@ type Chart struct {
 	}
 	Padding
 	Axis map[Placement]Axis
+	// Axis struct {
+	// 	Top    *Axis
+	// 	Right  *Axis
+	// 	Left   *Axis
+	// 	Bottom *Axis
+	// }
+
+	Background string // background color
+	Area       string // area background color
+	Font       struct {
+		Size   int
+		Family string
+		Color  string
+	}
 }
 
 func DefaultChart() Chart {
@@ -171,8 +196,11 @@ func (c Chart) AddAxis(where Placement, axis Axis) {
 
 func (c Chart) Render(w io.Writer, series []Serie) {
 	el := svg.NewSVG(svg.WithDimension(c.Width, c.Height))
-	el.Append(c.drawAxis())
-
+	if c.Background != "" {
+		rec := svg.NewRect(svg.WithDimension(c.Width, c.Height))
+		rec.Fill = svg.NewFill(c.Background)
+		el.Append(rec.AsElement())
+	}
 	area := c.drawArea()
 	for _, s := range series {
 		el := c.drawSerie(s)
@@ -182,6 +210,7 @@ func (c Chart) Render(w io.Writer, series []Serie) {
 		area.Append(el)
 	}
 	el.Append(area.AsElement())
+	el.Append(c.drawAxis())
 	if g := c.drawLegend(series); g != nil {
 		el.Append(c.drawLegend(series))
 	}
@@ -214,7 +243,7 @@ func (c Chart) drawLegend(series []Serie) svg.Element {
 		pt.Y = c.Padding.Top
 	case AlignRight:
 		pt.X = c.DrawingWidth() - float64(ln)
-		pt.Y = (c.DrawingHeight() + float64(len(series)*15))/2
+		pt.Y = (c.DrawingHeight() + float64(len(series)*15)) / 2
 	case AlignBottomRight:
 		pt.X = c.DrawingWidth() - float64(ln)
 		pt.Y = c.DrawingHeight() - float64(len(series)*15)
@@ -223,10 +252,10 @@ func (c Chart) drawLegend(series []Serie) svg.Element {
 		pt.Y = c.DrawingHeight() - float64(len(series)*15)
 	case AlignBottomLeft:
 		pt.X = c.Padding.Left
-		pt.Y = float64(len(series)*15)
+		pt.Y = float64(len(series) * 15)
 	case AlignLeft:
 		pt.X = c.Padding.Left
-		pt.Y = (c.DrawingHeight() + float64(len(series)*15))/2
+		pt.Y = (c.DrawingHeight() + float64(len(series)*15)) / 2
 	case AlignTopLeft:
 		pt.X = c.Padding.Left
 		pt.Y = c.Padding.Top
@@ -240,11 +269,11 @@ func (c Chart) drawLegend(series []Serie) svg.Element {
 		opts := []svg.Option{
 			svg.WithPosition(t+5, off),
 			svg.WithFont(font),
-			svg.WithFill(svg.NewFill(s.Stroke)),
+			svg.WithFill(svg.NewFill(s.Color)),
 			svg.WithDominantBaseline("middle"),
 		}
 		txt := svg.NewText(s.Label, opts...)
-		stroke := svg.NewStroke(s.Stroke, 2)
+		stroke := svg.NewStroke(s.Color, 2)
 		line := svg.NewLine(svg.NewPos(0, off), svg.NewPos(t, off), stroke.Option())
 		g.Append(txt.AsElement())
 		g.Append(line.AsElement())
@@ -283,7 +312,7 @@ func (c Chart) drawAxis() svg.Element {
 				svg.WithPosition(posx/2, c.Padding.Bottom*0.8),
 				svg.WithFont(font),
 				svg.WithAnchor("middle"),
-				svg.WithFill(svg.NewFill("black")),
+				svg.WithFill(svg.NewFill(a.Color)),
 				svg.WithClass("axis-title"),
 			}
 			txt := svg.NewText(a.Label, opts...)
@@ -301,7 +330,7 @@ func (c Chart) drawAxis() svg.Element {
 				svg.WithRotate(-90, -c.Padding.Left*0.7, posy/2),
 				svg.WithFont(font),
 				svg.WithAnchor("middle"),
-				svg.WithFill(svg.NewFill("black")),
+				svg.WithFill(svg.NewFill(a.Color)),
 				svg.WithClass("axis-title"),
 			}
 			txt := svg.NewText(a.Label, opts...)
@@ -346,7 +375,7 @@ func makeTicks(ga svg.Group, a Axis, length, size float64) svg.Element {
 			line := outerTickLine(a, size)
 			g.Append(line.AsElement())
 		}
-		if a.WithLabel {
+		if a.WithTickLabel {
 			txt := tickText(a, v)
 			g.Append(txt.AsElement())
 		}
@@ -372,9 +401,9 @@ func outerTickLine(a Axis, length float64) svg.Line {
 	var (
 		pos1   = svg.NewPos(0, 0)
 		pos2   = svg.NewPos(line.X, line.Y)
-		stroke = svg.NewStroke(a.Stroke, 0.25)
+		stroke = svg.NewStroke(a.Color, 1)
 	)
-	stroke.DashArray(10)
+	stroke.DashArray(5)
 	return svg.NewLine(pos1, pos2, stroke.Option())
 }
 
@@ -393,7 +422,7 @@ func innerTickLine(a Axis) svg.Line {
 	var (
 		pos1   = svg.NewPos(0, 0)
 		pos2   = svg.NewPos(line.X, line.Y)
-		stroke = svg.NewStroke(a.Stroke, 0.25)
+		stroke = svg.NewStroke(a.Color, 1)
 	)
 	return svg.NewLine(pos1, pos2, svg.WithStroke(stroke), svg.WithClass("axis-tick"))
 }
@@ -420,6 +449,7 @@ func tickText(a Axis, value float64) svg.Text {
 	}
 	options := []svg.Option{
 		svg.WithFont(font),
+		svg.WithFill(svg.NewFill(a.Color)),
 		svg.WithPosition(point.X, point.Y),
 		svg.WithDominantBaseline(base),
 		svg.WithAnchor(anchor),
@@ -445,13 +475,19 @@ func (c Chart) drawArea() svg.Group {
 	defs.Append(clip.AsElement())
 	g.Append(defs.AsElement())
 
+	if c.Area != "" {
+		rec = svg.NewRect(svg.WithDimension(c.DrawingWidth(), c.DrawingHeight()))
+		rec.Fill = svg.NewFill(c.Area)
+		g.Append(rec.AsElement())
+	}
+
 	return g
 }
 
 func makeDomainLine(a Axis, x, y, left, top float64) svg.Group {
 	var (
 		ga = svg.NewGroup(svg.WithTranslate(left, top))
-		sk = svg.NewStroke(a.Stroke, 0.75)
+		sk = svg.NewStroke(a.Color, 1)
 		os = []svg.Option{
 			svg.WithStroke(sk),
 			svg.WithClass("axis-domain"),
@@ -484,7 +520,7 @@ type LineFunc func(float64, float64) Line
 func getBasePath(serie Serie) svg.Path {
 	opts := []svg.Option{
 		svg.WithFill(svg.NewFill("none")),
-		svg.WithStroke(svg.NewStroke(serie.Stroke, 2)),
+		svg.WithStroke(svg.NewStroke(serie.Color, 2)),
 		svg.WithRendering("geometricPrecision"),
 		svg.WithClipPath("clip-area"),
 	}
@@ -682,7 +718,7 @@ type Serie struct {
 
 	Curve LineFunc
 
-	Stroke string
+	Color string
 	Line
 }
 
@@ -716,11 +752,11 @@ const (
 )
 
 func main() {
-	pad := NewPadding(20, 20, 50, 50)
+	pad := NewPadding(10, 10, 50, 50)
 
 	var ser1 Serie
 	ser1.Label = "serie 1 (blue)"
-	ser1.Stroke = "blue"
+	ser1.Color = "blue"
 	ser1.Curve = StepBefore
 	ser1.Add(-3, -3)
 	ser1.Add(-1, -9)
@@ -739,7 +775,7 @@ func main() {
 
 	var ser2 Serie
 	ser2.Label = "serie 2 (red)"
-	ser2.Stroke = "red"
+	ser2.Color = "red"
 	ser2.Curve = StepAfter
 	ser2.Add(-6, 5)
 	ser2.Add(3, 0)
@@ -754,7 +790,7 @@ func main() {
 
 	var ser3 Serie
 	ser3.Label = "serie 3 (green)"
-	ser3.Stroke = "green"
+	ser3.Color = "green"
 	ser3.Curve = Step
 	ser3.Add(-7, -10)
 	ser3.Add(-5, 23)
@@ -773,8 +809,12 @@ func main() {
 		xax = CreateAxis(-7, 69)
 		yax = CreateAxis(-13, 28)
 	)
+	yax.Ticks = 7
 	yax.Label = "y-axis label"
+	yax.Color = "white"
+	xax.Ticks = 7
 	xax.Label = "x-axis label"
+	xax.Color = "white"
 	xax.WithOuterTicks = false
 
 	ch.Width = defaultWidth
@@ -782,6 +822,8 @@ func main() {
 	ch.Title = "sample chart"
 	ch.Padding = pad
 	ch.Legend.Align = AlignTop
+	ch.Area = "black"
+	ch.Background = "black"
 	ch.AddAxis(PlacementBottom, xax)
 	ch.AddAxis(PlacementLeft, yax)
 	ch.Render(os.Stdout, []Serie{ser1, ser2, ser3})
