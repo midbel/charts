@@ -6,7 +6,6 @@ import (
 	"io"
 	"os"
 	"sort"
-	// "strconv"
 
 	"github.com/midbel/slices"
 	"github.com/midbel/svg"
@@ -186,36 +185,12 @@ func (c Chart) getLeftAxis() Axis {
 
 func (c Chart) drawSerie(serie Serie) svg.Element {
 	var (
-		xax  = c.getBottomAxis()
-		yax  = c.getLeftAxis()
-		offx = c.DrawingWidth() / xax.Diff()
-		offy = c.DrawingHeight() / yax.Diff()
-		fstx = slices.Fst(xax.Domain)
-		fsty = slices.Fst(yax.Domain)
-		grp  = svg.NewGroup()
-		pat  = svg.NewPath(svg.WithFill(svg.NewFill("none")), svg.WithStroke(svg.NewStroke(serie.Stroke, 2)))
+		dr = StepBefore(c.DrawingWidth(), c.DrawingHeight())
+		el = dr.Draw(serie, c.getBottomAxis(), c.getLeftAxis())
+		gp = svg.NewGroup(svg.WithClipPath("clip-area"))
 	)
-	for i, pt := range serie.Values {
-		var (
-			x = (pt.X - fstx) * offx
-			y = c.DrawingHeight() - ((pt.Y - fsty) * offy)
-			s = []svg.Option{
-				svg.WithPosition(x, y),
-				svg.WithFill(svg.NewFill(serie.Stroke)),
-				svg.WithRadius(4),
-			}
-			ci = svg.NewCircle(s...)
-		)
-		ci.Title = fmt.Sprintf("%.1f - %.1f", pt.X, pt.Y)
-		if p := svg.NewPos(x, y); i == 0 {
-			pat.AbsMoveTo(p)
-		} else {
-			pat.AbsLineTo(p)
-		}
-		grp.Append(ci.AsElement())
-	}
-	grp.Append(pat.AsElement())
-	return grp.AsElement()
+	gp.Append(el)
+	return gp.AsElement()
 }
 
 func (c Chart) drawAxis() svg.Element {
@@ -245,7 +220,6 @@ func (c Chart) drawAxis() svg.Element {
 
 func makeTicks(ga svg.Group, a Axis, length, size float64) svg.Element {
 	var (
-		ticks  = a.TicksCount()
 		offset = length / a.Diff()
 		values = a.DomainValues()
 		first  = slices.Fst(values)
@@ -263,7 +237,7 @@ func makeTicks(ga svg.Group, a Axis, length, size float64) svg.Element {
 			line := innerTickLine(a)
 			g.Append(line.AsElement())
 		}
-		if a.WithOuterTicks && i > 0 && i < ticks {
+		if a.WithOuterTicks && i > 0 && i < len(values)-1 {
 			line := outerTickLine(a, size)
 			g.Append(line.AsElement())
 		}
@@ -295,7 +269,8 @@ func outerTickLine(a Axis, length float64) svg.Line {
 		pos2   = svg.NewPos(line.X, line.Y)
 		stroke = svg.NewStroke(a.Stroke, 0.25)
 	)
-	return svg.NewLine(pos1, pos2, svg.WithStroke(stroke))
+	stroke.DashArray(10)
+	return svg.NewLine(pos1, pos2, stroke.Option())
 }
 
 func innerTickLine(a Axis) svg.Line {
@@ -348,50 +323,21 @@ func tickText(a Axis, value float64) svg.Text {
 	return svg.NewText(str, options...)
 }
 
-//
-// func tickText(a Axis, offset float64) svg.Text {
-// 	var (
-// 		base   = "hanging"
-// 		anchor = "middle"
-// 		point  = NewPoint(0, 10)
-// 		value  = slices.Fst(a.Domain)
-// 	)
-// 	if a.Vertical() {
-// 		value = slices.Lst(a.Domain)
-// 		offset = -offset
-// 	}
-// 	switch {
-// 	case a.Vertical() && !a.Reverse():
-// 		base = "middle"
-// 		anchor = "end"
-// 		point.X, point.Y = -point.Y, point.X
-// 	case a.Vertical() && a.Reverse():
-// 		base = "middle"
-// 		anchor = "start"
-// 		point.X, point.Y = point.Y, point.X
-// 	case !a.Vertical() && a.Reverse():
-// 		base = "auto"
-// 		point.Y = -point.Y
-// 	default:
-// 	}
-// 	options := []svg.Option{
-// 		svg.WithFont(font),
-// 		svg.WithPosition(point.X, point.Y),
-// 		svg.WithDominantBaseline(base),
-// 		svg.WithAnchor(anchor),
-// 	}
-// 	str := fmt.Sprintf("%.1f", value+offset)
-// 	return svg.NewText(str, options...)
-// }
-
 func (c Chart) drawArea() svg.Group {
-	rec := svg.NewRect(svg.WithDimension(c.DrawingWidth(), c.DrawingHeight()))
 	gos := []svg.Option{
 		svg.WithID("area"),
 		svg.WithTranslate(c.Padding.Left, c.Padding.Top),
 	}
 	g := svg.NewGroup(gos...)
-	g.Append(rec.AsElement())
+
+	var (
+		defs svg.Defs
+		clip = svg.NewClipPath(svg.WithID("clip-area"))
+		rec  = svg.NewRect(svg.WithDimension(c.DrawingWidth(), c.DrawingHeight()))
+	)
+	clip.Append(rec.AsElement())
+	defs.Append(clip.AsElement())
+	g.Append(defs.AsElement())
 
 	return g
 }
@@ -411,11 +357,6 @@ type Point struct {
 	Y float64
 }
 
-func (p Point) Inverse() Point {
-	p.X, p.Y = p.Y, p.X
-	return p
-}
-
 func NewPoint(x, y float64) Point {
 	return Point{
 		X: x,
@@ -423,23 +364,213 @@ func NewPoint(x, y float64) Point {
 	}
 }
 
+type Line interface {
+	Draw(Serie, Axis, Axis) svg.Element
+}
+
+func getBasePath(serie Serie) svg.Path {
+	opts := []svg.Option{
+		svg.WithFill(svg.NewFill("none")),
+		svg.WithStroke(svg.NewStroke(serie.Stroke, 2)),
+		svg.WithRendering("geometricPrecision"),
+		svg.WithClipPath("clip-area"),
+	}
+	return svg.NewPath(opts...)
+}
+
+type linearCurve struct {
+	width  float64
+	height float64
+}
+
+func Linear(w, h float64) Line {
+	return linearCurve{
+		width:  w,
+		height: h,
+	}
+}
+
+func (c linearCurve) Draw(serie Serie, xaxis, yaxis Axis) svg.Element {
+	var (
+		off  = NewPoint(c.width/xaxis.Diff(), c.height/yaxis.Diff())
+		fstx = slices.Fst(xaxis.Domain)
+		fsty = slices.Fst(yaxis.Domain)
+		pat  = getBasePath(serie)
+		pos  svg.Pos
+	)
+	for i, pt := range serie.Values {
+		pos.X = (pt.X - fstx) * off.X
+		pos.Y = c.height - ((pt.Y - fsty) * off.Y)
+
+		if i == 0 {
+			pat.AbsMoveTo(pos)
+		} else {
+			pat.AbsLineTo(pos)
+		}
+	}
+	return pat.AsElement()
+}
+
+type stepCurve struct {
+	width  float64
+	height float64
+}
+
+func Step(w, h float64) Line {
+	return stepCurve{
+		width:  w,
+		height: h,
+	}
+}
+
+func (c stepCurve) Draw(serie Serie, xaxis, yaxis Axis) svg.Element {
+	var (
+		off  = NewPoint(c.width/xaxis.Diff(), c.height/yaxis.Diff())
+		fstx = slices.Fst(xaxis.Domain)
+		fsty = slices.Fst(yaxis.Domain)
+		pat  = getBasePath(serie)
+		pos  svg.Pos
+		ori  svg.Pos
+	)
+	pos.X = (slices.Fst(serie.Values).X - fstx) * off.X
+	pos.Y = c.height - (slices.Fst(serie.Values).Y-fsty)*off.Y
+	pat.AbsMoveTo(pos)
+	ori = pos
+	for _, pt := range slices.Rest(serie.Values) {
+		pos.X = (pt.X - fstx) * off.X
+		pos.Y = c.height - ((pt.Y - fsty) * off.Y)
+
+		ori.X += (pos.X - ori.X) / 2
+		pat.AbsLineTo(ori)
+		ori.Y = pos.Y
+		pat.AbsLineTo(ori)
+		pat.AbsLineTo(pos)
+		ori = pos
+	}
+	return pat.AsElement()
+}
+
+type stepAfterCurve struct {
+	width  float64
+	height float64
+}
+
+func StepAfter(w, h float64) Line {
+	return stepAfterCurve{
+		width:  w,
+		height: h,
+	}
+}
+
+func (c stepAfterCurve) Draw(serie Serie, xaxis, yaxis Axis) svg.Element {
+	var (
+		off  = NewPoint(c.width/xaxis.Diff(), c.height/yaxis.Diff())
+		fstx = slices.Fst(xaxis.Domain)
+		fsty = slices.Fst(yaxis.Domain)
+		pat  = getBasePath(serie)
+		pos  svg.Pos
+		ori  svg.Pos
+	)
+	pos.X = (slices.Fst(serie.Values).X - fstx) * off.X
+	pos.Y = c.height - (slices.Fst(serie.Values).Y-fsty)*off.Y
+	pat.AbsMoveTo(pos)
+	ori = pos
+	for _, pt := range slices.Rest(serie.Values) {
+		pos.X = (pt.X - fstx) * off.X
+		pos.Y = c.height - ((pt.Y - fsty) * off.Y)
+
+		ori.X = pos.X
+		pat.AbsLineTo(ori)
+		ori.Y = pos.Y
+		pat.AbsLineTo(ori)
+		pat.AbsLineTo(pos)
+		ori = pos
+	}
+	return pat.AsElement()
+}
+
+type stepBeforeCurve struct {
+	width  float64
+	height float64
+}
+
+func StepBefore(w, h float64) Line {
+	return stepBeforeCurve{
+		width:  w,
+		height: h,
+	}
+}
+
+func (c stepBeforeCurve) Draw(serie Serie, xaxis, yaxis Axis) svg.Element {
+	var (
+		off  = NewPoint(c.width/xaxis.Diff(), c.height/yaxis.Diff())
+		fstx = slices.Fst(xaxis.Domain)
+		fsty = slices.Fst(yaxis.Domain)
+		pat  = getBasePath(serie)
+		pos  svg.Pos
+		ori  svg.Pos
+	)
+	pos.X = (slices.Fst(serie.Values).X - fstx) * off.X
+	pos.Y = c.height - (slices.Fst(serie.Values).Y-fsty)*off.Y
+	pat.AbsMoveTo(pos)
+	ori = pos
+	for _, pt := range slices.Rest(serie.Values) {
+		pos.X = (pt.X - fstx) * off.X
+		pos.Y = c.height - ((pt.Y - fsty) * off.Y)
+
+		ori.Y = pos.Y
+		pat.AbsLineTo(ori)
+		ori.X = pos.X
+		pat.AbsLineTo(ori)
+		pat.AbsLineTo(pos)
+		ori = pos
+	}
+	return pat.AsElement()
+}
+
 type Serie struct {
 	Label  string
 	Values []Point
 
 	Stroke string
+	Line
 }
 
 func (s *Serie) Add(x, y float64) {
 	s.Values = append(s.Values, NewPoint(x, y))
 }
 
+func (s *Serie) Domain() (Point, Point) {
+	var (
+		fst Point
+		lst Point
+		tmp = make([]Point, len(s.Values))
+	)
+	copy(tmp, s.Values)
+	sort.Slice(tmp, func(i, j int) bool {
+		return tmp[i].X < tmp[j].X
+	})
+	fst.X = slices.Fst(tmp).X
+	lst.X = slices.Lst(tmp).Y
+	sort.Slice(tmp, func(i, j int) bool {
+		return tmp[i].Y < tmp[j].Y
+	})
+	fst.Y = slices.Fst(tmp).Y
+	lst.Y = slices.Lst(tmp).Y
+	return fst, lst
+}
+
+const (
+	defaultWidth  = 800
+	defaultHeight = 600
+)
+
 func main() {
 	var ser1 Serie
 	ser1.Label = "serie 1 (blue)"
 	ser1.Stroke = "blue"
 	ser1.Add(-3, -3)
-	ser1.Add(-1, -5)
+	ser1.Add(-1, -9)
 	ser1.Add(5, 9)
 	ser1.Add(5, 9)
 	ser1.Add(12, 2)
@@ -457,10 +588,10 @@ func main() {
 	ser2.Label = "serie 2 (red)"
 	ser2.Stroke = "red"
 	ser2.Add(-6, 5)
-	ser2.Add(3, 7)
-	ser2.Add(19, 3)
-	ser2.Add(28, 0)
-	ser2.Add(37, 11)
+	ser2.Add(3, 0)
+	ser2.Add(15, 6)
+	ser2.Add(28, 19)
+	ser2.Add(37, 15)
 	ser2.Add(40, 11)
 	ser2.Add(56, 4)
 	ser2.Add(61, 1)
@@ -470,13 +601,12 @@ func main() {
 	var (
 		ch  = DefaultChart()
 		xax = CreateAxis(-7, 69)
-		yax = CreateAxis(-6, 13)
+		yax = CreateAxis(-13, 28)
 	)
 	xax.WithOuterTicks = false
-	yax.SetDomain([]float64{-6, -2, 2, 6, 10, 14})
 
-	ch.Width = 800
-	ch.Height = 600
+	ch.Width = defaultWidth
+	ch.Height = defaultHeight
 	ch.Title = "sample chart"
 	ch.Padding = NewPadding(20, 20, 40, 40)
 	ch.AddAxis(PlacementBottom, xax)
