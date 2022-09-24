@@ -6,6 +6,7 @@ import (
 	"io"
 	"os"
 	"sort"
+	"strconv"
 
 	"github.com/midbel/slices"
 	"github.com/midbel/svg"
@@ -80,6 +81,7 @@ type Axis struct {
 	Ticks int
 	Label string
 	Color string
+	Format func(float64) string
 
 	Font struct {
 		Size   int
@@ -99,6 +101,9 @@ func DefaultAxis() Axis {
 		WithTickLabel:  true,
 		WithInnerTicks: true,
 		WithOuterTicks: true,
+		Format: func(v float64) string {
+			return fmt.Sprintf("%.1f", v)
+		},
 	}
 }
 
@@ -455,8 +460,7 @@ func tickText(a Axis, value float64) svg.Text {
 		svg.WithAnchor(anchor),
 		svg.WithClass("axis-tick-text"),
 	}
-	str := fmt.Sprintf("%.1f", value)
-	return svg.NewText(str, options...)
+	return svg.NewText(a.Format(value), options...)
 }
 
 func (c Chart) drawArea() svg.Group {
@@ -808,14 +812,19 @@ func main() {
 		ch  = DefaultChart()
 		xax = CreateAxis(-7, 69)
 		yax = CreateAxis(-13, 28)
+		format = func(v float64) string {
+			return strconv.FormatFloat(v, 'f', 2, 64)
+		}
 	)
 	yax.Ticks = 7
 	yax.Label = "y-axis label"
 	yax.Color = "white"
+	yax.Format = format
 	xax.Ticks = 7
 	xax.Label = "x-axis label"
 	xax.Color = "white"
 	xax.WithOuterTicks = false
+	xax.Format = format
 
 	ch.Width = defaultWidth
 	ch.Height = defaultHeight
