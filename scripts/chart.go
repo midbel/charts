@@ -31,6 +31,27 @@ func NewPadding2(horiz, vert float64) Padding {
 	return NewPadding(vert, horiz, vert, horiz)
 }
 
+func (p Padding) Horiz() float64 {
+	return p.Left + p.Right
+}
+
+func (p Padding) Vert() float64 {
+	return p.Top + p.Bottom
+}
+
+type Alignment int
+
+const (
+	AlignTop Alignment = iota
+	AlignTopRight
+	AlignRight
+	AlignBottomRight
+	AlignBottom
+	AlignBottomLeft
+	AlignLeft
+	AlignTopLeft
+)
+
 type Placement int
 
 const (
@@ -120,7 +141,7 @@ type Chart struct {
 	Width  float64
 	Height float64
 	Legend struct {
-		Placement
+		Align Alignment
 		Title string
 	}
 	Padding
@@ -161,9 +182,8 @@ func (c Chart) Render(w io.Writer, series []Serie) {
 		area.Append(el)
 	}
 	el.Append(area.AsElement())
-
-	if c.showLegend() {
-
+	if g := c.drawLegend(series); g != nil {
+		el.Append(c.drawLegend(series))
 	}
 
 	bw := bufio.NewWriter(w)
@@ -171,8 +191,65 @@ func (c Chart) Render(w io.Writer, series []Serie) {
 	el.Render(bw)
 }
 
-func (c Chart) showLegend() bool {
-	return c.Legend.Placement != 0 && c.Legend.Title != ""
+func (c Chart) drawLegend(series []Serie) svg.Element {
+	var (
+		pt Point
+		ln int
+	)
+	for i, s := range series {
+		n := len(s.Label) * 5
+		if i == 0 || n > ln {
+			ln = n
+		}
+	}
+	if ln == 0 {
+		return nil
+	}
+	switch c.Legend.Align {
+	case AlignTop:
+		pt.X = (c.DrawingWidth() + float64(ln)) / 2
+		pt.Y = c.Padding.Top
+	case AlignTopRight:
+		pt.X = c.DrawingWidth() - float64(ln)
+		pt.Y = c.Padding.Top
+	case AlignRight:
+		pt.X = c.DrawingWidth() - float64(ln)
+		pt.Y = (c.DrawingHeight() + float64(len(series)*15))/2
+	case AlignBottomRight:
+		pt.X = c.DrawingWidth() - float64(ln)
+		pt.Y = c.DrawingHeight() - float64(len(series)*15)
+	case AlignBottom:
+		pt.X = (c.DrawingWidth() + float64(ln)) / 2
+		pt.Y = c.DrawingHeight() - float64(len(series)*15)
+	case AlignBottomLeft:
+		pt.X = c.Padding.Left
+		pt.Y = float64(len(series)*15)
+	case AlignLeft:
+		pt.X = c.Padding.Left
+		pt.Y = (c.DrawingHeight() + float64(len(series)*15))/2
+	case AlignTopLeft:
+		pt.X = c.Padding.Left
+		pt.Y = c.Padding.Top
+	default:
+		return nil
+	}
+	g := svg.NewGroup(svg.WithTranslate(pt.X, pt.Y))
+	t := 20.0
+	for i, s := range series {
+		off := float64(i) * 15
+		opts := []svg.Option{
+			svg.WithPosition(t+5, off),
+			svg.WithFont(font),
+			svg.WithFill(svg.NewFill(s.Stroke)),
+			svg.WithDominantBaseline("middle"),
+		}
+		txt := svg.NewText(s.Label, opts...)
+		stroke := svg.NewStroke(s.Stroke, 2)
+		line := svg.NewLine(svg.NewPos(0, off), svg.NewPos(t, off), stroke.Option())
+		g.Append(txt.AsElement())
+		g.Append(line.AsElement())
+	}
+	return g.AsElement()
 }
 
 func (c Chart) getBottomAxis() Axis {
@@ -184,9 +261,12 @@ func (c Chart) getLeftAxis() Axis {
 }
 
 func (c Chart) drawSerie(serie Serie) svg.Element {
+	if serie.Curve == nil {
+		serie.Curve = Linear
+	}
 	var (
-		dr = StepBefore(c.DrawingWidth(), c.DrawingHeight())
-		el = dr.Draw(serie, c.getBottomAxis(), c.getLeftAxis())
+		li = serie.Curve(c.DrawingWidth(), c.DrawingHeight())
+		el = li.Draw(serie, c.getBottomAxis(), c.getLeftAxis())
 		gp = svg.NewGroup(svg.WithClipPath("clip-area"))
 	)
 	gp.Append(el)
@@ -197,11 +277,36 @@ func (c Chart) drawAxis() svg.Element {
 	g := svg.NewGroup(svg.WithID("axis"))
 	if a, ok := c.Axis[PlacementBottom]; ok {
 		ga := makeDomainLine(a, c.DrawingWidth(), 0, c.Padding.Left, c.Height-c.Padding.Bottom)
+		if a.Label != "" {
+			posx := c.DrawingWidth() + float64(len(a.Label)*5)
+			opts := []svg.Option{
+				svg.WithPosition(posx/2, c.Padding.Bottom*0.8),
+				svg.WithFont(font),
+				svg.WithAnchor("middle"),
+				svg.WithFill(svg.NewFill("black")),
+				svg.WithClass("axis-title"),
+			}
+			txt := svg.NewText(a.Label, opts...)
+			ga.Append(txt.AsElement())
+		}
 		gx := makeTicks(ga, a, c.DrawingWidth(), c.DrawingHeight())
 		g.Append(gx)
 	}
 	if a, ok := c.Axis[PlacementLeft]; ok {
 		ga := makeDomainLine(a, 0, c.DrawingHeight(), c.Padding.Left, c.Padding.Top)
+		if a.Label != "" {
+			posy := c.DrawingHeight() + 10
+			opts := []svg.Option{
+				svg.WithPosition(-c.Padding.Left*0.7, posy/2),
+				svg.WithRotate(-90, -c.Padding.Left*0.7, posy/2),
+				svg.WithFont(font),
+				svg.WithAnchor("middle"),
+				svg.WithFill(svg.NewFill("black")),
+				svg.WithClass("axis-title"),
+			}
+			txt := svg.NewText(a.Label, opts...)
+			ga.Append(txt.AsElement())
+		}
 		gx := makeTicks(ga, a, c.DrawingHeight(), c.DrawingWidth())
 		g.Append(gx)
 	}
@@ -290,7 +395,7 @@ func innerTickLine(a Axis) svg.Line {
 		pos2   = svg.NewPos(line.X, line.Y)
 		stroke = svg.NewStroke(a.Stroke, 0.25)
 	)
-	return svg.NewLine(pos1, pos2, svg.WithStroke(stroke))
+	return svg.NewLine(pos1, pos2, svg.WithStroke(stroke), svg.WithClass("axis-tick"))
 }
 
 func tickText(a Axis, value float64) svg.Text {
@@ -318,6 +423,7 @@ func tickText(a Axis, value float64) svg.Text {
 		svg.WithPosition(point.X, point.Y),
 		svg.WithDominantBaseline(base),
 		svg.WithAnchor(anchor),
+		svg.WithClass("axis-tick-text"),
 	}
 	str := fmt.Sprintf("%.1f", value)
 	return svg.NewText(str, options...)
@@ -346,15 +452,20 @@ func makeDomainLine(a Axis, x, y, left, top float64) svg.Group {
 	var (
 		ga = svg.NewGroup(svg.WithTranslate(left, top))
 		sk = svg.NewStroke(a.Stroke, 0.75)
-		li = svg.NewLine(svg.NewPos(0, 0), svg.NewPos(x, y), svg.WithStroke(sk))
+		os = []svg.Option{
+			svg.WithStroke(sk),
+			svg.WithClass("axis-domain"),
+		}
+		li = svg.NewLine(svg.NewPos(0, 0), svg.NewPos(x, y), os...)
 	)
 	ga.Append(li.AsElement())
 	return ga
 }
 
 type Point struct {
-	X float64
-	Y float64
+	X    float64
+	Y    float64
+	Show bool
 }
 
 func NewPoint(x, y float64) Point {
@@ -368,6 +479,8 @@ type Line interface {
 	Draw(Serie, Axis, Axis) svg.Element
 }
 
+type LineFunc func(float64, float64) Line
+
 func getBasePath(serie Serie) svg.Path {
 	opts := []svg.Option{
 		svg.WithFill(svg.NewFill("none")),
@@ -376,6 +489,41 @@ func getBasePath(serie Serie) svg.Path {
 		svg.WithClipPath("clip-area"),
 	}
 	return svg.NewPath(opts...)
+}
+
+type cubicCurve struct {
+	width   float64
+	height  float64
+	stretch float64
+}
+
+func Cubic(w, h, s float64) Line {
+	return cubicCurve{
+		width:   w,
+		height:  h,
+		stretch: s,
+	}
+}
+
+func (c cubicCurve) Draw(serie Serie, xaxis, yaxis Axis) svg.Element {
+	var (
+		off  = NewPoint(c.width/xaxis.Diff(), c.height/yaxis.Diff())
+		fstx = slices.Fst(xaxis.Domain)
+		fsty = slices.Fst(yaxis.Domain)
+		pat  = getBasePath(serie)
+		pos  svg.Pos
+	)
+	for i, pt := range serie.Values {
+		pos.X = (pt.X - fstx) * off.X
+		pos.Y = c.height - ((pt.Y - fsty) * off.Y)
+
+		if i == 0 {
+			pat.AbsMoveTo(pos)
+		} else {
+			pat.AbsLineTo(pos)
+		}
+	}
+	return pat.AsElement()
 }
 
 type linearCurve struct {
@@ -532,6 +680,8 @@ type Serie struct {
 	Label  string
 	Values []Point
 
+	Curve LineFunc
+
 	Stroke string
 	Line
 }
@@ -566,9 +716,12 @@ const (
 )
 
 func main() {
+	pad := NewPadding(20, 20, 50, 50)
+
 	var ser1 Serie
 	ser1.Label = "serie 1 (blue)"
 	ser1.Stroke = "blue"
+	ser1.Curve = StepBefore
 	ser1.Add(-3, -3)
 	ser1.Add(-1, -9)
 	ser1.Add(5, 9)
@@ -587,6 +740,7 @@ func main() {
 	var ser2 Serie
 	ser2.Label = "serie 2 (red)"
 	ser2.Stroke = "red"
+	ser2.Curve = StepAfter
 	ser2.Add(-6, 5)
 	ser2.Add(3, 0)
 	ser2.Add(15, 6)
@@ -598,19 +752,38 @@ func main() {
 	ser2.Add(67, 7)
 	ser2.Add(69, 8)
 
+	var ser3 Serie
+	ser3.Label = "serie 3 (green)"
+	ser3.Stroke = "green"
+	ser3.Curve = Step
+	ser3.Add(-7, -10)
+	ser3.Add(-5, 23)
+	ser3.Add(-1, 19)
+	ser3.Add(13, 14)
+	ser3.Add(32, 17)
+	ser3.Add(41, 16)
+	ser3.Add(47, 4)
+	ser3.Add(51, -4)
+	ser3.Add(56, 4)
+	ser3.Add(64, -1)
+	ser3.Add(69, -8)
+
 	var (
 		ch  = DefaultChart()
 		xax = CreateAxis(-7, 69)
 		yax = CreateAxis(-13, 28)
 	)
+	yax.Label = "y-axis label"
+	xax.Label = "x-axis label"
 	xax.WithOuterTicks = false
 
 	ch.Width = defaultWidth
 	ch.Height = defaultHeight
 	ch.Title = "sample chart"
-	ch.Padding = NewPadding(20, 20, 40, 40)
+	ch.Padding = pad
+	ch.Legend.Align = AlignTop
 	ch.AddAxis(PlacementBottom, xax)
 	ch.AddAxis(PlacementLeft, yax)
-	ch.Render(os.Stdout, []Serie{ser1, ser2})
+	ch.Render(os.Stdout, []Serie{ser1, ser2, ser3})
 	fmt.Println()
 }
