@@ -78,9 +78,9 @@ type Axis struct {
 	// 	Start  float64
 	// 	End    float64
 	// }
-	Ticks int
-	Label string
-	Color string
+	Ticks  int
+	Label  string
+	Color  string
 	Format func(float64) string
 
 	Font struct {
@@ -583,6 +583,7 @@ func (c linearCurve) Draw(serie Serie, xaxis, yaxis Axis) svg.Element {
 		off  = NewPoint(c.width/xaxis.Diff(), c.height/yaxis.Diff())
 		fstx = slices.Fst(xaxis.Domain)
 		fsty = slices.Fst(yaxis.Domain)
+		grp = svg.NewGroup()
 		pat  = getBasePath(serie)
 		pos  svg.Pos
 	)
@@ -595,8 +596,16 @@ func (c linearCurve) Draw(serie Serie, xaxis, yaxis Axis) svg.Element {
 		} else {
 			pat.AbsLineTo(pos)
 		}
+		if serie.WithPoint {
+			ci := svg.NewCircle(svg.WithRadius(3))
+			ci.Fill = svg.NewFill(serie.Color)
+			ci.Pos = pos
+			ci.Title = fmt.Sprintf("%.1f - %.1f", pt.X, pt.Y)
+			grp.Append(ci.AsElement())
+		}
 	}
-	return pat.AsElement()
+	grp.Append(pat.AsElement())
+	return grp.AsElement()
 }
 
 type stepCurve struct {
@@ -717,8 +726,9 @@ func (c stepBeforeCurve) Draw(serie Serie, xaxis, yaxis Axis) svg.Element {
 }
 
 type Serie struct {
-	Label  string
-	Values []Point
+	Label     string
+	Values    []Point
+	WithPoint bool
 
 	Curve LineFunc
 
@@ -761,7 +771,8 @@ func main() {
 	var ser1 Serie
 	ser1.Label = "serie 1 (blue)"
 	ser1.Color = "blue"
-	ser1.Curve = StepBefore
+	ser1.Curve = Linear
+	ser1.WithPoint = true
 	ser1.Add(-3, -3)
 	ser1.Add(-1, -9)
 	ser1.Add(5, 9)
@@ -780,7 +791,8 @@ func main() {
 	var ser2 Serie
 	ser2.Label = "serie 2 (red)"
 	ser2.Color = "red"
-	ser2.Curve = StepAfter
+	ser2.Curve = Linear
+	ser2.WithPoint = true
 	ser2.Add(-6, 5)
 	ser2.Add(3, 0)
 	ser2.Add(15, 6)
@@ -795,7 +807,8 @@ func main() {
 	var ser3 Serie
 	ser3.Label = "serie 3 (green)"
 	ser3.Color = "green"
-	ser3.Curve = Step
+	ser3.Curve = Linear
+	ser3.WithPoint = true
 	ser3.Add(-7, -10)
 	ser3.Add(-5, 23)
 	ser3.Add(-1, 19)
@@ -809,9 +822,9 @@ func main() {
 	ser3.Add(69, -8)
 
 	var (
-		ch  = DefaultChart()
-		xax = CreateAxis(-7, 69)
-		yax = CreateAxis(-13, 28)
+		ch     = DefaultChart()
+		xax    = CreateAxis(-7, 69)
+		yax    = CreateAxis(-13, 28)
 		format = func(v float64) string {
 			return strconv.FormatFloat(v, 'f', 2, 64)
 		}
