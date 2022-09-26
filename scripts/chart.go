@@ -187,11 +187,11 @@ func DefaultChart() Chart {
 }
 
 func (c Chart) DrawingWidth() float64 {
-	return c.Width - c.Padding.Left - c.Padding.Right
+	return c.Width - c.Padding.Horiz()
 }
 
 func (c Chart) DrawingHeight() float64 {
-	return c.Height - c.Padding.Top - c.Padding.Bottom
+	return c.Height - c.Padding.Vert()
 }
 
 func (c Chart) AddAxis(where Placement, axis Axis) {
@@ -583,7 +583,7 @@ func (c linearCurve) Draw(serie Serie, xaxis, yaxis Axis) svg.Element {
 		off  = NewPoint(c.width/xaxis.Diff(), c.height/yaxis.Diff())
 		fstx = slices.Fst(xaxis.Domain)
 		fsty = slices.Fst(yaxis.Domain)
-		grp = svg.NewGroup()
+		grp  = svg.NewGroup()
 		pat  = getBasePath(serie)
 		pos  svg.Pos
 	)
