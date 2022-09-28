@@ -1,0 +1,46 @@
+title       = demo shart
+background  = white
+area        = black
+
+font-size   = 14
+font-family = monospace
+font-color  = black
+
+width   = 800
+height  = 600
+padding = 40 40
+
+legend {
+  title    = series
+  position = top | right
+}
+
+axis {
+  position = left
+  color    = black
+  title    = yaxis
+  type     = number
+  ticks    = 10
+  inner-tick = true
+  outer-tick = true
+  label-tick = true
+}
+
+axis {
+  position = bottom
+  color    = black
+  title    = xaxis
+  type     = time
+  ticks    = 20
+  inner-tick = true
+  outer-tick = false
+  label-tick = true
+}
+
+serie {
+  type   = line
+  title  = serie-1
+  color  = red
+  x-axis = ref(xaxis)
+  y-axis = ref(yaxis)
+}
