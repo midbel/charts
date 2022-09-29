@@ -21,8 +21,8 @@ const (
 )
 
 var pad = charts.Padding{
-	Top:    20,
-	Right:  60,
+	Top:    10,
+	Right:  45,
 	Bottom: 40,
 	Left:   60,
 }
@@ -64,6 +64,7 @@ func loadSerie(file, color string) (charts.Serie[time.Time, float64], error) {
 		Title:    name,
 		Color:    color,
 		Renderer: charts.LinearRender[time.Time, float64](false),
+		WithTitle: true,
 	}
 
 	r, err := os.Open(file)
@@ -106,7 +107,7 @@ func TimePoint(date, value string) (charts.Point[time.Time, float64], error) {
 
 func getBottomAxis(scaler charts.Scaler[time.Time]) charts.Axis {
 	return charts.TimeAxis{
-		Ticks:          5,
+		Ticks:          7,
 		Orientation:    charts.OrientBottom,
 		Scaler:         scaler,
 		WithInnerTicks: true,

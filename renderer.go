@@ -206,13 +206,16 @@ func (r linearRenderer[T, U]) Render(serie Serie[T, U]) svg.Element {
 			grp.Append(serie.WithPoint(pos))
 		}
 	}
-	font := svg.NewFont(FontSize)
-	font.Fill = serie.Color
-	txt := svg.NewText(serie.Title)
-	txt.Font = font
-	txt.Baseline = "middle"
-	txt.Pos = svg.NewPos(pos.X+10, pos.Y)
-	grp.Append(txt.AsElement())
+	if serie.WithTitle {
+		font := svg.NewFont(FontSize)
+		font.Fill = serie.Color
+		txt := svg.NewText(serie.Title)
+		txt.Font = font
+		txt.Baseline = "middle"
+		txt.Pos = svg.NewPos(pos.X+10, pos.Y)
+		grp.Append(txt.AsElement())
+	}
+
 	if serie.WithArea {
 		pos.Y = serie.Y.Max()
 		pat.AbsLineTo(pos)
