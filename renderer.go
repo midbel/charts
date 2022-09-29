@@ -43,14 +43,23 @@ func (r cubicRenderer[T, U]) Render(serie Serie[T, U]) svg.Element {
 	pos.X = serie.X.Scale(slices.Fst(serie.Points).X)
 	pos.Y = serie.Y.Scale(slices.Fst(serie.Points).Y)
 	pat.AbsMoveTo(pos)
+	if serie.WithPoint != nil {
+		grp.Append(serie.WithPoint(pos))
+	}
 	ori = pos
 	for _, pt := range slices.Rest(serie.Points) {
 		pos.X = serie.X.Scale(pt.X)
 		pos.Y = serie.Y.Scale(pt.Y)
 
-		ori.X = pos.X - ((pos.X - ori.X) * r.stretch)
-		ori.Y = pos.Y
-		pat.AbsCubicCurveSimple(pos, ori)
+		var (
+			ctrl1 = ori
+			ctrl2 = pos
+			diff  = (pos.X - ori.X) * r.stretch
+		)
+		ctrl1.X += diff
+		ctrl2.X -= diff
+
+		pat.AbsCubicCurve(pos, ctrl1, ctrl2)
 		ori = pos
 		if serie.WithPoint != nil {
 			grp.Append(serie.WithPoint(pos))
@@ -65,7 +74,7 @@ type quadraticRenderer[T, U ScalerConstraint] struct {
 	ignoreMissing bool
 }
 
-func QuadraticRenderer[T, U ScalerConstraint](stretch float64, ignoreMissing bool) Renderer[T, U] {
+func QuadraticRender[T, U ScalerConstraint](stretch float64, ignoreMissing bool) Renderer[T, U] {
 	return quadraticRenderer[T, U]{
 		stretch:       stretch,
 		ignoreMissing: ignoreMissing,
@@ -77,12 +86,25 @@ func (r quadraticRenderer[T, U]) Render(serie Serie[T, U]) svg.Element {
 		grp = getBaseGroup()
 		pat = getBasePath(serie.Color, serie.WithArea)
 		pos = svg.NewPos(serie.X.Min(), serie.Y.Max())
+		ori svg.Pos
 	)
 	pos.X = serie.X.Scale(slices.Fst(serie.Points).X)
 	pos.Y = serie.Y.Scale(slices.Fst(serie.Points).Y)
 	pat.AbsMoveTo(pos)
+	if serie.WithPoint != nil {
+		grp.Append(serie.WithPoint(pos))
+	}
 	for _, pt := range slices.Rest(serie.Points) {
-		_ = pt
+		pos.X = serie.X.Scale(pt.X)
+		pos.Y = serie.Y.Scale(pt.Y)
+
+		ctrl := ori
+		ctrl.X += (pos.X - ori.X) * r.stretch
+		pat.AbsQuadraticCurve(pos, ctrl)
+		ori = pos
+		if serie.WithPoint != nil {
+			grp.Append(serie.WithPoint(pos))
+		}
 	}
 	grp.Append(pat.AsElement())
 	return grp.AsElement()

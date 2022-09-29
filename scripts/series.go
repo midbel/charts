@@ -2,6 +2,7 @@ package main
 
 import (
 	//	"math"
+	"math"
 	"os"
 	"strconv"
 	"time"
@@ -19,7 +20,7 @@ func main() {
 	)
 
 	var serie2 charts.Serie[time.Time, float64]
-	serie2.Renderer = charts.CubicRender[time.Time, float64](0.25, true)
+	serie2.Renderer = charts.StepRender[time.Time, float64](true)
 	serie2.Color = "red"
 	serie2.WithPoint = func(p svg.Pos) svg.Element {
 		ci := charts.GetCirclePoint(p)
@@ -29,22 +30,22 @@ func main() {
 	serie2.X = xscale2
 	serie2.Y = yscale2
 	serie2.Points = []charts.Point[time.Time, float64]{
-		charts.TimePoint(time.Date(2022, 1, 15, 0, 0, 0, 0, time.UTC), 34),
+		charts.TimePoint(time.Date(2022, 1, 5, 0, 0, 0, 0, time.UTC), 34),
 		charts.TimePoint(time.Date(2022, 1, 20, 0, 0, 0, 0, time.UTC), 39),
 		charts.TimePoint(time.Date(2022, 2, 10, 0, 0, 0, 0, time.UTC), 40),
 		charts.TimePoint(time.Date(2022, 2, 26, 0, 0, 0, 0, time.UTC), 45),
 		charts.TimePoint(time.Date(2022, 3, 7, 0, 0, 0, 0, time.UTC), 43),
-		charts.TimePoint(time.Date(2022, 3, 15, 0, 0, 0, 0, time.UTC), 43),
+		charts.TimePoint(time.Date(2022, 4, 15, 0, 0, 0, 0, time.UTC), 10),
 		charts.TimePoint(time.Date(2022, 6, 11, 0, 0, 0, 0, time.UTC), 67),
 		charts.TimePoint(time.Date(2022, 6, 29, 0, 0, 0, 0, time.UTC), 80),
 		charts.TimePoint(time.Date(2022, 7, 6, 0, 0, 0, 0, time.UTC), 89),
-		//charts.TimePoint(time.Date(2022, 7, 23, 0, 0, 0, 0, time.UTC), math.NaN()),
-		//charts.TimePoint(time.Date(2022, 8, 3, 0, 0, 0, 0, time.UTC), math.NaN()),
-		//charts.TimePoint(time.Date(2022, 8, 15, 0, 0, 0, 0, time.UTC), math.NaN()),
-		//charts.TimePoint(time.Date(2022, 8, 20, 0, 0, 0, 0, time.UTC), math.NaN()),
+		charts.TimePoint(time.Date(2022, 7, 23, 0, 0, 0, 0, time.UTC), math.NaN()),
+		charts.TimePoint(time.Date(2022, 8, 3, 0, 0, 0, 0, time.UTC), math.NaN()),
+		charts.TimePoint(time.Date(2022, 8, 15, 0, 0, 0, 0, time.UTC), math.NaN()),
+		charts.TimePoint(time.Date(2022, 8, 20, 0, 0, 0, 0, time.UTC), math.NaN()),
 		charts.TimePoint(time.Date(2022, 9, 5, 0, 0, 0, 0, time.UTC), 98),
 		charts.TimePoint(time.Date(2022, 9, 12, 0, 0, 0, 0, time.UTC), 78),
-		//charts.TimePoint(time.Date(2022, 9, 20, 0, 0, 0, 0, time.UTC), math.NaN()),
+		charts.TimePoint(time.Date(2022, 9, 20, 0, 0, 0, 0, time.UTC), math.NaN()),
 		charts.TimePoint(time.Date(2022, 10, 3, 0, 0, 0, 0, time.UTC), 19),
 		charts.TimePoint(time.Date(2022, 10, 7, 0, 0, 0, 0, time.UTC), 22),
 		charts.TimePoint(time.Date(2022, 10, 15, 0, 0, 0, 0, time.UTC), 54),
@@ -54,6 +55,10 @@ func main() {
 		charts.TimePoint(time.Date(2022, 12, 25, 0, 0, 0, 0, time.UTC), 12),
 		charts.TimePoint(time.Date(2022, 12, 30, 0, 0, 0, 0, time.UTC), 1),
 	}
+
+	serie3 := serie2
+	serie3.Color = "green"
+	serie3.Renderer = charts.LinearRender[time.Time, float64](false)
 
 	left := charts.NumberAxis{
 		Ticks:          10,
@@ -86,5 +91,5 @@ func main() {
 		Left:   left,
 		Bottom: bot,
 	}
-	ch.Render(os.Stdout, serie2)
+	ch.Render(os.Stdout, serie2, serie3)
 }
