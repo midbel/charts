@@ -6,6 +6,7 @@ import (
 
 type Serie[T, U ScalerConstraint] struct {
 	Color string
+	Title string
 
 	Points []Point[T, U]
 	X      Scaler[T]

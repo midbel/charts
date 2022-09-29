@@ -33,6 +33,11 @@ type Chart[T, U ScalerConstraint] struct {
 	Right  Axis
 	Top    Axis
 	Bottom Axis
+
+	Legend struct {
+		Title  string
+		Orient Orientation
+	}
 }
 
 func (c Chart[T, U]) DrawingWidth() float64 {
@@ -53,6 +58,9 @@ func (c Chart[T, U]) Render(w io.Writer, series ...Serie[T, U]) {
 		ar.Append(g)
 	}
 	el.Append(ar.AsElement())
+	if lg := c.drawLegend(series); lg != nil {
+		el.Append(lg)
+	}
 
 	bw := bufio.NewWriter(w)
 	defer bw.Flush()
@@ -62,9 +70,71 @@ func (c Chart[T, U]) Render(w io.Writer, series ...Serie[T, U]) {
 func (c Chart[T, U]) getArea() svg.Group {
 	var g svg.Group
 	g.Id = "area"
-	g.Transform.TX = c.Padding.Left
-	g.Transform.TY = c.Padding.Top
+	g.Transform = svg.Translate(c.Padding.Left, c.Padding.Top)
 	return g
+}
+
+func (c Chart[T, U]) drawLegend(series []Serie[T, U]) svg.Element {
+	var (
+		offset = FontSize * 1.4
+		height = float64(len(series)) * offset
+		width  float64
+		grp    svg.Group
+	)
+	if c.Legend.Title != "" {
+		height += offset
+	}
+	for i, s := range series {
+		if n := float64(len(s.Title)); i == 0 || n > width {
+			width = n
+		}
+		var g svg.Group
+		g.Transform = svg.Translate(0, float64(i)*offset)
+		li := svg.NewLine(svg.NewPos(0, 0), svg.NewPos(20, 0))
+		li.Stroke = svg.NewStroke(s.Color, 1)
+
+		tx := svg.NewText(s.Title)
+		tx.Pos = svg.NewPos(30, 0)
+		tx.Font = svg.NewFont(FontSize)
+		tx.Baseline = "middle"
+
+		g.Append(li.AsElement())
+		g.Append(tx.AsElement())
+		grp.Append(g.AsElement())
+	}
+	width *= FontSize * 0.4
+
+	var left, top float64
+	switch c.Legend.Orient {
+	case OrientRight:
+		left = c.Width - c.Padding.Left - width
+		top = (c.Height - c.Padding.Top - height) / 2
+	case OrientRight | OrientBottom:
+		left = c.Width - c.Padding.Left - width
+		top = c.Height - c.Padding.Top - height
+	case OrientBottom:
+		left = (c.Width - width) / 2
+		top = c.Height - c.Padding.Top - height
+	case OrientLeft | OrientBottom:
+		left = c.Padding.Left
+		top = c.Height - c.Padding.Top - height
+	case OrientLeft:
+		left = c.Padding.Left
+		top = (c.Height - c.Padding.Vertical() - height) / 2
+	case OrientLeft | OrientTop:
+		top = c.Padding.Top
+		left = c.Padding.Left
+	case OrientTop:
+		left = (c.Width - width) / 2
+		top = c.Padding.Top
+	case OrientRight | OrientTop:
+		top = c.Padding.Top
+		left = c.Width - c.Padding.Left - width
+	default:
+		return nil
+	}
+	grp.Transform = svg.Translate(left, top)
+	return grp.AsElement()
 }
 
 func (c Chart[T, U]) drawAxis() svg.Element {
