@@ -56,12 +56,18 @@ func stepRender[T, U charts.ScalerConstraint](serie Serie[T, U]) svg.Element {
 	var (
 		grp = svg.NewGroup()
 		pat = getBasePath(serie.Color, serie.WithArea)
-		pos svg.Pos
+		pos = svg.NewPos(serie.X.Min(), serie.Y.Max())
 		ori svg.Pos
 	)
-	pos.X = serie.X.Scale(slices.Fst(serie.Points).X)
-	pos.Y = serie.Y.Scale(slices.Fst(serie.Points).Y)
 	pat.AbsMoveTo(pos)
+	pos.Y = serie.Y.Scale(slices.Fst(serie.Points).Y)
+	pat.AbsLineTo(pos)
+	pos.X = serie.X.Scale(slices.Fst(serie.Points).X)
+	pat.AbsLineTo(pos)
+	if serie.WithPoint {
+		ci := getCircle(pos, serie.Color)
+		grp.Append(ci.AsElement())
+	}
 	ori = pos
 	for _, pt := range slices.Rest(serie.Points) {
 		pos.X = serie.X.Scale(pt.X)
@@ -81,10 +87,6 @@ func stepRender[T, U charts.ScalerConstraint](serie Serie[T, U]) svg.Element {
 	if serie.WithArea {
 		pos.Y = serie.Y.Max()
 		pat.AbsLineTo(pos)
-		// pos.X = ori
-		pos.X = serie.X.Min()
-		pat.AbsLineTo(pos)
-		pat.ClosePath()
 	}
 	grp.Append(pat.AsElement())
 	return grp.AsElement()
@@ -95,7 +97,6 @@ func linearRender[T, U charts.ScalerConstraint](serie Serie[T, U]) svg.Element {
 		grp = svg.NewGroup()
 		pat = getBasePath(serie.Color, serie.WithArea)
 		pos svg.Pos
-		// ori = serie.X.Scale(slices.Fst(serie.Points).X)
 	)
 	for i, pt := range serie.Points {
 		pos.X = serie.X.Scale(pt.X)
@@ -129,8 +130,14 @@ func stepAfterRender[T, U charts.ScalerConstraint](serie Serie[T, U]) svg.Elemen
 		ori svg.Pos
 	)
 	pos.X = serie.X.Scale(slices.Fst(serie.Points).X)
-	pos.Y = serie.Y.Scale(slices.Fst(serie.Points).Y)
+	pos.Y = serie.Y.Max()
 	pat.AbsMoveTo(pos)
+	pos.Y = serie.Y.Scale(slices.Fst(serie.Points).Y)
+	pat.AbsLineTo(pos)
+	if serie.WithPoint {
+		ci := getCircle(pos, serie.Color)
+		grp.Append(ci.AsElement())		
+	}
 	ori = pos
 	for _, pt := range slices.Rest(serie.Points) {
 		pos.X = serie.X.Scale(pt.X)
@@ -149,11 +156,10 @@ func stepAfterRender[T, U charts.ScalerConstraint](serie Serie[T, U]) svg.Elemen
 		}
 	}
 	if serie.WithArea {
+		pos.X = serie.X.Max()
+		pat.AbsLineTo(pos)
 		pos.Y = serie.Y.Max()
 		pat.AbsLineTo(pos)
-		pos.X = serie.X.Min()
-		pat.AbsLineTo(pos)
-		pat.ClosePath()
 	}
 	grp.Append(pat.AsElement())
 	return grp.AsElement()
@@ -166,9 +172,17 @@ func stepBeforeRender[T, U charts.ScalerConstraint](serie Serie[T, U]) svg.Eleme
 		pos svg.Pos
 		ori svg.Pos
 	)
-	pos.X = serie.X.Scale(slices.Fst(serie.Points).X)
-	pos.Y = serie.Y.Scale(slices.Fst(serie.Points).Y)
+	pos.X = serie.X.Min()
+	pos.Y = serie.Y.Max()
 	pat.AbsMoveTo(pos)
+	pos.Y = serie.Y.Scale(slices.Fst(serie.Points).Y)
+	pat.AbsLineTo(pos)
+	pos.X = serie.X.Scale(slices.Fst(serie.Points).X)
+	pat.AbsLineTo(pos)
+	if serie.WithPoint {
+		ci := getCircle(pos, serie.Color)
+		grp.Append(ci.AsElement())
+	}
 	ori = pos
 	for _, pt := range slices.Rest(serie.Points) {
 		pos.X = serie.X.Scale(pt.X)
@@ -189,9 +203,6 @@ func stepBeforeRender[T, U charts.ScalerConstraint](serie Serie[T, U]) svg.Eleme
 	if serie.WithArea {
 		pos.Y = serie.Y.Max()
 		pat.AbsLineTo(pos)
-		pos.X = serie.X.Min()
-		pat.AbsLineTo(pos)
-		pat.ClosePath()
 	}
 	grp.Append(pat.AsElement())
 	return grp.AsElement()
@@ -247,7 +258,7 @@ func main() {
 	area.Append(elem)
 
 	var serie1 Serie[float64, float64]
-	serie1.Renderer = linearRender[float64, float64]
+	serie1.Renderer = stepBeforeRender[float64, float64]
 	serie1.Color = "blue"
 	serie1.WithArea = true
 	serie1.WithPoint = true
@@ -272,8 +283,8 @@ func main() {
 	dtstart = time.Date(2022, 1, 1, 0, 0, 0, 0, time.UTC)
 	dtend = time.Date(2022, 12, 31, 23, 59, 59, 0, time.UTC)
 
-	var serie2 Serie[time.Time, float64]
-	serie2.Renderer = linearRender[time.Time, float64]
+/*	var serie2 Serie[time.Time, float64]
+	serie2.Renderer = stepBeforeRender[time.Time, float64]
 	serie2.Color = "red"
 	serie2.WithArea = true
 	serie2.WithPoint = true
@@ -299,7 +310,7 @@ func main() {
 	}
 
 	pat = serie2.Render()
-	area.Append(pat)
+	area.Append(pat)*/
 
 	w := bufio.NewWriter(os.Stdout)
 	defer w.Flush()
