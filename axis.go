@@ -27,20 +27,23 @@ func (o Orientation) Reverse() bool {
 }
 
 type Axis interface {
-	Render(float64, float64, float64) svg.Element
+	Render(float64, float64, float64, float64) svg.Element
 }
 
 type TimeAxis struct {
 	Label  string
 	Rotate float64
 	Orientation
-	Ticks  int
-	Scaler Scaler[time.Time]
-	Domain []time.Time
-	Format func(time.Time) string
+	Ticks          int
+	Scaler         Scaler[time.Time]
+	Domain         []time.Time
+	Format         func(time.Time) string
+	WithInnerTicks bool
+	WithLabelTicks bool
+	WithOuterTicks bool
 }
 
-func (a TimeAxis) Render(length, left, top float64) svg.Element {
+func (a TimeAxis) Render(length, size, left, top float64) svg.Element {
 	g := svg.NewGroup(svg.WithTranslate(left, top))
 	d := domainLine(a.Orientation, length, svg.NewStroke("black", 1))
 	g.Append(d.AsElement())
@@ -58,19 +61,29 @@ func (a TimeAxis) Render(length, left, top float64) svg.Element {
 			return t.Format("2006-01-02")
 		}
 	}
-	for _, t := range data {
+	for i, t := range data {
 		var (
-			pos  = a.Scaler.Scale(t)
-			grp  = svg.NewGroup(svg.WithTranslate(pos, 0))
-			text = tickText(a.Orientation, format(t), 0, font)
-			tick = innerTick(a.Orientation, 0, d.Stroke)
+			pos = a.Scaler.Scale(t)
+			grp = svg.NewGroup(svg.WithTranslate(pos, 0))
 		)
 		if a.Vertical() {
 			grp.Transform.TX = 0
 			grp.Transform.TY = pos
 		}
-		grp.Append(tick.AsElement())
-		grp.Append(text.AsElement())
+		if a.WithInnerTicks {
+			tick := lineTick(a.Orientation, 0, FontSize*0.8, d.Stroke)
+			grp.Append(tick.AsElement())
+		}
+		if a.WithLabelTicks {
+			text := tickText(a.Orientation, format(t), 0, font)
+			grp.Append(text.AsElement())
+		}
+		if a.WithOuterTicks && i < len(data)-1 {
+			sk := d.Stroke
+			sk.DashArray(5)
+			tick := lineTick(a.Orientation, 0, -size, sk)
+			grp.Append(tick.AsElement())
+		}
 		g.Append(grp.AsElement())
 	}
 
@@ -81,13 +94,16 @@ type NumberAxis struct {
 	Label  string
 	Rotate float64
 	Orientation
-	Ticks  int
-	Scaler Scaler[float64]
-	Domain []float64
-	Format func(float64) string
+	Ticks          int
+	Scaler         Scaler[float64]
+	Domain         []float64
+	Format         func(float64) string
+	WithInnerTicks bool
+	WithLabelTicks bool
+	WithOuterTicks bool
 }
 
-func (a NumberAxis) Render(length, left, top float64) svg.Element {
+func (a NumberAxis) Render(length, size, left, top float64) svg.Element {
 	g := svg.NewGroup(svg.WithTranslate(left, top))
 	d := domainLine(a.Orientation, length, svg.NewStroke("black", 1))
 	g.Append(d.AsElement())
@@ -105,19 +121,29 @@ func (a NumberAxis) Render(length, left, top float64) svg.Element {
 			return strconv.FormatFloat(f, 'f', 2, 64)
 		}
 	}
-	for _, f := range data {
+	for i, f := range data {
 		var (
-			pos  = a.Scaler.Scale(f)
-			grp  = svg.NewGroup(svg.WithTranslate(pos, 0))
-			text = tickText(a.Orientation, format(f), 0, font)
-			tick = innerTick(a.Orientation, 0, d.Stroke)
+			pos = a.Scaler.Scale(f)
+			grp = svg.NewGroup(svg.WithTranslate(pos, 0))
 		)
 		if a.Vertical() {
 			grp.Transform.TX = 0
 			grp.Transform.TY = pos
 		}
-		grp.Append(tick.AsElement())
-		grp.Append(text.AsElement())
+		if a.WithInnerTicks {
+			tick := lineTick(a.Orientation, 0, FontSize*0.8, d.Stroke)
+			grp.Append(tick.AsElement())
+		}
+		if a.WithLabelTicks {
+			text := tickText(a.Orientation, format(f), 0, font)
+			grp.Append(text.AsElement())
+		}
+		if a.WithOuterTicks && i < len(data)-1 {
+			sk := d.Stroke
+			sk.DashArray(5)
+			tick := lineTick(a.Orientation, 0, -size, sk)
+			grp.Append(tick.AsElement())
+		}
 		g.Append(grp.AsElement())
 	}
 
@@ -128,10 +154,12 @@ type CategoryAxis struct {
 	Label  string
 	Rotate float64
 	Orientation
-	Domain []string
+	Domain         []string
+	WithInnerTicks bool
+	WithOuterTicks bool
 }
 
-func (a CategoryAxis) Render(length, left, top float64) svg.Element {
+func (a CategoryAxis) Render(length, size, left, top float64) svg.Element {
 	g := svg.NewGroup(svg.WithTranslate(left, top))
 	d := domainLine(a.Orientation, length, svg.NewStroke("black", 1))
 	g.Append(d.AsElement())
@@ -145,14 +173,22 @@ func (a CategoryAxis) Render(length, left, top float64) svg.Element {
 		var (
 			pos  = float64(i) * interval
 			text = tickText(a.Orientation, s, align, font)
-			tick = innerTick(a.Orientation, align, d.Stroke)
 			grp  = svg.NewGroup(svg.WithTranslate(pos, 0))
 		)
 		if a.Vertical() {
 			grp.Transform.TX = 0
 			grp.Transform.TY = pos
 		}
-		grp.Append(tick.AsElement())
+		if a.WithInnerTicks {
+			tick := lineTick(a.Orientation, align, FontSize*0.8, d.Stroke)
+			grp.Append(tick.AsElement())
+		}
+		if a.WithOuterTicks {
+			sk := d.Stroke
+			sk.DashArray(5)
+			tick := lineTick(a.Orientation, align, -size, sk)
+			grp.Append(tick.AsElement())
+		}
 		grp.Append(text.AsElement())
 		g.Append(grp.AsElement())
 	}
@@ -178,10 +214,10 @@ func domainLine(orient Orientation, length float64, stroke svg.Stroke) svg.Line 
 	return d
 }
 
-func innerTick(orient Orientation, offset float64, stroke svg.Stroke) svg.Line {
+func lineTick(orient Orientation, offset, size float64, stroke svg.Stroke) svg.Line {
 	var (
 		pos1 = svg.NewPos(offset, 0)
-		pos2 = svg.NewPos(offset, FontSize*0.8)
+		pos2 = svg.NewPos(offset, size)
 	)
 	switch {
 	case orient.Vertical() && !orient.Reverse():

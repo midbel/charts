@@ -70,19 +70,19 @@ func (c Chart[T, U]) getArea() svg.Group {
 func (c Chart[T, U]) drawAxis() svg.Element {
 	g := svg.NewGroup(svg.WithID("axis"))
 	if c.Left != nil {
-		el := c.Left.Render(c.DrawingHeight(), c.Padding.Left, c.Padding.Top)
+		el := c.Left.Render(c.DrawingHeight(), c.DrawingWidth(), c.Padding.Left, c.Padding.Top)
 		g.Append(el)
 	}
 	if c.Right != nil {
-		el := c.Right.Render(c.DrawingHeight(), c.Width-c.Padding.Right, c.Padding.Top)
+		el := c.Right.Render(c.DrawingHeight(), c.DrawingWidth(), c.Width-c.Padding.Right, c.Padding.Top)
 		g.Append(el)
 	}
 	if c.Top != nil {
-		el := c.Top.Render(c.DrawingWidth(), c.Padding.Left, c.Padding.Top)
+		el := c.Top.Render(c.DrawingWidth(), c.DrawingHeight(), c.Padding.Left, c.Padding.Top)
 		g.Append(el)
 	}
 	if c.Bottom != nil {
-		el := c.Bottom.Render(c.DrawingWidth(), c.Padding.Left, c.Height-c.Padding.Bottom)
+		el := c.Bottom.Render(c.DrawingWidth(), c.DrawingHeight(), c.Padding.Left, c.Height-c.Padding.Bottom)
 		g.Append(el)
 	}
 	return g.AsElement()

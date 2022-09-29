@@ -5,15 +5,15 @@ import (
 )
 
 type Serie[T, U ScalerConstraint] struct {
-	WithPoint bool
-	WithArea  bool
-	Color     string
+	Color string
 
 	Points []Point[T, U]
 	X      Scaler[T]
 	Y      Scaler[U]
 
-	Renderer Renderer[T, U]
+	Renderer  Renderer[T, U]
+	WithPoint func(svg.Pos) svg.Element
+	WithArea  bool
 }
 
 func (s Serie[T, U]) Render() svg.Element {

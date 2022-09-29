@@ -40,7 +40,7 @@ func (n numberDomain) Values(c int) []float64 {
 		step = n.Extend() / float64(c)
 	)
 	for i := 0; i < c; i++ {
-		all[i] = n.fst + float64(i+1)*step
+		all[i] = n.fst + float64(i)*step
 	}
 	all = append(all, n.lst)
 	return all
