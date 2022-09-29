@@ -5,208 +5,10 @@ import (
 	"os"
 	"time"
 
+	"github.com/midbel/charts"
 	"github.com/midbel/slices"
 	"github.com/midbel/svg"
-	"github.com/midbel/charts"
 )
-
-func getBasePath(stroke string, fill bool) svg.Path {
-	pat := svg.NewPath()
-	pat.Stroke = svg.NewStroke(stroke, 1)
-	if fill {
-		pat.Fill = svg.NewFill(stroke)
-		pat.Fill.Opacity = 0.5
-	} else {
-		pat.Fill = svg.NewFill("none")
-	}
-	return pat
-}
-
-func getCircle(pos svg.Pos, fill string) svg.Circle {
-	ci := svg.NewCircle()
-	ci.Radius = 5
-	ci.Pos = pos
-	ci.Fill = svg.NewFill(fill)
-	return ci
-}
-
-type Serie[T, U charts.ScalerConstraint] struct {
-	WithPoint bool
-	WithArea bool
-	Color     string
-
-	Points []charts.Point[T, U]
-	X      charts.Scaler[T]
-	Y      charts.Scaler[U]
-
-	Renderer RenderFunc[T, U]
-}
-
-func (s Serie[T, U]) Render() svg.Element {
-	return s.Renderer(s)
-}
-
-type Renderer[T, U charts.ScalerConstraint] interface {
-	Render([]charts.Point[T, U]) svg.Element
-}
-
-type RenderFunc[T, U charts.ScalerConstraint] func(Serie[T, U]) svg.Element
-
-func stepRender[T, U charts.ScalerConstraint](serie Serie[T, U]) svg.Element {
-	var (
-		grp = svg.NewGroup()
-		pat = getBasePath(serie.Color, serie.WithArea)
-		pos = svg.NewPos(serie.X.Min(), serie.Y.Max())
-		ori svg.Pos
-	)
-	pat.AbsMoveTo(pos)
-	pos.Y = serie.Y.Scale(slices.Fst(serie.Points).Y)
-	pat.AbsLineTo(pos)
-	pos.X = serie.X.Scale(slices.Fst(serie.Points).X)
-	pat.AbsLineTo(pos)
-	if serie.WithPoint {
-		ci := getCircle(pos, serie.Color)
-		grp.Append(ci.AsElement())
-	}
-	ori = pos
-	for _, pt := range slices.Rest(serie.Points) {
-		pos.X = serie.X.Scale(pt.X)
-		pos.Y = serie.Y.Scale(pt.Y)
-
-		ori.X += (pos.X - ori.X) / 2
-		pat.AbsLineTo(ori)
-		ori.Y = pos.Y
-		pat.AbsLineTo(ori)
-		pat.AbsLineTo(pos)
-		ori = pos
-		if serie.WithPoint {
-			ci := getCircle(pos, serie.Color)
-			grp.Append(ci.AsElement())
-		}
-	}
-	if serie.WithArea {
-		pos.Y = serie.Y.Max()
-		pat.AbsLineTo(pos)
-	}
-	grp.Append(pat.AsElement())
-	return grp.AsElement()
-}
-
-func linearRender[T, U charts.ScalerConstraint](serie Serie[T, U]) svg.Element {
-	var (
-		grp = svg.NewGroup()
-		pat = getBasePath(serie.Color, serie.WithArea)
-		pos svg.Pos
-	)
-	for i, pt := range serie.Points {
-		pos.X = serie.X.Scale(pt.X)
-		pos.Y = serie.Y.Scale(pt.Y)
-		if i == 0 {
-			pat.AbsMoveTo(pos)
-		} else {
-			pat.AbsLineTo(pos)
-		}
-		if serie.WithPoint {
-			ci := getCircle(pos, serie.Color)
-			grp.Append(ci.AsElement())
-		}
-	}
-	if serie.WithArea {
-		pos.Y = serie.Y.Max()
-		pat.AbsLineTo(pos)
-		pos.X = serie.X.Min()
-		pat.AbsLineTo(pos)
-		pat.ClosePath()
-	}
-	grp.Append(pat.AsElement())
-	return grp.AsElement()
-}
-
-func stepAfterRender[T, U charts.ScalerConstraint](serie Serie[T, U]) svg.Element {
-	var (
-		grp = svg.NewGroup()
-		pat = getBasePath(serie.Color, serie.WithArea)
-		pos svg.Pos
-		ori svg.Pos
-	)
-	pos.X = serie.X.Scale(slices.Fst(serie.Points).X)
-	pos.Y = serie.Y.Max()
-	pat.AbsMoveTo(pos)
-	pos.Y = serie.Y.Scale(slices.Fst(serie.Points).Y)
-	pat.AbsLineTo(pos)
-	if serie.WithPoint {
-		ci := getCircle(pos, serie.Color)
-		grp.Append(ci.AsElement())		
-	}
-	ori = pos
-	for _, pt := range slices.Rest(serie.Points) {
-		pos.X = serie.X.Scale(pt.X)
-		pos.Y = serie.Y.Scale(pt.Y)
-
-		ori.X = pos.X
-		pat.AbsLineTo(ori)
-		ori.Y = pos.Y
-		pat.AbsLineTo(ori)
-		pat.AbsLineTo(pos)
-		ori = pos
-
-		if serie.WithPoint {
-			ci := getCircle(pos, serie.Color)
-			grp.Append(ci.AsElement())
-		}
-	}
-	if serie.WithArea {
-		pos.X = serie.X.Max()
-		pat.AbsLineTo(pos)
-		pos.Y = serie.Y.Max()
-		pat.AbsLineTo(pos)
-	}
-	grp.Append(pat.AsElement())
-	return grp.AsElement()
-}
-
-func stepBeforeRender[T, U charts.ScalerConstraint](serie Serie[T, U]) svg.Element {
-	var (
-		grp = svg.NewGroup()
-		pat = getBasePath(serie.Color, serie.WithArea)
-		pos svg.Pos
-		ori svg.Pos
-	)
-	pos.X = serie.X.Min()
-	pos.Y = serie.Y.Max()
-	pat.AbsMoveTo(pos)
-	pos.Y = serie.Y.Scale(slices.Fst(serie.Points).Y)
-	pat.AbsLineTo(pos)
-	pos.X = serie.X.Scale(slices.Fst(serie.Points).X)
-	pat.AbsLineTo(pos)
-	if serie.WithPoint {
-		ci := getCircle(pos, serie.Color)
-		grp.Append(ci.AsElement())
-	}
-	ori = pos
-	for _, pt := range slices.Rest(serie.Points) {
-		pos.X = serie.X.Scale(pt.X)
-		pos.Y = serie.Y.Scale(pt.Y)
-
-		ori.Y = pos.Y
-		pat.AbsLineTo(ori)
-		ori.X = pos.X
-		pat.AbsLineTo(ori)
-		pat.AbsLineTo(pos)
-		ori = pos
-
-		if serie.WithPoint {
-			ci := getCircle(pos, serie.Color)
-			grp.Append(ci.AsElement())
-		}
-	}
-	if serie.WithArea {
-		pos.Y = serie.Y.Max()
-		pat.AbsLineTo(pos)
-	}
-	grp.Append(pat.AsElement())
-	return grp.AsElement()
-}
 
 func main() {
 	var (
@@ -283,8 +85,8 @@ func main() {
 	dtstart = time.Date(2022, 1, 1, 0, 0, 0, 0, time.UTC)
 	dtend = time.Date(2022, 12, 31, 23, 59, 59, 0, time.UTC)
 
-/*	var serie2 Serie[time.Time, float64]
-	serie2.Renderer = stepBeforeRender[time.Time, float64]
+	var serie2 Serie[time.Time, float64]
+	serie2.Renderer = stepAfterRender[time.Time, float64]
 	serie2.Color = "red"
 	serie2.WithArea = true
 	serie2.WithPoint = true
@@ -310,7 +112,7 @@ func main() {
 	}
 
 	pat = serie2.Render()
-	area.Append(pat)*/
+	area.Append(pat)
 
 	w := bufio.NewWriter(os.Stdout)
 	defer w.Flush()

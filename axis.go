@@ -1,8 +1,8 @@
 package charts
 
 import (
-	"time"
 	"strconv"
+	"time"
 
 	"github.com/midbel/svg"
 )
@@ -28,7 +28,6 @@ func (o Orientation) Reverse() bool {
 
 type Axis interface {
 	Render(float64, float64, float64) svg.Element
-	Range() float64
 }
 
 type TimeAxis struct {
