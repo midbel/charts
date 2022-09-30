@@ -28,7 +28,8 @@ func main() {
 
 	rdr := charts.BarRenderer[string, float64]{
 		Width: 0.5,
-		Fill: "steelblue",
+		Fill: []string{"steelblue"},
+		// Fill: []string{"steelblue", "lightsalmon", "mediumorchid", "firebrick"},
 	}
 	ser := charts.Serie[string, float64]{
 		Title:    "preferences",
