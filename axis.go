@@ -154,6 +154,7 @@ func (a NumberAxis) Render(length, size, left, top float64) svg.Element {
 type CategoryAxis struct {
 	Label  string
 	Rotate float64
+	Scaler Scaler[string]
 	Orientation
 	Domain         []string
 	WithInnerTicks bool
@@ -166,13 +167,16 @@ func (a CategoryAxis) Render(length, size, left, top float64) svg.Element {
 	g.Append(d.AsElement())
 
 	var (
-		interval = length / a.Range()
-		align    = interval / 2
-		font     = svg.NewFont(FontSize)
+		align = a.Scaler.Space() / 2
+		font  = svg.NewFont(FontSize)
+		data  = a.Domain
 	)
-	for i, s := range a.Values() {
+	if len(data) == 0 {
+		data = a.Scaler.Values(0)
+	}
+	for _, s := range data {
 		var (
-			pos  = float64(i) * interval
+			pos  = a.Scaler.Scale(s)
 			text = tickText(a.Orientation, s, align, font)
 			grp  = svg.NewGroup(svg.WithTranslate(pos, 0))
 		)
@@ -195,14 +199,6 @@ func (a CategoryAxis) Render(length, size, left, top float64) svg.Element {
 	}
 
 	return g.AsElement()
-}
-
-func (a CategoryAxis) Range() float64 {
-	return float64(len(a.Domain))
-}
-
-func (a CategoryAxis) Values() []string {
-	return a.Domain
 }
 
 func domainLine(orient Orientation, length float64, stroke svg.Stroke) svg.Line {

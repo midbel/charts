@@ -61,9 +61,9 @@ func main() {
 func loadSerie(file, color string) (charts.Serie[time.Time, float64], error) {
 	name := strings.TrimRight(filepath.Base(file), filepath.Ext(file))
 	ser := charts.Serie[time.Time, float64]{
-		Title:    name,
-		Color:    color,
-		Renderer: charts.LinearRender[time.Time, float64](false),
+		Title:     name,
+		Color:     color,
+		Renderer:  charts.LinearRender[time.Time, float64](false),
 		WithTitle: true,
 	}
 

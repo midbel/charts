@@ -180,5 +180,8 @@ func (s stringScaler) Space() float64 {
 }
 
 func (s stringScaler) Values(c int) []string {
-	return nil
+	if c > 0 && c < len(s.Strings) {
+		return s.Strings[:c]
+	}
+	return s.Strings
 }

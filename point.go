@@ -23,6 +23,13 @@ func TimePoint(x time.Time, y float64) Point[time.Time, float64] {
 	}
 }
 
+func CategoryPoint(x string, y float64) Point[string, float64] {
+	return Point[string, float64]{
+		X: x,
+		Y: y,
+	}
+}
+
 func (p Point[T, U]) Reverse() Point[U, T] {
 	return Point[U, T]{
 		X: p.Y,
