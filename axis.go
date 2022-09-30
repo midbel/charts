@@ -81,7 +81,7 @@ func (a TimeAxis) Render(length, size, left, top float64) svg.Element {
 		}
 		if a.WithOuterTicks && i < len(data)-1 {
 			sk := d.Stroke
-			sk.DashArray(5)
+			sk.Opacity = 0.1
 			tick := lineTick(a.Orientation, 0, -size, sk)
 			grp.Append(tick.AsElement())
 		}
@@ -141,7 +141,7 @@ func (a NumberAxis) Render(length, size, left, top float64) svg.Element {
 		}
 		if a.WithOuterTicks && i < len(data)-1 {
 			sk := d.Stroke
-			sk.DashArray(5)
+			sk.Opacity = 0.1
 			tick := lineTick(a.Orientation, 0, -size, sk)
 			grp.Append(tick.AsElement())
 		}
