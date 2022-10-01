@@ -52,7 +52,7 @@ func main() {
 		Width:   defaultWidth,
 		Height:  defaultHeight,
 		Padding: pad,
-		Left:    getAxisY(priceScale),
+		Right:   getAxisY(priceScale),
 		Bottom:  getAxisX(timeScale),
 	}
 	ch.Render(os.Stdout, series...)
@@ -61,9 +61,11 @@ func main() {
 func loadSerie(file, color string) (charts.Serie[time.Time, float64], error) {
 	name := strings.TrimRight(filepath.Base(file), filepath.Ext(file))
 	ser := charts.Serie[time.Time, float64]{
-		Title:     name,
-		Color:     color,
-		Renderer:  charts.LinearRender[time.Time, float64](false),
+		Title: name,
+		Color: color,
+		Renderer: charts.LinearRenderer[time.Time, float64]{
+			IgnoreMissing: false,
+		},
 		WithTitle: true,
 	}
 
@@ -120,7 +122,7 @@ func getAxisX(scaler charts.Scaler[time.Time]) charts.Axis {
 func getAxisY(scaler charts.Scaler[float64]) charts.Axis {
 	return charts.NumberAxis{
 		Ticks:          10,
-		Orientation:    charts.OrientLeft,
+		Orientation:    charts.OrientRight,
 		Scaler:         scaler,
 		WithInnerTicks: true,
 		WithLabelTicks: true,

@@ -248,17 +248,11 @@ func isFloat[T any](v T) (float64, bool) {
 	return x, ok
 }
 
-type linearRenderer[T, U ScalerConstraint] struct {
-	ignoreMissing bool
+type LinearRenderer[T, U ScalerConstraint] struct {
+	IgnoreMissing bool
 }
 
-func LinearRender[T, U ScalerConstraint](ignoreMissing bool) Renderer[T, U] {
-	return linearRenderer[T, U]{
-		ignoreMissing: ignoreMissing,
-	}
-}
-
-func (r linearRenderer[T, U]) Render(serie Serie[T, U]) svg.Element {
+func (r LinearRenderer[T, U]) Render(serie Serie[T, U]) svg.Element {
 	var (
 		grp = getBaseGroup()
 		pat = getBasePath(serie.Color, serie.WithArea)
@@ -272,7 +266,7 @@ func (r linearRenderer[T, U]) Render(serie Serie[T, U]) svg.Element {
 		}
 		pos.X = serie.X.Scale(pt.X)
 		pos.Y = serie.Y.Scale(pt.Y)
-		if i == 0 || (nan && r.ignoreMissing) {
+		if i == 0 || (nan && r.IgnoreMissing) {
 			nan = false
 			pat.AbsMoveTo(pos)
 		} else {

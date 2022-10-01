@@ -86,7 +86,7 @@ func (a TimeAxis) Render(length, size, left, top float64) svg.Element {
 			grp.Append(tick.AsElement())
 		}
 		if a.WithBands && i%2 == 0 {
-			rec := tickBand(a.Orientation, size, length/float64(len(data)-1))
+			rec := bandTick(a.Orientation, size, length/float64(len(data)-1))
 			grp.Append(rec.AsElement())
 		}
 		g.Append(grp.AsElement())
@@ -151,7 +151,7 @@ func (a NumberAxis) Render(length, size, left, top float64) svg.Element {
 			grp.Append(tick.AsElement())
 		}
 		if a.WithBands && i%2 == 0 {
-			rec := tickBand(a.Orientation, size, length/float64(len(data)-1))
+			rec := bandTick(a.Orientation, size, length/float64(len(data)-1))
 			grp.Append(rec.AsElement())
 		}
 		g.Append(grp.AsElement())
@@ -220,16 +220,20 @@ func domainLine(orient Orientation, length float64, stroke svg.Stroke) svg.Line 
 	return d
 }
 
-func tickBand(orient Orientation, width, height float64) svg.Rect {
+func bandTick(orient Orientation, width, height float64) svg.Rect {
 	var rec svg.Rect
 	rec.Pos = svg.NewPos(0, 0)
 	rec.Dim = svg.NewDim(width, height)
-	if !orient.Vertical() {
+	switch {
+	case !orient.Vertical() && orient.Reverse():
 		rec.Dim.W, rec.Dim.H = rec.Dim.H, rec.Dim.W
-		if !orient.Reverse() {
-			rec.Transform.RA = 180
-			rec.Transform.TX = rec.Dim.W
-		}
+	case !orient.Vertical() && !orient.Reverse():
+		rec.Dim.W, rec.Dim.H = rec.Dim.H, rec.Dim.W
+		rec.Transform.RA = 180
+		rec.Transform.TX = rec.Dim.W
+	case orient.Vertical() && orient.Reverse():
+		rec.Transform.TX = -rec.Dim.W
+	default:
 	}
 	rec.Fill = svg.NewFill("currentColor")
 	rec.Fill.Opacity = 0.05
