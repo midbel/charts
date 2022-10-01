@@ -52,8 +52,8 @@ func main() {
 		Width:   defaultWidth,
 		Height:  defaultHeight,
 		Padding: pad,
-		Left:    getLeftAxis(priceScale),
-		Bottom:  getBottomAxis(timeScale),
+		Left:    getAxisY(priceScale),
+		Bottom:  getAxisX(timeScale),
 	}
 	ch.Render(os.Stdout, series...)
 }
@@ -105,7 +105,7 @@ func TimePoint(date, value string) (charts.Point[time.Time, float64], error) {
 	return charts.TimePoint(t, v), nil
 }
 
-func getBottomAxis(scaler charts.Scaler[time.Time]) charts.Axis {
+func getAxisX(scaler charts.Scaler[time.Time]) charts.Axis {
 	return charts.TimeAxis{
 		Ticks:          7,
 		Orientation:    charts.OrientBottom,
@@ -113,10 +113,11 @@ func getBottomAxis(scaler charts.Scaler[time.Time]) charts.Axis {
 		WithInnerTicks: true,
 		WithLabelTicks: true,
 		WithOuterTicks: false,
+		WithBands:      true,
 	}
 }
 
-func getLeftAxis(scaler charts.Scaler[float64]) charts.Axis {
+func getAxisY(scaler charts.Scaler[float64]) charts.Axis {
 	return charts.NumberAxis{
 		Ticks:          10,
 		Orientation:    charts.OrientLeft,
@@ -127,5 +128,6 @@ func getLeftAxis(scaler charts.Scaler[float64]) charts.Axis {
 		Format: func(f float64) string {
 			return strconv.Itoa(int(f))
 		},
+		WithBands: false,
 	}
 }
