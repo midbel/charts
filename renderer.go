@@ -21,26 +21,63 @@ func GetCirclePoint(pos svg.Pos) svg.Circle {
 	return ci
 }
 
-type StackedRenderer[T, U ScalerConstraint] struct {
-	Fill  []string
-	Width float64
+type StackedRenderer[T ~string, U ~float64] struct {
+	Fill       []string
+	Width      float64
 	Horizontal bool
+	WithText   bool
+	WithValue  bool
 }
 
 func (r StackedRenderer[T, U]) Render(serie Serie[T, U]) svg.Element {
-	grp := getBaseGroup()
-	for _, pt := range serie.Points {
-		_ = pt
+	if r.Width <= 0 {
+		r.Width = 1
+	}
+	var grp svg.Group
+	for _, s := range serie.Series {
+		var (
+			total  float64
+			height = serie.Y.Max()
+			g      svg.Group
+		)
+		g.Transform = svg.Translate(serie.X.Scale(any(s.Title).(T)), 0)
+		for i, pt := range s.Points {
+			total += any(pt.Y).(float64)
+			var (
+				y = serie.Y.Scale(any(total).(U))
+				w = serie.X.Space() * r.Width
+				o = (serie.X.Space() - w) / 2
+			)
+
+			el := svg.NewRect()
+			el.Title = any(pt.X).(string)
+			el.Pos = svg.NewPos(o, y)
+			el.Dim = svg.NewDim(serie.X.Space()*r.Width, height-y)
+			el.Fill = svg.NewFill(r.Fill[i%len(r.Fill)])
+			g.Append(el.AsElement())
+			if r.WithText {
+
+			}
+			if r.WithValue {
+
+			}
+			height = y
+		}
+		grp.Append(g.AsElement())
 	}
 	return grp.AsElement()
 }
 
-type BarRenderer[T, U ScalerConstraint] struct {
-	Fill  []string
-	Width float64
+type BarRenderer[T ~string, U ~float64] struct {
+	Fill      []string
+	Width     float64
+	WithValue bool
 }
 
 func (r BarRenderer[T, U]) Render(serie Serie[T, U]) svg.Element {
+	if r.Width <= 0 {
+		r.Width = 1
+	}
 	grp := getBaseGroup()
 	for i, pt := range serie.Points {
 		var (
