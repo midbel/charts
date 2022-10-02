@@ -131,7 +131,7 @@ func getSerie(name, color string, skip int) charts.Serie[time.Time, float64] {
 
 func getAxisX(scaler charts.Scaler[time.Time]) charts.Axis {
 	return charts.TimeAxis{
-		Ticks: 7,
+		Ticks:          7,
 		Rotate:         -45,
 		Orientation:    charts.OrientBottom,
 		Scaler:         scaler,
