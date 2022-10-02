@@ -53,7 +53,7 @@ func main() {
 		Width:   defaultWidth,
 		Height:  defaultHeight,
 		Padding: pad,
-		Right:   getAxisY(priceScale),
+		Left:    getAxisY(priceScale),
 		Bottom:  getAxisX(timeScale),
 	}
 	ch.Render(os.Stdout, series...)
@@ -116,8 +116,8 @@ func TimePoint(date, value string) (charts.Point[time.Time, float64], error) {
 
 func getSerie(name, color string, skip int) charts.Serie[time.Time, float64] {
 	rdr := charts.LinearRenderer[time.Time, float64]{
-		IgnoreMissing: false,
-		Color:         color,
+		Color: color,
+		Text:  charts.TextAfter,
 	}
 	if skip > 10 {
 		rdr.Point = charts.GetCircle
@@ -144,7 +144,7 @@ func getAxisX(scaler charts.Scaler[time.Time]) charts.Axis {
 func getAxisY(scaler charts.Scaler[float64]) charts.Axis {
 	return charts.NumberAxis{
 		Ticks:          10,
-		Orientation:    charts.OrientRight,
+		Orientation:    charts.OrientLeft,
 		Scaler:         scaler,
 		WithInnerTicks: true,
 		WithLabelTicks: true,

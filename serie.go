@@ -7,8 +7,9 @@ import (
 )
 
 type Serie[T, U ScalerConstraint] struct {
-	Color string
-	Title string
+	Color         string
+	Title         string
+	IgnoreMissing bool
 
 	X      Scaler[T]
 	Y      Scaler[U]

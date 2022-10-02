@@ -7,6 +7,13 @@ import (
 	"github.com/midbel/svg"
 )
 
+type TextPosition int
+
+const (
+	TextBefore TextPosition = iota
+	TextAfter
+)
+
 const currentColour = "currentColour"
 
 type Renderer[T, U ScalerConstraint] interface {
@@ -136,10 +143,10 @@ func (r CubicRenderer[T, U]) Render(serie Serie[T, U]) svg.Element {
 }
 
 type LinearRenderer[T, U ScalerConstraint] struct {
-	IgnoreMissing bool
-	Fill          bool
-	Color         string
-	Point         PointFunc
+	Fill  bool
+	Color string
+	Point PointFunc
+	Text  TextPosition
 }
 
 func (r LinearRenderer[T, U]) Render(serie Serie[T, U]) svg.Element {
@@ -156,7 +163,7 @@ func (r LinearRenderer[T, U]) Render(serie Serie[T, U]) svg.Element {
 		}
 		pos.X = serie.X.Scale(pt.X)
 		pos.Y = serie.Y.Scale(pt.Y)
-		if i == 0 || (nan && r.IgnoreMissing) {
+		if i == 0 || (nan && serie.IgnoreMissing) {
 			nan = false
 			pat.AbsMoveTo(pos)
 		} else {
@@ -170,6 +177,18 @@ func (r LinearRenderer[T, U]) Render(serie Serie[T, U]) svg.Element {
 		}
 	}
 
+	switch r.Text {
+	case TextBefore:
+		pt := slices.Fst(serie.Points)
+		txt := getLineText(serie.Title, 0, serie.Y.Scale(pt.Y), true)
+		grp.Append(txt.AsElement())
+	case TextAfter:
+		pt := slices.Lst(serie.Points)
+		txt := getLineText(serie.Title, serie.X.Scale(pt.X), serie.Y.Scale(pt.Y), false)
+		grp.Append(txt.AsElement())
+	default:
+	}
+
 	if r.Fill {
 		pos.Y = serie.Y.Max()
 		pat.AbsLineTo(pos)
@@ -179,10 +198,9 @@ func (r LinearRenderer[T, U]) Render(serie Serie[T, U]) svg.Element {
 }
 
 type StepRenderer[T, U ScalerConstraint] struct {
-	Color         string
-	Fill          bool
-	IgnoreMissing bool
-	Point         PointFunc
+	Color string
+	Fill  bool
+	Point PointFunc
 }
 
 func (r StepRenderer[T, U]) Render(serie Serie[T, U]) svg.Element {
@@ -209,7 +227,7 @@ func (r StepRenderer[T, U]) Render(serie Serie[T, U]) svg.Element {
 		}
 		pos.X = serie.X.Scale(pt.X)
 		pos.Y = serie.Y.Scale(pt.Y)
-		if nan && r.IgnoreMissing {
+		if nan && serie.IgnoreMissing {
 			nan = false
 			pat.AbsMoveTo(pos)
 		} else {
@@ -233,10 +251,9 @@ func (r StepRenderer[T, U]) Render(serie Serie[T, U]) svg.Element {
 }
 
 type StepAfterRenderer[T, U ScalerConstraint] struct {
-	Color         string
-	Fill          bool
-	IgnoreMissing bool
-	Point         PointFunc
+	Color string
+	Fill  bool
+	Point PointFunc
 }
 
 func (r StepAfterRenderer[T, U]) Render(serie Serie[T, U]) svg.Element {
@@ -264,7 +281,7 @@ func (r StepAfterRenderer[T, U]) Render(serie Serie[T, U]) svg.Element {
 		pos.X = serie.X.Scale(pt.X)
 		pos.Y = serie.Y.Scale(pt.Y)
 
-		if nan && r.IgnoreMissing {
+		if nan && serie.IgnoreMissing {
 			nan = false
 			pat.AbsMoveTo(pos)
 		} else {
@@ -291,10 +308,9 @@ func (r StepAfterRenderer[T, U]) Render(serie Serie[T, U]) svg.Element {
 }
 
 type StepBeforeRenderer[T, U ScalerConstraint] struct {
-	Color         string
-	Fill          bool
-	IgnoreMissing bool
-	Point         PointFunc
+	Color string
+	Fill  bool
+	Point PointFunc
 }
 
 func (r StepBeforeRenderer[T, U]) Render(serie Serie[T, U]) svg.Element {
@@ -324,7 +340,7 @@ func (r StepBeforeRenderer[T, U]) Render(serie Serie[T, U]) svg.Element {
 		pos.X = serie.X.Scale(pt.X)
 		pos.Y = serie.Y.Scale(pt.Y)
 
-		if nan && r.IgnoreMissing {
+		if nan && serie.IgnoreMissing {
 			nan = false
 			pat.AbsMoveTo(pos)
 		} else {
@@ -348,12 +364,19 @@ func (r StepBeforeRenderer[T, U]) Render(serie Serie[T, U]) svg.Element {
 	return grp.AsElement()
 }
 
-type rendererFunc[T, U ScalerConstraint] struct {
-	render RenderFunc[T, U]
-}
-
-func (r rendererFunc[T, U]) Render(serie Serie[T, U]) svg.Element {
-	return r.render(serie)
+func getLineText(str string, x, y float64, before bool) svg.Text {
+	txt := svg.NewText(str)
+	txt.Font = svg.NewFont(FontSize)
+	txt.Pos = svg.NewPos(x, y)
+	txt.Anchor = "end"
+	txt.Baseline = "middle"
+	if !before {
+		txt.Anchor = "start"
+		txt.Pos.X += FontSize * 0.4
+	} else {
+		txt.Pos.X -= FontSize * 0.4
+	}
+	return txt
 }
 
 func getBasePath(fill bool) svg.Path {
