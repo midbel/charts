@@ -1,6 +1,7 @@
 package charts
 
 import (
+	"math"
 	"strconv"
 	"time"
 
@@ -77,7 +78,7 @@ func (a TimeAxis) Render(length, size, left, top float64) svg.Element {
 			grp.Append(tick.AsElement())
 		}
 		if a.WithLabelTicks {
-			text := tickText(a.Orientation, format(t), 0, font)
+			text := tickText(a.Orientation, format(t), 0, a.Rotate, font)
 			grp.Append(text.AsElement())
 		}
 		if a.WithOuterTicks && i < len(data)-1 {
@@ -143,7 +144,7 @@ func (a NumberAxis) Render(length, size, left, top float64) svg.Element {
 			grp.Append(tick.AsElement())
 		}
 		if a.WithLabelTicks {
-			text := tickText(a.Orientation, format(f), 0, font)
+			text := tickText(a.Orientation, format(f), 0, a.Rotate, font)
 			grp.Append(text.AsElement())
 		}
 		if a.WithOuterTicks && i < len(data)-1 {
@@ -188,7 +189,7 @@ func (a CategoryAxis) Render(length, size, left, top float64) svg.Element {
 	for _, s := range data {
 		var (
 			pos  = a.Scaler.Scale(s)
-			text = tickText(a.Orientation, s, align, font)
+			text = tickText(a.Orientation, s, align, a.Rotate, font)
 			grp  = svg.NewGroup(svg.WithTranslate(pos, 0))
 		)
 		if a.Vertical() {
@@ -263,12 +264,15 @@ func lineTick(orient Orientation, offset, size float64, stroke svg.Stroke) svg.L
 	return tick
 }
 
-func tickText(orient Orientation, str string, offset float64, font svg.Font) svg.Text {
+func tickText(orient Orientation, str string, offset, rotate float64, font svg.Font) svg.Text {
 	var (
 		base   = "hanging"
 		anchor = "middle"
 		x, y   = offset, FontSize * 1.2
 	)
+	if rotate != 0 {
+		anchor = "end"
+	}
 	switch {
 	case orient.Vertical() && !orient.Reverse():
 		base = "middle"
@@ -283,7 +287,16 @@ func tickText(orient Orientation, str string, offset float64, font svg.Font) svg
 		y = -y
 	default:
 	}
+	if rotate != 0 {
+		anchor = "end"
+		if orient.Vertical() && math.Abs(rotate) == 90 {
+			anchor = "middle"
+		}
+	}
 	text := svg.NewText(str)
+	text.Transform.RA = rotate
+	text.Transform.RX = 0
+	text.Transform.RY = 0
 	text.Pos = svg.NewPos(x, y)
 	text.Font = font
 	text.Anchor = anchor

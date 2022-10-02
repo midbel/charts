@@ -23,7 +23,7 @@ const (
 var pad = charts.Padding{
 	Top:    10,
 	Right:  45,
-	Bottom: 40,
+	Bottom: 100,
 	Left:   60,
 }
 
@@ -131,7 +131,8 @@ func getSerie(name, color string, skip int) charts.Serie[time.Time, float64] {
 
 func getAxisX(scaler charts.Scaler[time.Time]) charts.Axis {
 	return charts.TimeAxis{
-		Ticks:          7,
+		Ticks: 7,
+		Rotate:         -45,
 		Orientation:    charts.OrientBottom,
 		Scaler:         scaler,
 		WithInnerTicks: true,
@@ -143,7 +144,8 @@ func getAxisX(scaler charts.Scaler[time.Time]) charts.Axis {
 
 func getAxisY(scaler charts.Scaler[float64]) charts.Axis {
 	return charts.NumberAxis{
-		Ticks:          10,
+		Ticks: 10,
+		// Rotate:         -90,
 		Orientation:    charts.OrientLeft,
 		Scaler:         scaler,
 		WithInnerTicks: true,
