@@ -28,6 +28,7 @@ var pad = charts.Padding{
 }
 
 func main() {
+	skip := flag.Int("s", 0, "keep N values")
 	flag.Parse()
 	var (
 		dtstart    = time.Date(2018, 9, 1, 0, 0, 0, 0, time.UTC)
@@ -38,7 +39,7 @@ func main() {
 		colors     = []string{"red", "green", "blue", "slategrey"}
 	)
 	for i, file := range flag.Args() {
-		s, err := loadSerie(file, colors[i%len(colors)])
+		s, err := loadSerie(file, colors[i%len(colors)], *skip)
 		if err != nil {
 			fmt.Fprintln(os.Stderr, err)
 			os.Exit(2)
@@ -58,24 +59,27 @@ func main() {
 	ch.Render(os.Stdout, series...)
 }
 
-func loadSerie(file, color string) (charts.Serie[time.Time, float64], error) {
-	name := strings.TrimRight(filepath.Base(file), filepath.Ext(file))
-	ser := charts.Serie[time.Time, float64]{
-		Title: name,
-		Color: color,
-		Renderer: charts.LinearRenderer[time.Time, float64]{
-			IgnoreMissing: false,
-		},
-		WithTitle: true,
-	}
+func loadSerie(file, color string, skip int) (charts.Serie[time.Time, float64], error) {
+	var (
+		name = strings.TrimRight(filepath.Base(file), filepath.Ext(file))
+		ser  = getSerie(name, color, skip)
+		err  error
+	)
+	ser.Points, err = loadPoints(file, skip)
+	return ser, err
+}
 
+func loadPoints(file string, skip int) ([]charts.Point[time.Time, float64], error) {
 	r, err := os.Open(file)
 	if err != nil {
-		return ser, err
+		return nil, err
 	}
 	defer r.Close()
 
-	rs := csv.NewReader(r)
+	var (
+		rs = csv.NewReader(r)
+		ps []charts.Point[time.Time, float64]
+	)
 	rs.Read()
 	for i := 0; ; i++ {
 		row, err := rs.Read()
@@ -83,15 +87,18 @@ func loadSerie(file, color string) (charts.Serie[time.Time, float64], error) {
 			if errors.Is(err, io.EOF) {
 				break
 			}
-			return ser, err
+			return nil, err
+		}
+		if skip > 0 && i%skip != 0 {
+			continue
 		}
 		pt, err := TimePoint(row[0], row[1])
 		if err != nil {
-			return ser, err
+			return nil, err
 		}
-		ser.Points = append(ser.Points, pt)
+		ps = append(ps, pt)
 	}
-	return ser, nil
+	return ps, nil
 }
 
 func TimePoint(date, value string) (charts.Point[time.Time, float64], error) {
@@ -105,6 +112,21 @@ func TimePoint(date, value string) (charts.Point[time.Time, float64], error) {
 		return pt, err
 	}
 	return charts.TimePoint(t, v), nil
+}
+
+func getSerie(name, color string, skip int) charts.Serie[time.Time, float64] {
+	rdr := charts.LinearRenderer[time.Time, float64]{
+		IgnoreMissing: false,
+		Color:         color,
+	}
+	if skip > 10 {
+		rdr.Point = charts.GetCircle
+	}
+	return charts.Serie[time.Time, float64]{
+		Title:    name,
+		Color:    color,
+		Renderer: rdr,
+	}
 }
 
 func getAxisX(scaler charts.Scaler[time.Time]) charts.Axis {

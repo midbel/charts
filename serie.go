@@ -15,10 +15,7 @@ type Serie[T, U ScalerConstraint] struct {
 	Points []Point[T, U]
 	Series []Serie[T, U]
 
-	Renderer  Renderer[T, U]
-	WithPoint func(svg.Pos) svg.Element
-	WithArea  bool
-	WithTitle bool
+	Renderer Renderer[T, U]
 }
 
 func (s Serie[T, U]) Render() svg.Element {

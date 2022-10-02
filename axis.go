@@ -42,6 +42,7 @@ type TimeAxis struct {
 	WithLabelTicks bool
 	WithOuterTicks bool
 	WithBands      bool
+	WithArrow      bool
 }
 
 func (a TimeAxis) Render(length, size, left, top float64) svg.Element {
@@ -107,6 +108,7 @@ type NumberAxis struct {
 	WithLabelTicks bool
 	WithOuterTicks bool
 	WithBands      bool
+	WithArrow      bool
 }
 
 func (a NumberAxis) Render(length, size, left, top float64) svg.Element {

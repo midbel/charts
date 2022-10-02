@@ -7,19 +7,13 @@ import (
 	"github.com/midbel/svg"
 )
 
+const currentColour = "currentColour"
+
 type Renderer[T, U ScalerConstraint] interface {
 	Render(Serie[T, U]) svg.Element
 }
 
 type RenderFunc[T, U ScalerConstraint] func(Serie[T, U]) svg.Element
-
-func GetCirclePoint(pos svg.Pos) svg.Circle {
-	ci := svg.NewCircle()
-	ci.Radius = 2.5
-	ci.Pos = pos
-	ci.Class = append(ci.Class, "point")
-	return ci
-}
 
 type StackedRenderer[T ~string, U ~float64] struct {
 	Fill       []string
@@ -78,7 +72,7 @@ func (r BarRenderer[T, U]) Render(serie Serie[T, U]) svg.Element {
 	if r.Width <= 0 {
 		r.Width = 1
 	}
-	grp := getBaseGroup()
+	grp := getBaseGroup("")
 	for i, pt := range serie.Points {
 		var (
 			w   = serie.X.Space() * r.Width
@@ -97,30 +91,26 @@ func (r BarRenderer[T, U]) Render(serie Serie[T, U]) svg.Element {
 	return grp.AsElement()
 }
 
-type cubicRenderer[T, U ScalerConstraint] struct {
-	stretch       float64
-	ignoreMissing bool
+type CubicRenderer[T, U ScalerConstraint] struct {
+	Stretch       float64
+	Color         string
+	Fill          bool
+	IgnoreMissing bool
+	Point         PointFunc
 }
 
-func CubicRender[T, U ScalerConstraint](stretch float64, ignoreMissing bool) Renderer[T, U] {
-	return cubicRenderer[T, U]{
-		stretch:       stretch,
-		ignoreMissing: ignoreMissing,
-	}
-}
-
-func (r cubicRenderer[T, U]) Render(serie Serie[T, U]) svg.Element {
+func (r CubicRenderer[T, U]) Render(serie Serie[T, U]) svg.Element {
 	var (
-		grp = getBaseGroup()
-		pat = getBasePath(serie.Color, serie.WithArea)
+		grp = getBaseGroup(r.Color, "line")
+		pat = getBasePath(r.Fill)
 		pos = svg.NewPos(serie.X.Min(), serie.Y.Max())
 		ori svg.Pos
 	)
 	pos.X = serie.X.Scale(slices.Fst(serie.Points).X)
 	pos.Y = serie.Y.Scale(slices.Fst(serie.Points).Y)
 	pat.AbsMoveTo(pos)
-	if serie.WithPoint != nil {
-		grp.Append(serie.WithPoint(pos))
+	if r.Point != nil {
+		grp.Append(r.Point(pos))
 	}
 	ori = pos
 	for _, pt := range slices.Rest(serie.Points) {
@@ -130,132 +120,32 @@ func (r cubicRenderer[T, U]) Render(serie Serie[T, U]) svg.Element {
 		var (
 			ctrl1 = ori
 			ctrl2 = pos
-			diff  = (pos.X - ori.X) * r.stretch
+			diff  = (pos.X - ori.X) * r.Stretch
 		)
 		ctrl1.X += diff
 		ctrl2.X -= diff
 
 		pat.AbsCubicCurve(pos, ctrl1, ctrl2)
 		ori = pos
-		if serie.WithPoint != nil {
-			grp.Append(serie.WithPoint(pos))
+		if r.Point != nil {
+			grp.Append(r.Point(pos))
 		}
 	}
 	grp.Append(pat.AsElement())
 	return grp.AsElement()
-}
-
-type quadraticRenderer[T, U ScalerConstraint] struct {
-	stretch       float64
-	ignoreMissing bool
-}
-
-func QuadraticRender[T, U ScalerConstraint](stretch float64, ignoreMissing bool) Renderer[T, U] {
-	return quadraticRenderer[T, U]{
-		stretch:       stretch,
-		ignoreMissing: ignoreMissing,
-	}
-}
-
-func (r quadraticRenderer[T, U]) Render(serie Serie[T, U]) svg.Element {
-	var (
-		grp = getBaseGroup()
-		pat = getBasePath(serie.Color, serie.WithArea)
-		pos = svg.NewPos(serie.X.Min(), serie.Y.Max())
-		ori svg.Pos
-	)
-	pos.X = serie.X.Scale(slices.Fst(serie.Points).X)
-	pos.Y = serie.Y.Scale(slices.Fst(serie.Points).Y)
-	pat.AbsMoveTo(pos)
-	if serie.WithPoint != nil {
-		grp.Append(serie.WithPoint(pos))
-	}
-	for _, pt := range slices.Rest(serie.Points) {
-		pos.X = serie.X.Scale(pt.X)
-		pos.Y = serie.Y.Scale(pt.Y)
-
-		ctrl := ori
-		ctrl.X += (pos.X - ori.X) * r.stretch
-		pat.AbsQuadraticCurve(pos, ctrl)
-		ori = pos
-		if serie.WithPoint != nil {
-			grp.Append(serie.WithPoint(pos))
-		}
-	}
-	grp.Append(pat.AsElement())
-	return grp.AsElement()
-}
-
-type stepRenderer[T, U ScalerConstraint] struct {
-	ignoreMissing bool
-}
-
-func StepRender[T, U ScalerConstraint](ignoreMissing bool) Renderer[T, U] {
-	return stepRenderer[T, U]{
-		ignoreMissing: ignoreMissing,
-	}
-}
-
-func (r stepRenderer[T, U]) Render(serie Serie[T, U]) svg.Element {
-	var (
-		grp = getBaseGroup()
-		pat = getBasePath(serie.Color, serie.WithArea)
-		pos = svg.NewPos(serie.X.Min(), serie.Y.Max())
-		ori svg.Pos
-		nan bool
-	)
-	pat.AbsMoveTo(pos)
-	pos.Y = serie.Y.Scale(slices.Fst(serie.Points).Y)
-	pat.AbsLineTo(pos)
-	pos.X = serie.X.Scale(slices.Fst(serie.Points).X)
-	pat.AbsLineTo(pos)
-	if serie.WithPoint != nil {
-		grp.Append(serie.WithPoint(pos))
-	}
-	ori = pos
-	for _, pt := range slices.Rest(serie.Points) {
-		if f, ok := isFloat(pt.Y); ok && math.IsNaN(f) {
-			nan = true
-			continue
-		}
-		pos.X = serie.X.Scale(pt.X)
-		pos.Y = serie.Y.Scale(pt.Y)
-		if nan && r.ignoreMissing {
-			nan = false
-			pat.AbsMoveTo(pos)
-		} else {
-			ori.X += (pos.X - ori.X) / 2
-			pat.AbsLineTo(ori)
-			ori.Y = pos.Y
-			pat.AbsLineTo(ori)
-			pat.AbsLineTo(pos)
-		}
-		ori = pos
-		if serie.WithPoint != nil {
-			grp.Append(serie.WithPoint(pos))
-		}
-	}
-	if serie.WithArea {
-		pos.Y = serie.Y.Max()
-		pat.AbsLineTo(pos)
-	}
-	grp.Append(pat.AsElement())
-	return grp.AsElement()
-}
-
-func isFloat[T any](v T) (float64, bool) {
-	x, ok := any(v).(float64)
-	return x, ok
 }
 
 type LinearRenderer[T, U ScalerConstraint] struct {
 	IgnoreMissing bool
+	Fill          bool
+	Color         string
+	Point         PointFunc
 }
 
 func (r LinearRenderer[T, U]) Render(serie Serie[T, U]) svg.Element {
 	var (
-		grp = getBaseGroup()
-		pat = getBasePath(serie.Color, serie.WithArea)
+		grp = getBaseGroup(r.Color, "line")
+		pat = getBasePath(r.Fill)
 		pos svg.Pos
 		nan bool
 	)
@@ -272,45 +162,87 @@ func (r LinearRenderer[T, U]) Render(serie Serie[T, U]) svg.Element {
 		} else {
 			pat.AbsLineTo(pos)
 		}
-		if serie.WithPoint != nil {
-			grp.Append(serie.WithPoint(pos))
+		if r.Point != nil {
+			el := r.Point(pos)
+			if el != nil {
+				grp.Append(r.Point(pos))
+			}
 		}
 	}
-	if serie.WithTitle {
-		font := svg.NewFont(FontSize)
-		font.Fill = serie.Color
-		txt := svg.NewText(serie.Title)
-		txt.Font = font
-		txt.Baseline = "middle"
-		txt.Pos = svg.NewPos(pos.X+10, pos.Y)
-		grp.Append(txt.AsElement())
-	}
 
-	if serie.WithArea {
+	if r.Fill {
 		pos.Y = serie.Y.Max()
 		pat.AbsLineTo(pos)
-		pos.X = serie.X.Min()
-		pat.AbsLineTo(pos)
-		pat.ClosePath()
 	}
 	grp.Append(pat.AsElement())
 	return grp.AsElement()
 }
 
-type stepAfterRenderer[T, U ScalerConstraint] struct {
-	ignoreMissing bool
+type StepRenderer[T, U ScalerConstraint] struct {
+	Color         string
+	Fill          bool
+	IgnoreMissing bool
+	Point         PointFunc
 }
 
-func StepAfterRender[T, U ScalerConstraint](ignoreMissing bool) Renderer[T, U] {
-	return stepAfterRenderer[T, U]{
-		ignoreMissing: ignoreMissing,
-	}
-}
-
-func (r stepAfterRenderer[T, U]) Render(serie Serie[T, U]) svg.Element {
+func (r StepRenderer[T, U]) Render(serie Serie[T, U]) svg.Element {
 	var (
-		grp = getBaseGroup()
-		pat = getBasePath(serie.Color, serie.WithArea)
+		grp = getBaseGroup(r.Color, "line")
+		pat = getBasePath(r.Fill)
+		pos = svg.NewPos(serie.X.Min(), serie.Y.Max())
+		ori svg.Pos
+		nan bool
+	)
+	pat.AbsMoveTo(pos)
+	pos.Y = serie.Y.Scale(slices.Fst(serie.Points).Y)
+	pat.AbsLineTo(pos)
+	pos.X = serie.X.Scale(slices.Fst(serie.Points).X)
+	pat.AbsLineTo(pos)
+	if r.Point != nil {
+		grp.Append(r.Point(pos))
+	}
+	ori = pos
+	for _, pt := range slices.Rest(serie.Points) {
+		if f, ok := isFloat(pt.Y); ok && math.IsNaN(f) {
+			nan = true
+			continue
+		}
+		pos.X = serie.X.Scale(pt.X)
+		pos.Y = serie.Y.Scale(pt.Y)
+		if nan && r.IgnoreMissing {
+			nan = false
+			pat.AbsMoveTo(pos)
+		} else {
+			ori.X += (pos.X - ori.X) / 2
+			pat.AbsLineTo(ori)
+			ori.Y = pos.Y
+			pat.AbsLineTo(ori)
+			pat.AbsLineTo(pos)
+		}
+		ori = pos
+		if r.Point != nil {
+			grp.Append(r.Point(pos))
+		}
+	}
+	if r.Fill {
+		pos.Y = serie.Y.Max()
+		pat.AbsLineTo(pos)
+	}
+	grp.Append(pat.AsElement())
+	return grp.AsElement()
+}
+
+type StepAfterRenderer[T, U ScalerConstraint] struct {
+	Color         string
+	Fill          bool
+	IgnoreMissing bool
+	Point         PointFunc
+}
+
+func (r StepAfterRenderer[T, U]) Render(serie Serie[T, U]) svg.Element {
+	var (
+		grp = getBaseGroup(r.Color, "line")
+		pat = getBasePath(r.Fill)
 		pos svg.Pos
 		ori svg.Pos
 		nan bool
@@ -320,8 +252,8 @@ func (r stepAfterRenderer[T, U]) Render(serie Serie[T, U]) svg.Element {
 	pat.AbsMoveTo(pos)
 	pos.Y = serie.Y.Scale(slices.Fst(serie.Points).Y)
 	pat.AbsLineTo(pos)
-	if serie.WithPoint != nil {
-		grp.Append(serie.WithPoint(pos))
+	if r.Point != nil {
+		grp.Append(r.Point(pos))
 	}
 	ori = pos
 	for _, pt := range slices.Rest(serie.Points) {
@@ -332,7 +264,7 @@ func (r stepAfterRenderer[T, U]) Render(serie Serie[T, U]) svg.Element {
 		pos.X = serie.X.Scale(pt.X)
 		pos.Y = serie.Y.Scale(pt.Y)
 
-		if nan && r.ignoreMissing {
+		if nan && r.IgnoreMissing {
 			nan = false
 			pat.AbsMoveTo(pos)
 		} else {
@@ -344,11 +276,11 @@ func (r stepAfterRenderer[T, U]) Render(serie Serie[T, U]) svg.Element {
 		}
 		ori = pos
 
-		if serie.WithPoint != nil {
-			grp.Append(serie.WithPoint(pos))
+		if r.Point != nil {
+			grp.Append(r.Point(pos))
 		}
 	}
-	if serie.WithArea {
+	if r.Fill {
 		pos.X = serie.X.Max()
 		pat.AbsLineTo(pos)
 		pos.Y = serie.Y.Max()
@@ -358,20 +290,17 @@ func (r stepAfterRenderer[T, U]) Render(serie Serie[T, U]) svg.Element {
 	return grp.AsElement()
 }
 
-type stepBeforeRenderer[T, U ScalerConstraint] struct {
-	ignoreMissing bool
+type StepBeforeRenderer[T, U ScalerConstraint] struct {
+	Color         string
+	Fill          bool
+	IgnoreMissing bool
+	Point         PointFunc
 }
 
-func StepBeforeRender[T, U ScalerConstraint](ignoreMissing bool) Renderer[T, U] {
-	return stepBeforeRenderer[T, U]{
-		ignoreMissing: ignoreMissing,
-	}
-}
-
-func (r stepBeforeRenderer[T, U]) Render(serie Serie[T, U]) svg.Element {
+func (r StepBeforeRenderer[T, U]) Render(serie Serie[T, U]) svg.Element {
 	var (
-		grp = getBaseGroup()
-		pat = getBasePath(serie.Color, serie.WithArea)
+		grp = getBaseGroup(r.Color, "line")
+		pat = getBasePath(r.Fill)
 		pos svg.Pos
 		ori svg.Pos
 		nan bool
@@ -383,8 +312,8 @@ func (r stepBeforeRenderer[T, U]) Render(serie Serie[T, U]) svg.Element {
 	pat.AbsLineTo(pos)
 	pos.X = serie.X.Scale(slices.Fst(serie.Points).X)
 	pat.AbsLineTo(pos)
-	if serie.WithPoint != nil {
-		grp.Append(serie.WithPoint(pos))
+	if r.Point != nil {
+		grp.Append(r.Point(pos))
 	}
 	ori = pos
 	for _, pt := range slices.Rest(serie.Points) {
@@ -395,7 +324,7 @@ func (r stepBeforeRenderer[T, U]) Render(serie Serie[T, U]) svg.Element {
 		pos.X = serie.X.Scale(pt.X)
 		pos.Y = serie.Y.Scale(pt.Y)
 
-		if nan && r.ignoreMissing {
+		if nan && r.IgnoreMissing {
 			nan = false
 			pat.AbsMoveTo(pos)
 		} else {
@@ -407,11 +336,11 @@ func (r stepBeforeRenderer[T, U]) Render(serie Serie[T, U]) svg.Element {
 		}
 		ori = pos
 
-		if serie.WithPoint != nil {
-			grp.Append(serie.WithPoint(pos))
+		if r.Point != nil {
+			grp.Append(r.Point(pos))
 		}
 	}
-	if serie.WithArea {
+	if r.Fill {
 		pos.Y = serie.Y.Max()
 		pat.AbsLineTo(pos)
 	}
@@ -427,11 +356,11 @@ func (r rendererFunc[T, U]) Render(serie Serie[T, U]) svg.Element {
 	return r.render(serie)
 }
 
-func getBasePath(stroke string, fill bool) svg.Path {
-	pat := svg.NewPath()
-	pat.Stroke = svg.NewStroke(stroke, 1)
+func getBasePath(fill bool) svg.Path {
+	var pat svg.Path
+	pat.Stroke = svg.NewStroke(currentColour, 1)
 	if fill {
-		pat.Fill = svg.NewFill(stroke)
+		pat.Fill = svg.NewFill(currentColour)
 		pat.Fill.Opacity = 0.5
 	} else {
 		pat.Fill = svg.NewFill("none")
@@ -439,8 +368,17 @@ func getBasePath(stroke string, fill bool) svg.Path {
 	return pat
 }
 
-func getBaseGroup() svg.Group {
+func getBaseGroup(color string, class ...string) svg.Group {
 	var g svg.Group
-	g.Class = append(g.Class, "line")
+	if color != "" {
+		g.Fill = svg.NewFill(color)
+		g.Stroke = svg.NewStroke(color, 1)
+	}
+	g.Class = class
 	return g
+}
+
+func isFloat[T any](v T) (float64, bool) {
+	x, ok := any(v).(float64)
+	return x, ok
 }
