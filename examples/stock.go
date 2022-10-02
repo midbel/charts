@@ -23,8 +23,8 @@ const (
 var pad = charts.Padding{
 	Top:    10,
 	Right:  45,
-	Bottom: 100,
-	Left:   60,
+	Bottom: 60,
+	Left:   40,
 }
 
 func main() {

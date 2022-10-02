@@ -51,6 +51,7 @@ func (c Chart[T, U]) DrawingHeight() float64 {
 
 func (c Chart[T, U]) Render(w io.Writer, series ...Serie[T, U]) {
 	el := svg.NewSVG(svg.WithDimension(c.Width, c.Height))
+	el.OmitProlog = true
 	ar := c.getArea()
 
 	el.Append(c.drawAxis())

@@ -20,7 +20,25 @@ type Renderer[T, U ScalerConstraint] interface {
 	Render(Serie[T, U]) svg.Element
 }
 
-type RenderFunc[T, U ScalerConstraint] func(Serie[T, U]) svg.Element
+// type SunburstRenderer struct[T ~string, U ~float64] struct {
+// 	Fill       []string
+// 	InnerRadius float64
+// 	OuterRadius float64
+// }
+
+// func (r SunburstRenderer[T, U]) Render(serie Serie[T, U]) svg.Element {
+// 	return nil
+// }
+
+// type PieRenderer struct[T ~string, U ~float64] struct {
+// 	Fill       []string
+// 	InnerRadius float64
+// 	OuterRadius float64
+// }
+
+// func (r PieRenderer[T, U]) Render(serie Serie[T, U]) svg.Element {
+// 	return nil
+// }
 
 type StackedRenderer[T ~string, U ~float64] struct {
 	Fill       []string
@@ -34,28 +52,59 @@ func (r StackedRenderer[T, U]) Render(serie Serie[T, U]) svg.Element {
 	if r.Width <= 0 {
 		r.Width = 1
 	}
+	if r.Horizontal {
+		return r.renderHorizontal(serie)
+	}
+	return r.renderVertical(serie)
+}
+
+func (r StackedRenderer[T, U]) renderHorizontal(serie Serie[T, U]) svg.Element {
+	var grp svg.Group
+	for _, s := range serie.Series {
+		bar := getBaseGroup("", "bar")
+		bar.Transform = svg.Translate(serie.X.Scale(any(s.Title).(T)), 0)
+		for i, pt := range s.Points {
+			var (
+				w   = s.X.Space() * r.Width
+				x   = float64(i) * s.X.Space()
+				y   = s.Y.Scale(pt.Y)
+				pos = svg.NewPos(x, y)
+				dim = svg.NewDim(w, s.Y.Max()-y)
+			)
+			var el svg.Rect
+			el.Title = any(pt.X).(string)
+			el.Pos = pos
+			el.Dim = dim
+			el.Fill = svg.NewFill(r.Fill[i%len(r.Fill)])
+			bar.Append(el.AsElement())
+		}
+		grp.Append(bar.AsElement())
+	}
+	return grp.AsElement()
+}
+
+func (r StackedRenderer[T, U]) renderVertical(serie Serie[T, U]) svg.Element {
 	var grp svg.Group
 	for _, s := range serie.Series {
 		var (
 			total  float64
 			height = serie.Y.Max()
-			g      svg.Group
+			bar    = getBaseGroup("", "bar")
 		)
-		g.Transform = svg.Translate(serie.X.Scale(any(s.Title).(T)), 0)
+		bar.Transform = svg.Translate(serie.X.Scale(any(s.Title).(T)), 0)
 		for i, pt := range s.Points {
 			total += any(pt.Y).(float64)
 			var (
-				y = serie.Y.Scale(any(total).(U))
-				w = serie.X.Space() * r.Width
-				o = (serie.X.Space() - w) / 2
+				y  = serie.Y.Scale(any(total).(U))
+				w  = serie.X.Space() * r.Width
+				o  = (serie.X.Space() - w) / 2
+				el svg.Rect
 			)
-
-			el := svg.NewRect()
 			el.Title = any(pt.X).(string)
 			el.Pos = svg.NewPos(o, y)
 			el.Dim = svg.NewDim(serie.X.Space()*r.Width, height-y)
 			el.Fill = svg.NewFill(r.Fill[i%len(r.Fill)])
-			g.Append(el.AsElement())
+			bar.Append(el.AsElement())
 			if r.WithText {
 
 			}
@@ -64,7 +113,7 @@ func (r StackedRenderer[T, U]) Render(serie Serie[T, U]) svg.Element {
 			}
 			height = y
 		}
-		grp.Append(g.AsElement())
+		grp.Append(bar.AsElement())
 	}
 	return grp.AsElement()
 }
@@ -89,7 +138,7 @@ func (r BarRenderer[T, U]) Render(serie Serie[T, U]) svg.Element {
 			pos = svg.NewPos(x, y)
 			dim = svg.NewDim(w, serie.Y.Max()-y)
 		)
-		el := svg.NewRect()
+		var el svg.Rect
 		el.Pos = pos
 		el.Dim = dim
 		el.Fill = svg.NewFill(r.Fill[i%len(r.Fill)])
@@ -98,12 +147,21 @@ func (r BarRenderer[T, U]) Render(serie Serie[T, U]) svg.Element {
 	return grp.AsElement()
 }
 
+type PointRenderer[T, U ScalerConstraint] struct {
+	Color string
+	Point PointFunc
+}
+
+func (r PointRenderer[T, U]) Render(serie Serie[T, U]) svg.Element {
+	grp := getBaseGroup(r.Color, "scatter")
+	return grp.AsElement()
+}
+
 type CubicRenderer[T, U ScalerConstraint] struct {
-	Stretch       float64
-	Color         string
-	Fill          bool
-	IgnoreMissing bool
-	Point         PointFunc
+	Stretch float64
+	Color   string
+	Fill    bool
+	Point   PointFunc
 }
 
 func (r CubicRenderer[T, U]) Render(serie Serie[T, U]) svg.Element {
