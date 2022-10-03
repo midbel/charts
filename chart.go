@@ -71,7 +71,7 @@ func (c Chart[T, U]) Render(w io.Writer, series ...Serie[T, U]) {
 func (c Chart[T, U]) getArea(serie Serie[T, U]) svg.Group {
 	var g svg.Group
 	g.Class = append(g.Class, "area")
-	g.Transform = svg.Translate(c.Padding.Left+serie.X.Min(), c.Padding.Top+serie.X.Min())
+	g.Transform = svg.Translate(c.Padding.Left, c.Padding.Top)
 	return g
 }
 

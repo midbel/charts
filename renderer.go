@@ -20,7 +20,7 @@ type Renderer[T, U ScalerConstraint] interface {
 	Render(Serie[T, U]) svg.Element
 }
 
-// type SunburstRenderer struct[T ~string, U ~float64] struct {
+// type SunburstRenderer [T ~string, U ~float64] struct {
 // 	Fill       []string
 // 	InnerRadius float64
 // 	OuterRadius float64
@@ -30,15 +30,49 @@ type Renderer[T, U ScalerConstraint] interface {
 // 	return nil
 // }
 
-// type PieRenderer struct[T ~string, U ~float64] struct {
-// 	Fill       []string
-// 	InnerRadius float64
-// 	OuterRadius float64
-// }
+type PieRenderer[T ~string, U ~float64] struct {
+	Fill        []string
+	InnerRadius float64
+	OuterRadius float64
+}
 
-// func (r PieRenderer[T, U]) Render(serie Serie[T, U]) svg.Element {
-// 	return nil
-// }
+func (r PieRenderer[T, U]) Render(serie Serie[T, U]) svg.Element {
+	if r.InnerRadius <= 0 {
+		r.InnerRadius = r.OuterRadius
+	}
+	var (
+		part  = fullcircle / sum(serie.Points)
+		angle float64
+		grp   svg.Group
+	)
+	grp.Transform = svg.Translate(serie.X.Max()/2, serie.Y.Max()/2)
+	for i, pt := range serie.Points {
+		var (
+			val  = any(pt.Y).(float64)
+			pos1 = getPosFromAngle(angle*deg2rad, float64(r.OuterRadius))
+			pos2 = getPosFromAngle((angle+(val*part))*deg2rad, float64(r.OuterRadius))
+			pos3 = getPosFromAngle((angle+(val*part))*deg2rad, float64(r.OuterRadius-r.InnerRadius))
+			pos4 = getPosFromAngle(angle*deg2rad, float64(r.OuterRadius-r.InnerRadius))
+			pat  svg.Path
+			swap bool
+		)
+		pat.Fill = svg.NewFill(r.Fill[i%len(r.Fill)])
+		if tmp := val * part; tmp > halfcircle {
+			swap = true
+		}
+		pat.AbsMoveTo(pos1)
+		pat.AbsArcTo(pos2, float64(r.OuterRadius), float64(r.OuterRadius), 0, swap, true)
+		pat.AbsLineTo(pos3)
+		if pos3.X != pos4.X && pos3.Y != pos4.Y {
+			pat.AbsArcTo(pos4, float64(r.OuterRadius-r.InnerRadius), float64(r.OuterRadius-r.InnerRadius), 0, swap, false)
+		}
+		pat.AbsLineTo(pos1)
+		grp.Append(pat.AsElement())
+
+		angle += val * part
+	}
+	return grp.AsElement()
+}
 
 type StackedRenderer[T ~string, U ~float64] struct {
 	Fill       []string
@@ -479,7 +513,29 @@ func getBaseGroup(color string, class ...string) svg.Group {
 	return g
 }
 
+const (
+	fullcircle = 360.0
+	halfcircle = 180.0
+	deg2rad    = math.Pi / halfcircle
+)
+
+func getPosFromAngle(angle, radius float64) svg.Pos {
+	var (
+		x1 = float64(radius) * math.Cos(angle)
+		y1 = float64(radius) * math.Sin(angle)
+	)
+	return svg.NewPos(x1, y1)
+}
+
 func isFloat[T any](v T) (float64, bool) {
 	x, ok := any(v).(float64)
 	return x, ok
+}
+
+func sum[T ScalerConstraint, U ~float64](points []Point[T, U]) float64 {
+	var s float64
+	for _, p := range points {
+		s += any(p.Y).(float64)
+	}
+	return s
 }

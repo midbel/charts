@@ -48,6 +48,11 @@ type TimeAxis struct {
 
 func (a TimeAxis) Render(length, size, left, top float64) svg.Element {
 	g := svg.NewGroup(svg.WithTranslate(left, top))
+	if a.Vertical() {
+		g.Class = append(g.Class, "axis", "y-axis")
+	} else {
+		g.Class = append(g.Class, "axis", "x-axis")
+	}
 	d := domainLine(a.Orientation, length, svg.NewStroke("black", 1))
 	g.Append(d.AsElement())
 
@@ -114,6 +119,11 @@ type NumberAxis struct {
 
 func (a NumberAxis) Render(length, size, left, top float64) svg.Element {
 	g := svg.NewGroup(svg.WithTranslate(left, top))
+	if a.Vertical() {
+		g.Class = append(g.Class, "axis", "y-axis")
+	} else {
+		g.Class = append(g.Class, "axis", "x-axis")
+	}
 	d := domainLine(a.Orientation, length, svg.NewStroke("black", 1))
 	g.Append(d.AsElement())
 
@@ -175,6 +185,11 @@ type CategoryAxis struct {
 
 func (a CategoryAxis) Render(length, size, left, top float64) svg.Element {
 	g := svg.NewGroup(svg.WithTranslate(left, top))
+	if a.Vertical() {
+		g.Class = append(g.Class, "axis", "y-axis")
+	} else {
+		g.Class = append(g.Class, "axis", "x-axis")
+	}
 	d := domainLine(a.Orientation, length, svg.NewStroke("black", 1))
 	g.Append(d.AsElement())
 
