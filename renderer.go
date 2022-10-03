@@ -149,11 +149,23 @@ func (r BarRenderer[T, U]) Render(serie Serie[T, U]) svg.Element {
 
 type PointRenderer[T, U ScalerConstraint] struct {
 	Color string
+	Skip int
 	Point PointFunc
 }
 
 func (r PointRenderer[T, U]) Render(serie Serie[T, U]) svg.Element {
 	grp := getBaseGroup(r.Color, "scatter")
+	for i, pt := range serie.Points {
+		if r.Skip > 0 && i % r.Skip != 0 {
+			continue
+		}
+		var (
+			x = serie.X.Scale(pt.X)
+			y = serie.Y.Scale(pt.Y)
+		)
+		el := r.Point(svg.NewPos(x, y))
+		grp.Append(el)
+	}
 	return grp.AsElement()
 }
 
