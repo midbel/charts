@@ -52,14 +52,13 @@ func (c Chart[T, U]) DrawingHeight() float64 {
 func (c Chart[T, U]) Render(w io.Writer, series ...Serie[T, U]) {
 	el := svg.NewSVG(svg.WithDimension(c.Width, c.Height))
 	el.OmitProlog = true
-	ar := c.getArea()
 
 	el.Append(c.drawAxis())
 	for _, s := range series {
-		g := s.Render()
-		ar.Append(g)
+		ar := c.getArea(s)
+		ar.Append(s.Render())
+		el.Append(ar.AsElement())
 	}
-	el.Append(ar.AsElement())
 	if lg := c.drawLegend(series); lg != nil {
 		el.Append(lg)
 	}
@@ -69,10 +68,10 @@ func (c Chart[T, U]) Render(w io.Writer, series ...Serie[T, U]) {
 	el.Render(bw)
 }
 
-func (c Chart[T, U]) getArea() svg.Group {
+func (c Chart[T, U]) getArea(serie Serie[T,U]) svg.Group {
 	var g svg.Group
-	g.Id = "area"
-	g.Transform = svg.Translate(c.Padding.Left, c.Padding.Top)
+	g.Class = append(g.Class, "area")
+	g.Transform = svg.Translate(c.Padding.Left + serie.X.Min(), c.Padding.Top + serie.X.Min())
 	return g
 }
 

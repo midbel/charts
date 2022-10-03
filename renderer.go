@@ -10,7 +10,7 @@ import (
 type TextPosition int
 
 const (
-	TextBefore TextPosition = iota
+	TextBefore TextPosition = 1 << iota
 	TextAfter
 )
 
