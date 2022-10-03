@@ -149,14 +149,14 @@ func (r BarRenderer[T, U]) Render(serie Serie[T, U]) svg.Element {
 
 type PointRenderer[T, U ScalerConstraint] struct {
 	Color string
-	Skip int
+	Skip  int
 	Point PointFunc
 }
 
 func (r PointRenderer[T, U]) Render(serie Serie[T, U]) svg.Element {
 	grp := getBaseGroup(r.Color, "scatter")
 	for i, pt := range serie.Points {
-		if r.Skip > 0 && i % r.Skip != 0 {
+		if r.Skip > 0 && i > 0 && i%r.Skip != 0 {
 			continue
 		}
 		var (
@@ -173,6 +173,7 @@ type CubicRenderer[T, U ScalerConstraint] struct {
 	Stretch float64
 	Color   string
 	Fill    bool
+	Skip    int
 	Point   PointFunc
 }
 
@@ -190,7 +191,10 @@ func (r CubicRenderer[T, U]) Render(serie Serie[T, U]) svg.Element {
 		grp.Append(r.Point(pos))
 	}
 	ori = pos
-	for _, pt := range slices.Rest(serie.Points) {
+	for i, pt := range slices.Rest(serie.Points) {
+		if r.Skip != 0 && i > 0 && i%r.Skip != 0 {
+			continue
+		}
 		pos.X = serie.X.Scale(pt.X)
 		pos.Y = serie.Y.Scale(pt.Y)
 
@@ -215,6 +219,7 @@ func (r CubicRenderer[T, U]) Render(serie Serie[T, U]) svg.Element {
 type LinearRenderer[T, U ScalerConstraint] struct {
 	Fill  bool
 	Color string
+	Skip  int
 	Point PointFunc
 	Text  TextPosition
 }
@@ -227,6 +232,9 @@ func (r LinearRenderer[T, U]) Render(serie Serie[T, U]) svg.Element {
 		nan bool
 	)
 	for i, pt := range serie.Points {
+		if r.Skip != 0 && i > 0 && i%r.Skip == 0 {
+			continue
+		}
 		if f, ok := isFloat(pt.Y); ok && math.IsNaN(f) {
 			nan = true
 			continue

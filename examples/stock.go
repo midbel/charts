@@ -117,6 +117,7 @@ func TimePoint(date, value string) (charts.Point[time.Time, float64], error) {
 func getSerie(name, color string, skip int) charts.Serie[time.Time, float64] {
 	rdr := charts.LinearRenderer[time.Time, float64]{
 		Color: color,
+		Skip:  skip,
 		Text:  charts.TextAfter,
 	}
 	if skip > 10 {
