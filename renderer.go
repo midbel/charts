@@ -43,15 +43,14 @@ func (r PieRenderer[T, U]) Render(serie Serie[T, U]) svg.Element {
 	var (
 		part  = fullcircle / sumY(serie.Points)
 		angle float64
-		grp   svg.Group
+		grp   = getBaseGroup("", "pie")
 	)
 	grp.Transform = svg.Translate(serie.X.Max()/2, serie.Y.Max()/2)
 	for i, pt := range serie.Points {
 		var (
-			val  = any(pt.Y).(float64)
 			rad  = angle * deg2rad
-			tmp  = val * part
-			pos3 = r.getPos3(angle, tmp)
+			val  = any(pt.Y).(float64) * part
+			pos3 = r.getPos3(angle, val)
 			pos4 = r.getPos4(rad)
 			pat  svg.Path
 		)
@@ -59,16 +58,16 @@ func (r PieRenderer[T, U]) Render(serie Serie[T, U]) svg.Element {
 		pat.Fill = svg.NewFill(r.Fill[i%len(r.Fill)])
 
 		pat.AbsMoveTo(r.getPos1(rad))
-		pat.AbsArcTo(r.getPos2(angle, tmp), r.OuterRadius, r.OuterRadius, 0, tmp > halfcircle, true)
+		pat.AbsArcTo(r.getPos2(angle, val), r.OuterRadius, r.OuterRadius, 0, val > halfcircle, true)
 		pat.AbsLineTo(pos3)
 		if pos3.X != pos4.X && pos3.Y != pos4.Y {
-			pat.AbsArcTo(pos4, r.difference(), r.difference(), 0, tmp > halfcircle, false)
+			pat.AbsArcTo(pos4, r.difference(), r.difference(), 0, val > halfcircle, false)
 		}
 		pat.AbsLineTo(r.getPos1(rad))
 		pat.ClosePath()
 		grp.Append(pat.AsElement())
 
-		angle += tmp
+		angle += val
 	}
 	return grp.AsElement()
 }
