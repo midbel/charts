@@ -41,7 +41,7 @@ func (r PieRenderer[T, U]) Render(serie Serie[T, U]) svg.Element {
 		r.InnerRadius = r.OuterRadius
 	}
 	var (
-		part  = fullcircle / sum(serie.Points)
+		part  = fullcircle / sumY(serie.Points)
 		angle float64
 		grp   svg.Group
 	)
@@ -49,29 +49,48 @@ func (r PieRenderer[T, U]) Render(serie Serie[T, U]) svg.Element {
 	for i, pt := range serie.Points {
 		var (
 			val  = any(pt.Y).(float64)
-			pos1 = getPosFromAngle(angle*deg2rad, float64(r.OuterRadius))
-			pos2 = getPosFromAngle((angle+(val*part))*deg2rad, float64(r.OuterRadius))
-			pos3 = getPosFromAngle((angle+(val*part))*deg2rad, float64(r.OuterRadius-r.InnerRadius))
-			pos4 = getPosFromAngle(angle*deg2rad, float64(r.OuterRadius-r.InnerRadius))
+			rad  = angle * deg2rad
+			tmp  = val * part
+			pos3 = r.getPos3(angle, tmp)
+			pos4 = r.getPos4(rad)
 			pat  svg.Path
-			swap bool
 		)
+		pat.Rendering = "geometricPrecision"
 		pat.Fill = svg.NewFill(r.Fill[i%len(r.Fill)])
-		if tmp := val * part; tmp > halfcircle {
-			swap = true
-		}
-		pat.AbsMoveTo(pos1)
-		pat.AbsArcTo(pos2, float64(r.OuterRadius), float64(r.OuterRadius), 0, swap, true)
+
+		pat.AbsMoveTo(r.getPos1(rad))
+		pat.AbsArcTo(r.getPos2(angle, tmp), r.OuterRadius, r.OuterRadius, 0, tmp > halfcircle, true)
 		pat.AbsLineTo(pos3)
 		if pos3.X != pos4.X && pos3.Y != pos4.Y {
-			pat.AbsArcTo(pos4, float64(r.OuterRadius-r.InnerRadius), float64(r.OuterRadius-r.InnerRadius), 0, swap, false)
+			pat.AbsArcTo(pos4, r.difference(), r.difference(), 0, tmp > halfcircle, false)
 		}
-		pat.AbsLineTo(pos1)
+		pat.AbsLineTo(r.getPos1(rad))
+		pat.ClosePath()
 		grp.Append(pat.AsElement())
 
-		angle += val * part
+		angle += tmp
 	}
 	return grp.AsElement()
+}
+
+func (r PieRenderer[T, U]) getPos4(rad float64) svg.Pos {
+	return getPosFromAngle(rad, r.difference())
+}
+
+func (r PieRenderer[T, U]) getPos3(angle, rad float64) svg.Pos {
+	return getPosFromAngle((angle+rad)*deg2rad, r.difference())
+}
+
+func (r PieRenderer[T, U]) getPos2(angle, rad float64) svg.Pos {
+	return getPosFromAngle((angle+rad)*deg2rad, r.OuterRadius)
+}
+
+func (r PieRenderer[T, U]) getPos1(rad float64) svg.Pos {
+	return getPosFromAngle(rad, r.OuterRadius)
+}
+
+func (r PieRenderer[T, U]) difference() float64 {
+	return r.OuterRadius - r.InnerRadius
 }
 
 type StackedRenderer[T ~string, U ~float64] struct {
@@ -530,12 +549,4 @@ func getPosFromAngle(angle, radius float64) svg.Pos {
 func isFloat[T any](v T) (float64, bool) {
 	x, ok := any(v).(float64)
 	return x, ok
-}
-
-func sum[T ScalerConstraint, U ~float64](points []Point[T, U]) float64 {
-	var s float64
-	for _, p := range points {
-		s += any(p.Y).(float64)
-	}
-	return s
 }

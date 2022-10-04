@@ -55,3 +55,11 @@ func (p Point[T, U]) Reverse() Point[U, T] {
 		Y: p.X,
 	}
 }
+
+func sumY[T ScalerConstraint, U ~float64](points []Point[T, U]) float64 {
+	var s float64
+	for _, p := range points {
+		s += any(p.Y).(float64)
+	}
+	return s
+}

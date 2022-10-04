@@ -26,9 +26,9 @@ func main() {
 	)
 
 	rdr := charts.PieRenderer[string, float64]{
-		InnerRadius: 0,
+		InnerRadius: 150,
 		OuterRadius: 250,
-		Fill:        []string{"steelblue", "lightsalmon", "mediumorchid", "firebrick"},
+		Fill:        []string{"steelblue", "cornflowerblue", "darkorange", "orange"},
 	}
 	ser := charts.Serie[string, float64]{
 		Title:    "preferences",
