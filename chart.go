@@ -49,29 +49,29 @@ func (c Chart[T, U]) DrawingHeight() float64 {
 	return c.Height - c.Padding.Vertical()
 }
 
-func (c Chart[T, U]) Render(w io.Writer, series ...Serie[T, U]) {
+func (c Chart[T, U]) Render(w io.Writer, set ...Data) {
 	el := svg.NewSVG(svg.WithDimension(c.Width, c.Height))
 	el.OmitProlog = true
 
 	el.Append(c.drawAxis())
-	for _, s := range series {
+	for _, s := range set {
 		ar := c.getArea(s)
 		ar.Append(s.Render())
 		el.Append(ar.AsElement())
 	}
-	if lg := c.drawLegend(series); lg != nil {
-		el.Append(lg)
-	}
+	// if lg := c.drawLegend(series); lg != nil {
+	// 	el.Append(lg)
+	// }
 
 	bw := bufio.NewWriter(w)
 	defer bw.Flush()
 	el.Render(bw)
 }
 
-func (c Chart[T, U]) getArea(serie Serie[T, U]) svg.Group {
+func (c Chart[T, U]) getArea(s Data) svg.Group {
 	var g svg.Group
 	g.Class = append(g.Class, "area")
-	g.Transform = svg.Translate(c.Padding.Left, c.Padding.Top)
+	g.Transform = svg.Translate(c.Padding.Left-s.OffsetX(), c.Padding.Top+s.OffsetY())
 	return g
 }
 
