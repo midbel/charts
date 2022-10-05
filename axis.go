@@ -86,15 +86,17 @@ func (a TimeAxis) Render(length, size, left, top float64) svg.Element {
 			text := tickText(a.Orientation, format(t), 0, a.Rotate, font)
 			grp.Append(text.AsElement())
 		}
-		if a.WithOuterTicks && i < len(data)-1 {
-			sk := d.Stroke
-			sk.Opacity = 0.1
-			tick := lineTick(a.Orientation, 0, -size, sk)
-			grp.Append(tick.AsElement())
-		}
-		if a.WithBands && i%2 == 0 {
-			rec := bandTick(a.Orientation, size, length/float64(len(data)-1))
-			grp.Append(rec.AsElement())
+		if i%2 == 0 && i < len(data)-1 {
+			if a.WithOuterTicks {
+				sk := d.Stroke
+				sk.Opacity = 0.05
+				tick := lineTick(a.Orientation, 0, -size, sk)
+				grp.Append(tick.AsElement())
+			}
+			if a.WithBands {
+				rec := bandTick(a.Orientation, size, length/float64(len(data)-1))
+				grp.Append(rec.AsElement())				
+			}
 		}
 		g.Append(grp.AsElement())
 	}
@@ -157,15 +159,17 @@ func (a NumberAxis) Render(length, size, left, top float64) svg.Element {
 			text := tickText(a.Orientation, format(f), 0, a.Rotate, font)
 			grp.Append(text.AsElement())
 		}
-		if a.WithOuterTicks && i < len(data)-1 {
-			sk := d.Stroke
-			sk.Opacity = 0.05
-			tick := lineTick(a.Orientation, 0, -size, sk)
-			grp.Append(tick.AsElement())
-		}
-		if a.WithBands && i%2 == 0 {
-			rec := bandTick(a.Orientation, size, length/float64(len(data)-1))
-			grp.Append(rec.AsElement())
+		if i%2 == 0 && i < len(data)-1 {
+			if a.WithOuterTicks {
+				sk := d.Stroke
+				sk.Opacity = 0.05
+				tick := lineTick(a.Orientation, 0, -size, sk)
+				grp.Append(tick.AsElement())
+			}
+			if a.WithBands {
+				rec := bandTick(a.Orientation, size, length/float64(len(data)-1))
+				grp.Append(rec.AsElement())				
+			}
 		}
 		g.Append(grp.AsElement())
 	}

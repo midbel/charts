@@ -14,7 +14,7 @@ import (
 )
 
 const (
-	defaultWidth  = 800
+	defaultWidth  = 1280
 	defaultHeight = 360
 	offsetHeight  = 300
 )
@@ -23,7 +23,7 @@ var pad = charts.Padding{
 	Top:    10,
 	Right:  45,
 	Bottom: 60,
-	Left:   40,
+	Left:   45,
 }
 
 func main() {
@@ -73,7 +73,7 @@ func main() {
 		Width:   defaultWidth,
 		Height:  defaultHeight,
 		Padding: pad,
-		Left:    getAxisY(priceScale),
+		Right:   getAxisY(priceScale),
 		Bottom:  getAxisX(timeScale),
 	}
 	ch.Render(os.Stdout, serie, day)
@@ -150,7 +150,7 @@ func TimePoint(date, value string) (charts.Point[time.Time, float64], error) {
 func getSerie(name, color string) charts.Serie[time.Time, float64] {
 	rdr := charts.LinearRenderer[time.Time, float64]{
 		Color: color,
-		Text:  charts.TextAfter,
+		Text:  charts.TextBefore,
 		Point: charts.GetCircle,
 	}
 	return charts.Serie[time.Time, float64]{
@@ -162,7 +162,7 @@ func getSerie(name, color string) charts.Serie[time.Time, float64] {
 
 func getAxisX(scaler charts.Scaler[time.Time]) charts.Axis {
 	return charts.TimeAxis{
-		Ticks:          7,
+		Ticks:          12,
 		Rotate:         -45,
 		Orientation:    charts.OrientBottom,
 		Scaler:         scaler,
@@ -177,7 +177,7 @@ func getAxisY(scaler charts.Scaler[float64]) charts.Axis {
 	return charts.NumberAxis{
 		Ticks: 10,
 		// Rotate:         -90,
-		Orientation:    charts.OrientLeft,
+		Orientation:    charts.OrientRight,
 		Scaler:         scaler,
 		WithInnerTicks: true,
 		WithLabelTicks: true,
