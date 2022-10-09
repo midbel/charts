@@ -35,7 +35,7 @@ func main() {
 		dtend      = time.Date(2022, 10, 1, 0, 0, 0, 0, time.UTC)
 		timeScale  = charts.TimeScaler(charts.TimeDomain(dtstart, dtend), charts.NewRange(0, defaultWidth-pad.Horizontal()))
 		priceScale = charts.NumberScaler(charts.NumberDomain(350, 0), charts.NewRange(0, defaultHeight-pad.Vertical()))
-		series     []charts.Serie[time.Time, float64]
+		series     []charts.Data
 		colors     = []string{"red", "green", "blue", "slategrey"}
 	)
 	for i, file := range flag.Args() {
