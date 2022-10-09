@@ -1,0 +1,58 @@
+# time scale definition from 2018 to 2022
+scale time-scale
+	type=time
+	range=0,800
+	domain=2018-08-01,2022-10-01
+
+scale number-scale
+	type=number
+	range=0,800
+	domain=0,350
+
+axis x-axis
+	legend=time
+	type=time
+	scale=$time-scale
+	ticks=10
+	bands-ticks=true
+
+axis y-axis
+	legend="price evolution"
+	type=number
+	scale=$number-scale
+	ticks=5
+	outer-ticks=true
+
+renderer line line-render
+	color=steelblue
+	point=circle
+	ignore-missing=true
+
+serie GOOG
+	x=$time-scale
+	y=$number-scale
+	renderer=$line-render
+	values=$(csv "../data/GOOG.csv" x=0 x-type=time y=1 y-type=number)
+
+serie MSFT
+	x=$time-scale
+	y=$number-scale
+	renderer=$line-render
+	values=$(csv "../data/MSFT.csv" x=0 x-type=time y=1 y-type=number)
+
+serie DUMMY
+	x=$time-scale
+	y=$number-scale
+	renderer=$line-render
+	values=(2018-08-20,124),(2022-05-11,243),(2022-06-11,235),(2022-09-01,245)
+
+chart stock-ime
+	width=800
+	height=600
+	left=$x-axis
+	bottom=$y-axis
+	legend=$(legend title="stock prices" position=right|top)
+	center=(2018-08-01,0)
+
+
+render "out.svg" $stock-time $DUMMY $MSFT $GOOG

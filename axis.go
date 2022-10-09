@@ -95,7 +95,7 @@ func (a TimeAxis) Render(length, size, left, top float64) svg.Element {
 			}
 			if a.WithBands {
 				rec := bandTick(a.Orientation, size, length/float64(len(data)-1))
-				grp.Append(rec.AsElement())				
+				grp.Append(rec.AsElement())
 			}
 		}
 		g.Append(grp.AsElement())
@@ -168,7 +168,7 @@ func (a NumberAxis) Render(length, size, left, top float64) svg.Element {
 			}
 			if a.WithBands {
 				rec := bandTick(a.Orientation, size, length/float64(len(data)-1))
-				grp.Append(rec.AsElement())				
+				grp.Append(rec.AsElement())
 			}
 		}
 		g.Append(grp.AsElement())
