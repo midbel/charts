@@ -52,12 +52,18 @@ func (b *Builder) Build() error {
 
 func (b *Builder) buildAxis() error {
 	b.next()
+	b.next()
 	var (
 		it  = defaultAxis(b.curr.Literal)
 		err error
 	)
 	b.next()
+	b.next()
 	for b.curr.Type != EOL && b.curr.Type != EOF {
+		if b.curr.Type == Comment {
+			b.next()
+			continue
+		}
 		switch b.curr.Literal {
 		case "type":
 			it.Type, err = b.getString()
@@ -69,6 +75,7 @@ func (b *Builder) buildAxis() error {
 		case "ticks":
 			it.Ticks, err = b.getInt()
 		case "scale":
+			_, err = b.getReference()
 		case "label-ticks":
 			it.Label, err = b.getBool()
 		case "outer-ticks":
@@ -92,12 +99,18 @@ func (b *Builder) buildAxis() error {
 
 func (b *Builder) buildScale() error {
 	b.next()
+	b.next()
 	var (
 		it  = defaultScale(b.curr.Literal)
 		err error
 	)
 	b.next()
+	b.next()
 	for b.curr.Type != EOL && b.curr.Type != EOF {
+		if b.curr.Type == Comment {
+			b.next()
+			continue
+		}
 		switch b.curr.Literal {
 		case "type":
 			it.Type, err = b.getString()
@@ -121,10 +134,12 @@ func (b *Builder) buildScale() error {
 			return err
 		}
 	}
+	b.next()
 	return nil
 }
 
 func (b *Builder) buildSerie() error {
+	b.next()
 	b.next()
 	var (
 		it  = defaultSerie(b.curr.Literal)
@@ -132,12 +147,17 @@ func (b *Builder) buildSerie() error {
 	)
 	_ = it
 	b.next()
+	b.next()
 	for b.curr.Type != EOL && b.curr.Type != EOF {
 		switch b.curr.Literal {
 		case "x":
+			_, err = b.getReference()
 		case "y":
+			_, err = b.getReference()
 		case "renderer":
+			_, err = b.getReference()
 		case "values":
+			_, err = b.getReference()
 		default:
 			err = unknownProp(b.curr.Literal, "serie")
 		}
@@ -145,10 +165,12 @@ func (b *Builder) buildSerie() error {
 			return err
 		}
 	}
+	b.next()
 	return nil
 }
 
 func (b *Builder) buildRenderer() error {
+	b.next()
 	b.next()
 	var err error
 	switch b.curr.Literal {
@@ -168,10 +190,12 @@ func (b *Builder) buildRenderer() error {
 
 func (b *Builder) buildPieRenderer() error {
 	b.next()
+	b.next()
 	var (
 		it  = defaultPieRenderer(b.curr.Literal)
 		err error
 	)
+	b.next()
 	b.next()
 	for b.curr.Type != EOL && b.curr.Type != EOF {
 		switch b.curr.Literal {
@@ -194,10 +218,12 @@ func (b *Builder) buildPieRenderer() error {
 
 func (b *Builder) buildLineRenderer() error {
 	b.next()
+	b.next()
 	var (
 		it  = defaultLineRenderer(b.curr.Literal)
 		err error
 	)
+	b.next()
 	b.next()
 	for b.curr.Type != EOL && b.curr.Type != EOF {
 		switch b.curr.Literal {
@@ -247,6 +273,24 @@ func (b *Builder) buildChart() error {
 	return nil
 }
 
+func (b *Builder) getReference() (string, error) {
+	b.next()
+	if b.curr.Type != Equal {
+		return "", fmt.Errorf("syntax error! missing equal after name")
+	}
+	b.next()
+	switch b.curr.Type {
+	case Reference:
+		defer b.next()
+		return b.curr.Literal, nil
+	case Command:
+		defer b.next()
+		return b.curr.Literal, nil
+	default:
+		return "", unexpectedToken(b.curr)
+	}
+}
+
 func (b *Builder) getString() (string, error) {
 	b.next()
 	if b.curr.Type != Equal {
@@ -256,6 +300,7 @@ func (b *Builder) getString() (string, error) {
 	if b.curr.Type != Literal {
 		return "", fmt.Errorf("syntax error! literal expected, got %s", b.curr)
 	}
+	defer b.next()
 	return b.curr.Literal, nil
 }
 
@@ -268,6 +313,7 @@ func (b *Builder) getBool() (bool, error) {
 	if b.curr.Type != Boolean {
 		return false, fmt.Errorf("syntax error! boolean expected, got %s", b.curr)
 	}
+	defer b.next()
 	switch b.curr.Literal {
 	case "true":
 		return true, nil
@@ -292,6 +338,7 @@ func (b *Builder) getFloat() (float64, error) {
 	if b.curr.Type != Number {
 		return 0, fmt.Errorf("syntax error! expected number, got %s", b.curr)
 	}
+	defer b.next()
 	return strconv.ParseFloat(b.curr.Literal, 64)
 }
 
@@ -329,7 +376,19 @@ func (b *Builder) getList() ([]string, error) {
 		return nil, fmt.Errorf("syntax error! missing equal after name")
 	}
 	b.next()
-	return nil, nil
+	var list []string
+	for b.curr.Type != Blank && b.curr.Type != EOL && b.curr.Type != EOF {
+		list = append(list, b.curr.Literal)
+		b.next()
+		switch b.curr.Type {
+		case Comma:
+			b.next()
+		case Blank, EOL, EOF:
+		default:
+			return nil, unexpectedToken(b.curr)
+		}
+	}
+	return list, nil
 }
 
 func (b *Builder) done() bool {
@@ -337,7 +396,6 @@ func (b *Builder) done() bool {
 }
 
 func (b *Builder) eol() error {
-	b.next()
 	switch b.curr.Type {
 	case Blank, Comment:
 		b.next()

@@ -28,6 +28,11 @@ renderer line line-render
 	point=circle
 	ignore-missing=true
 
+renderer pie pie-render
+	inner-radius=200
+	outer-radius=500
+	colors=steelblue,cornflowerblue,darkorange,orange
+
 serie GOOG
 	x=$time-scale
 	y=$number-scale
