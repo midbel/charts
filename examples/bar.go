@@ -57,17 +57,19 @@ func main() {
 	ch.Render(os.Stdout, ser)
 }
 
-func getBottomAxis(scaler charts.Scaler[string]) charts.Axis {
-	return charts.CategoryAxis{
+func getBottomAxis(scaler charts.Scaler[string]) charts.Axis[string] {
+	return charts.Axis[string]{
 		Orientation:    charts.OrientBottom,
 		Scaler:         scaler,
 		WithInnerTicks: true,
 		WithOuterTicks: false,
+		WithLabelTicks: true,
+		Format: func(s string) string { return s },
 	}
 }
 
-func getLeftAxis(scaler charts.Scaler[float64]) charts.Axis {
-	return charts.NumberAxis{
+func getLeftAxis(scaler charts.Scaler[float64]) charts.Axis[float64] {
+	return charts.Axis[float64]{
 		Ticks:          10,
 		Orientation:    charts.OrientLeft,
 		Scaler:         scaler,

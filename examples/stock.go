@@ -24,7 +24,7 @@ var pad = charts.Padding{
 	Top:    10,
 	Right:  45,
 	Bottom: 60,
-	Left:   40,
+	Left:   60,
 }
 
 func main() {
@@ -130,12 +130,15 @@ func getSerie(name, color string, skip int) charts.Serie[time.Time, float64] {
 	}
 }
 
-func getAxisX(scaler charts.Scaler[time.Time]) charts.Axis {
-	return charts.TimeAxis{
+func getAxisX(scaler charts.Scaler[time.Time]) charts.Axis[time.Time] {
+	return charts.Axis[time.Time] {
 		Ticks:          7,
 		Rotate:         -45,
 		Orientation:    charts.OrientBottom,
 		Scaler:         scaler,
+		Format: func(t time.Time) string {
+			return t.Format("2006-01-02")
+		},
 		WithInnerTicks: true,
 		WithLabelTicks: true,
 		WithOuterTicks: false,
@@ -143,18 +146,17 @@ func getAxisX(scaler charts.Scaler[time.Time]) charts.Axis {
 	}
 }
 
-func getAxisY(scaler charts.Scaler[float64]) charts.Axis {
-	return charts.NumberAxis{
+func getAxisY(scaler charts.Scaler[float64]) charts.Axis[float64] {
+	return charts.Axis[float64]{
 		Ticks: 10,
-		// Rotate:         -90,
 		Orientation:    charts.OrientLeft,
 		Scaler:         scaler,
+		Format: func(f float64) string {
+			return strconv.FormatFloat(f, 'f', 2, 64)
+		},
 		WithInnerTicks: true,
 		WithLabelTicks: true,
 		WithOuterTicks: true,
-		Format: func(f float64) string {
-			return strconv.Itoa(int(f))
-		},
 		WithBands: false,
 	}
 }

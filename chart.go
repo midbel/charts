@@ -29,10 +29,10 @@ type Chart[T, U ScalerConstraint] struct {
 
 	Padding
 
-	Left   Axis
-	Right  Axis
-	Top    Axis
-	Bottom Axis
+	Left   Axis[U]
+	Right  Axis[U]
+	Top    Axis[T]
+	Bottom Axis[T]
 
 	Legend struct {
 		Title  string
@@ -59,9 +59,6 @@ func (c Chart[T, U]) Render(w io.Writer, set ...Data) {
 		ar.Append(s.Render())
 		el.Append(ar.AsElement())
 	}
-	// if lg := c.drawLegend(series); lg != nil {
-	// 	el.Append(lg)
-	// }
 
 	bw := bufio.NewWriter(w)
 	defer bw.Flush()
@@ -140,19 +137,19 @@ func (c Chart[T, U]) drawLegend(series []Serie[T, U]) svg.Element {
 
 func (c Chart[T, U]) drawAxis() svg.Element {
 	g := svg.NewGroup(svg.WithID("axis"))
-	if c.Left != nil {
+	if c.Left.Scaler != nil {
 		el := c.Left.Render(c.DrawingHeight(), c.DrawingWidth(), c.Padding.Left, c.Padding.Top)
 		g.Append(el)
 	}
-	if c.Right != nil {
+	if c.Right.Scaler != nil {
 		el := c.Right.Render(c.DrawingHeight(), c.DrawingWidth(), c.Width-c.Padding.Right, c.Padding.Top)
 		g.Append(el)
 	}
-	if c.Top != nil {
+	if c.Top.Scaler != nil {
 		el := c.Top.Render(c.DrawingWidth(), c.DrawingHeight(), c.Padding.Left, c.Padding.Top)
 		g.Append(el)
 	}
-	if c.Bottom != nil {
+	if c.Bottom.Scaler != nil {
 		el := c.Bottom.Render(c.DrawingWidth(), c.DrawingHeight(), c.Padding.Left, c.Height-c.Padding.Bottom)
 		g.Append(el)
 	}

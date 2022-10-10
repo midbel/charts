@@ -2,8 +2,6 @@ package charts
 
 import (
 	"math"
-	"strconv"
-	"time"
 
 	"github.com/midbel/svg"
 )
@@ -27,27 +25,24 @@ func (o Orientation) Reverse() bool {
 	return o == OrientRight || o == OrientTop
 }
 
-type Axis interface {
-	Render(float64, float64, float64, float64) svg.Element
-}
-
-type TimeAxis struct {
+type Axis[T ScalerConstraint] struct {
 	Label  string
 	Rotate float64
 	Orientation
 	Ticks          int
-	Scaler         Scaler[time.Time]
-	Domain         []time.Time
-	Format         func(time.Time) string
+	Scaler         Scaler[T]
+	Domain         []T
+	Format         func(T) string
 	WithInnerTicks bool
 	WithLabelTicks bool
 	WithOuterTicks bool
 	WithBands      bool
-	WithArrow      bool
+	WithArrow      bool	
 }
 
-func (a TimeAxis) Render(length, size, left, top float64) svg.Element {
-	g := svg.NewGroup(svg.WithTranslate(left, top))
+func (a Axis[T]) Render(length, size, left, top float64) svg.Element {
+	var g svg.Group
+	g.Transform = svg.Translate(left, top)
 	if a.Vertical() {
 		g.Class = append(g.Class, "axis", "y-axis")
 	} else {
@@ -59,31 +54,26 @@ func (a TimeAxis) Render(length, size, left, top float64) svg.Element {
 	var (
 		data   = a.Domain
 		font   = svg.NewFont(FontSize)
-		format = a.Format
 	)
 	if len(data) == 0 {
 		data = a.Scaler.Values(a.Ticks)
-	}
-	if format == nil {
-		format = func(t time.Time) string {
-			return t.Format("2006-01-02")
-		}
 	}
 	for i, t := range data {
 		var (
 			pos = a.Scaler.Scale(t)
-			grp = svg.NewGroup(svg.WithTranslate(pos, 0))
+			grp svg.Group
 		)
 		if a.Vertical() {
-			grp.Transform.TX = 0
-			grp.Transform.TY = pos
+			grp.Transform = svg.Translate(0, pos)
+		} else {
+			grp.Transform = svg.Translate(pos, 0)
 		}
 		if a.WithInnerTicks {
 			tick := lineTick(a.Orientation, 0, FontSize*0.8, d.Stroke)
 			grp.Append(tick.AsElement())
 		}
-		if a.WithLabelTicks {
-			text := tickText(a.Orientation, format(t), 0, a.Rotate, font)
+		if a.WithLabelTicks && a.Format != nil {
+			text := tickText(a.Orientation, a.Format(t), 0, a.Rotate, font)
 			grp.Append(text.AsElement())
 		}
 		if i%2 == 0 && i < len(data)-1 {
@@ -98,134 +88,6 @@ func (a TimeAxis) Render(length, size, left, top float64) svg.Element {
 				grp.Append(rec.AsElement())
 			}
 		}
-		g.Append(grp.AsElement())
-	}
-
-	return g.AsElement()
-}
-
-type NumberAxis struct {
-	Label  string
-	Rotate float64
-	Orientation
-	Ticks          int
-	Scaler         Scaler[float64]
-	Domain         []float64
-	Format         func(float64) string
-	WithInnerTicks bool
-	WithLabelTicks bool
-	WithOuterTicks bool
-	WithBands      bool
-	WithArrow      bool
-}
-
-func (a NumberAxis) Render(length, size, left, top float64) svg.Element {
-	g := svg.NewGroup(svg.WithTranslate(left, top))
-	if a.Vertical() {
-		g.Class = append(g.Class, "axis", "y-axis")
-	} else {
-		g.Class = append(g.Class, "axis", "x-axis")
-	}
-	d := domainLine(a.Orientation, length, svg.NewStroke("black", 1))
-	g.Append(d.AsElement())
-
-	var (
-		data   = a.Domain
-		font   = svg.NewFont(FontSize)
-		format = a.Format
-	)
-	if len(data) == 0 {
-		data = a.Scaler.Values(a.Ticks)
-	}
-	if format == nil {
-		format = func(f float64) string {
-			return strconv.FormatFloat(f, 'f', 2, 64)
-		}
-	}
-	for i, f := range data {
-		var (
-			pos = a.Scaler.Scale(f)
-			grp = svg.NewGroup(svg.WithTranslate(pos, 0))
-		)
-		if a.Vertical() {
-			grp.Transform.TX = 0
-			grp.Transform.TY = pos
-		}
-		if a.WithInnerTicks {
-			tick := lineTick(a.Orientation, 0, FontSize*0.8, d.Stroke)
-			grp.Append(tick.AsElement())
-		}
-		if a.WithLabelTicks {
-			text := tickText(a.Orientation, format(f), 0, a.Rotate, font)
-			grp.Append(text.AsElement())
-		}
-		if i%2 == 0 && i < len(data)-1 {
-			if a.WithOuterTicks {
-				sk := d.Stroke
-				sk.Opacity = 0.05
-				tick := lineTick(a.Orientation, 0, -size, sk)
-				grp.Append(tick.AsElement())
-			}
-			if a.WithBands {
-				rec := bandTick(a.Orientation, size, length/float64(len(data)-1))
-				grp.Append(rec.AsElement())
-			}
-		}
-		g.Append(grp.AsElement())
-	}
-
-	return g.AsElement()
-}
-
-type CategoryAxis struct {
-	Label  string
-	Rotate float64
-	Scaler Scaler[string]
-	Orientation
-	Domain         []string
-	WithInnerTicks bool
-	WithOuterTicks bool
-}
-
-func (a CategoryAxis) Render(length, size, left, top float64) svg.Element {
-	g := svg.NewGroup(svg.WithTranslate(left, top))
-	if a.Vertical() {
-		g.Class = append(g.Class, "axis", "y-axis")
-	} else {
-		g.Class = append(g.Class, "axis", "x-axis")
-	}
-	d := domainLine(a.Orientation, length, svg.NewStroke("black", 1))
-	g.Append(d.AsElement())
-
-	var (
-		align = a.Scaler.Space() / 2
-		font  = svg.NewFont(FontSize)
-		data  = a.Domain
-	)
-	if len(data) == 0 {
-		data = a.Scaler.Values(0)
-	}
-	for _, s := range data {
-		var (
-			pos  = a.Scaler.Scale(s)
-			text = tickText(a.Orientation, s, align, a.Rotate, font)
-			grp  = svg.NewGroup(svg.WithTranslate(pos, 0))
-		)
-		if a.Vertical() {
-			grp.Transform.TX = 0
-			grp.Transform.TY = pos
-		}
-		if a.WithInnerTicks {
-			tick := lineTick(a.Orientation, align, FontSize*0.8, d.Stroke)
-			grp.Append(tick.AsElement())
-		}
-		if a.WithOuterTicks {
-			sk := d.Stroke
-			sk.DashArray(5)
-			tick := lineTick(a.Orientation, align, -size, sk)
-			grp.Append(tick.AsElement())
-		}
-		grp.Append(text.AsElement())
 		g.Append(grp.AsElement())
 	}
 
