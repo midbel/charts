@@ -10,10 +10,23 @@ type Builder struct {
 	scan *Scanner
 	curr Token
 	peek Token
+
+	builders map[string]func() error
 }
 
 func New(r io.Reader) *Builder {
 	var b Builder
+	b.builders = map[string]func() error {
+		"scale": b.buildScale,
+		"serie": b.buildSerie,
+		"axis": b.buildAxis,
+		"chart": b.buildChart,
+		"renderer": b.buildRenderer,
+		"render": nil,
+		"csv": nil,
+		"json": nil,
+		"xml": nil,
+	}
 	b.scan = Scan(r)
 	b.next()
 	b.next()
@@ -26,23 +39,11 @@ func (b *Builder) Build() error {
 			b.next()
 			continue
 		}
-		var err error
-		switch b.curr.Literal {
-		default:
+		build, ok := b.builders[b.curr.Literal]
+		if !ok {
 			return fmt.Errorf("%s: unsupported command", b.curr.Literal)
-		case "scale":
-			err = b.buildScale()
-		case "serie":
-			err = b.buildSerie()
-		case "renderer":
-			err = b.buildRenderer()
-		case "axis":
-			err = b.buildAxis()
-		case "chart":
-			err = b.buildChart()
-		case "render":
 		}
-		if err != nil {
+		if err := build(); err != nil {
 			return err
 		}
 	}
@@ -246,10 +247,13 @@ func (b *Builder) buildLineRenderer() error {
 
 func (b *Builder) buildChart() error {
 	b.next()
+	b.next()
 	var (
 		it  = defaultChart(b.curr.Literal)
 		err error
 	)
+	b.next()
+	b.next()
 	for b.curr.Type != EOL && b.curr.Type != EOF {
 		switch b.curr.Literal {
 		case "width":
@@ -259,9 +263,16 @@ func (b *Builder) buildChart() error {
 		case "title":
 			it.Title, err = b.getString()
 		case "left-axis":
+			_, err = b.getReference()
 		case "right-axis":
+			_, err = b.getReference()
 		case "top-axis":
+			_, err = b.getReference()
 		case "bottom-axis":
+			_, err = b.getReference()
+		case "legend":
+			_, err = b.getReference()
+		case "center":
 		default:
 			err = unknownProp(b.curr.Literal, "chart")
 		}
