@@ -37,7 +37,7 @@ type Axis[T ScalerConstraint] struct {
 	WithLabelTicks bool
 	WithOuterTicks bool
 	WithBands      bool
-	WithArrow      bool	
+	WithArrow      bool
 }
 
 func (a Axis[T]) Render(length, size, left, top float64) svg.Element {
@@ -52,8 +52,8 @@ func (a Axis[T]) Render(length, size, left, top float64) svg.Element {
 	g.Append(d.AsElement())
 
 	var (
-		data   = a.Domain
-		font   = svg.NewFont(FontSize)
+		data = a.Domain
+		font = svg.NewFont(FontSize)
 	)
 	if len(data) == 0 {
 		data = a.Scaler.Values(a.Ticks)
@@ -76,14 +76,14 @@ func (a Axis[T]) Render(length, size, left, top float64) svg.Element {
 			text := tickText(a.Orientation, a.Format(t), 0, a.Rotate, font)
 			grp.Append(text.AsElement())
 		}
-		if i%2 == 0 && i < len(data)-1 {
+		if i < len(data)-1 {
 			if a.WithOuterTicks {
 				sk := d.Stroke
 				sk.Opacity = 0.05
 				tick := lineTick(a.Orientation, 0, -size, sk)
 				grp.Append(tick.AsElement())
 			}
-			if a.WithBands {
+			if i%2 == 0 && a.WithBands {
 				rec := bandTick(a.Orientation, size, length/float64(len(data)-1))
 				grp.Append(rec.AsElement())
 			}
