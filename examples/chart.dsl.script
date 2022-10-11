@@ -1,56 +1,61 @@
-# time scale definition from 2018 to 2022
-scale time-scale
+scale time-scale with
 	type=time
-	range=0,800
+	range=0,700
 	domain=2018-08-01,2022-10-01
 
-scale number-scale
+scale number-scale with
 	type=number
-	range=0,800
-	domain=0,350
+	range=0,530
+	domain=350,0
 
-axis x-axis
+axis x-axis with
 	legend=time
 	type=time
 	scale=$time-scale
-	ticks=10
+	ticks=7
 	bands-ticks=true
+	format="%y-%m-%d"
 
-axis y-axis
+axis y-axis with
 	legend="price evolution"
 	type=number
 	scale=$number-scale
 	ticks=5
 	outer-ticks=true
+	format="%.2f"
 
-renderer line line-render
+line line-render with
 	color=steelblue
 	point=circle
 	ignore-missing=true
 
-renderer pie pie-render
+pie pie-render with
 	inner-radius=200
 	outer-radius=500
 	colors=steelblue,cornflowerblue,darkorange,orange
 
-serie GOOG
+serie GOOG with
 	x=$time-scale
 	y=$number-scale
 	renderer=$line-render
 	values=$(csv "../data/GOOG.csv" x=0 x-type=time y=1 y-type=number)
 
-serie MSFT
+serie MSFT with
 	x=$time-scale
 	y=$number-scale
 	renderer=$line-render
 	values=$(csv "../data/MSFT.csv" x=0 x-type=time y=1 y-type=number)
 
-chart stock-ime
+chart stock-time with
 	width=800
 	height=600
-	left-axis=$x-axis
-	bottom-axis=$y-axis
-	legend=$(legend title="stock prices" position=right|top)
+	title=stock-time
+	padding=10,40,60,60
+	left-axis=$y-axis
+	bottom-axis=$x-axis
+	legend=$(legend title="stock prices" position=right,top)
 
 
-render "out.svg" $stock-time $DUMMY $MSFT $GOOG
+render "tmp/out.svg" with
+	chart=$stock-time
+	series=$DUMMY,$MSFT,$GOOG
