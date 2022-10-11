@@ -269,11 +269,12 @@ func (r CubicRenderer[T, U]) Render(serie Serie[T, U]) svg.Element {
 }
 
 type LinearRenderer[T, U ScalerConstraint] struct {
-	Fill  bool
-	Color string
-	Skip  int
-	Point PointFunc
-	Text  TextPosition
+	Fill          bool
+	Color         string
+	Skip          int
+	Point         PointFunc
+	Text          TextPosition
+	IgnoreMissing bool
 }
 
 func (r LinearRenderer[T, U]) Render(serie Serie[T, U]) svg.Element {
@@ -293,7 +294,7 @@ func (r LinearRenderer[T, U]) Render(serie Serie[T, U]) svg.Element {
 		}
 		pos.X = serie.X.Scale(pt.X)
 		pos.Y = serie.Y.Scale(pt.Y)
-		if i == 0 || (nan && serie.IgnoreMissing) {
+		if i == 0 || (nan && r.IgnoreMissing) {
 			nan = false
 			pat.AbsMoveTo(pos)
 		} else {
