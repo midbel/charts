@@ -64,7 +64,7 @@ func getBottomAxis(scaler charts.Scaler[string]) charts.Axis[string] {
 		WithInnerTicks: true,
 		WithOuterTicks: false,
 		WithLabelTicks: true,
-		Format: func(s string) string { return s },
+		Format:         func(s string) string { return s },
 	}
 }
 
