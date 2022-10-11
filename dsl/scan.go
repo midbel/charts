@@ -195,7 +195,6 @@ func (s *Scanner) scanQuote(tok *Token) {
 	}
 	tok.Type = Literal
 	tok.Literal = string(s.input[pos:s.curr])
-	s.read()
 }
 
 func (s *Scanner) scanCommand(tok *Token) {
@@ -214,6 +213,7 @@ func (s *Scanner) scanReference(tok *Token) {
 		s.scanCommand(tok)
 		return
 	}
+	defer s.unread()
 	pos := s.curr
 	for isLetter(s.char) {
 		s.read()
@@ -312,12 +312,11 @@ func (s *Scanner) skip(accept func(rune) bool) {
 }
 
 func (s *Scanner) done() bool {
-	return s.char == null
+	return s.char == utf8.RuneError
 }
 
 func (s *Scanner) read() {
-	if s.curr >= len(s.input) {
-		s.char = null
+	if s.curr >= len(s.input) || s.char == utf8.RuneError {
 		return
 	}
 	r, size := utf8.DecodeRune(s.input[s.next:])
@@ -337,8 +336,7 @@ func (s *Scanner) peek() rune {
 }
 
 const (
-	null       rune = 0
-	space           = ' '
+	space      rune = ' '
 	tab             = '\t'
 	cr              = '\r'
 	nl              = '\n'
@@ -346,7 +344,6 @@ const (
 	equal           = '='
 	lparen          = '('
 	rparen          = ')'
-	pipe            = '|'
 	comma           = ','
 	hash            = '#'
 	dollar          = '$'
