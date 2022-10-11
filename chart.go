@@ -38,7 +38,7 @@ type Chart[T, U ScalerConstraint] struct {
 		Title  string
 		Orient Orientation
 	}
-	Center Point[T, U]
+	//Center Point[T, U]
 }
 
 func (c Chart[T, U]) DrawingWidth() float64 {
@@ -138,18 +138,22 @@ func (c Chart[T, U]) drawLegend(series []Serie[T, U]) svg.Element {
 func (c Chart[T, U]) drawAxis() svg.Element {
 	g := svg.NewGroup(svg.WithID("axis"))
 	if c.Left.Scaler != nil {
+		c.Left.Orientation = OrientLeft
 		el := c.Left.Render(c.DrawingHeight(), c.DrawingWidth(), c.Padding.Left, c.Padding.Top)
 		g.Append(el)
 	}
 	if c.Right.Scaler != nil {
+		c.Left.Orientation = OrientRight
 		el := c.Right.Render(c.DrawingHeight(), c.DrawingWidth(), c.Width-c.Padding.Right, c.Padding.Top)
 		g.Append(el)
 	}
 	if c.Top.Scaler != nil {
+		c.Left.Orientation = OrientTop
 		el := c.Top.Render(c.DrawingWidth(), c.DrawingHeight(), c.Padding.Left, c.Padding.Top)
 		g.Append(el)
 	}
 	if c.Bottom.Scaler != nil {
+		c.Left.Orientation = OrientBottom
 		el := c.Bottom.Render(c.DrawingWidth(), c.DrawingHeight(), c.Padding.Left, c.Height-c.Padding.Bottom)
 		g.Append(el)
 	}
