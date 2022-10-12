@@ -329,9 +329,11 @@ func (r LinearRenderer[T, U]) Render(serie Serie[T, U]) svg.Element {
 }
 
 type StepRenderer[T, U ScalerConstraint] struct {
-	Color string
-	Fill  bool
-	Point PointFunc
+	Color         string
+	Fill          bool
+	Point         PointFunc
+	Text          TextPosition
+	IgnoreMissing bool
 }
 
 func (r StepRenderer[T, U]) Render(serie Serie[T, U]) svg.Element {
@@ -358,7 +360,7 @@ func (r StepRenderer[T, U]) Render(serie Serie[T, U]) svg.Element {
 		}
 		pos.X = serie.X.Scale(pt.X)
 		pos.Y = serie.Y.Scale(pt.Y)
-		if nan && serie.IgnoreMissing {
+		if nan && r.IgnoreMissing {
 			nan = false
 			pat.AbsMoveTo(pos)
 		} else {
@@ -382,9 +384,11 @@ func (r StepRenderer[T, U]) Render(serie Serie[T, U]) svg.Element {
 }
 
 type StepAfterRenderer[T, U ScalerConstraint] struct {
-	Color string
-	Fill  bool
-	Point PointFunc
+	Color         string
+	Fill          bool
+	Point         PointFunc
+	Text          TextPosition
+	IgnoreMissing bool
 }
 
 func (r StepAfterRenderer[T, U]) Render(serie Serie[T, U]) svg.Element {
@@ -412,7 +416,7 @@ func (r StepAfterRenderer[T, U]) Render(serie Serie[T, U]) svg.Element {
 		pos.X = serie.X.Scale(pt.X)
 		pos.Y = serie.Y.Scale(pt.Y)
 
-		if nan && serie.IgnoreMissing {
+		if nan && r.IgnoreMissing {
 			nan = false
 			pat.AbsMoveTo(pos)
 		} else {
@@ -439,9 +443,11 @@ func (r StepAfterRenderer[T, U]) Render(serie Serie[T, U]) svg.Element {
 }
 
 type StepBeforeRenderer[T, U ScalerConstraint] struct {
-	Color string
-	Fill  bool
-	Point PointFunc
+	Color         string
+	Fill          bool
+	Point         PointFunc
+	Text          TextPosition
+	IgnoreMissing bool
 }
 
 func (r StepBeforeRenderer[T, U]) Render(serie Serie[T, U]) svg.Element {
@@ -471,7 +477,7 @@ func (r StepBeforeRenderer[T, U]) Render(serie Serie[T, U]) svg.Element {
 		pos.X = serie.X.Scale(pt.X)
 		pos.Y = serie.Y.Scale(pt.Y)
 
-		if nan && serie.IgnoreMissing {
+		if nan && r.IgnoreMissing {
 			nan = false
 			pat.AbsMoveTo(pos)
 		} else {
