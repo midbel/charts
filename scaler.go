@@ -1,6 +1,7 @@
 package charts
 
 import (
+	"fmt"
 	"time"
 )
 
@@ -12,6 +13,7 @@ type Domain[T ScalerConstraint] interface {
 	Diff(T) float64
 	Extend() float64
 	Values(int) []T
+	Merge(Domain[T]) (Domain[T], error)
 }
 
 type numberDomain struct {
@@ -24,6 +26,21 @@ func NumberDomain(f, t float64) Domain[float64] {
 		fst: f,
 		lst: t,
 	}
+}
+
+func (n numberDomain) Merge(other Domain[float64]) (Domain[float64], error) {
+	d, ok := other.(numberDomain)
+	if !ok {
+		return nil, fmt.Errorf("domain can not be merged!")
+	}
+	x := n
+	if n.fst > d.fst {
+		x.fst = d.fst
+	}
+	if n.lst < d.lst {
+		x.fst = d.lst
+	}
+	return x, nil
 }
 
 func (n numberDomain) Diff(v float64) float64 {
@@ -56,6 +73,21 @@ func TimeDomain(f, t time.Time) Domain[time.Time] {
 		fst: f,
 		lst: t,
 	}
+}
+
+func (t timeDomain) Merge(other Domain[time.Time]) (Domain[time.Time], error) {
+	d, ok := other.(timeDomain)
+	if !ok {
+		return nil, fmt.Errorf("domain can not be merged!")
+	}
+	n := t
+	if t.fst.After(d.fst) {
+		n.fst = d.fst
+	}
+	if t.lst.Before(d.lst) {
+		n.lst = d.lst
+	}
+	return n, nil
 }
 
 func (t timeDomain) Diff(v time.Time) float64 {
