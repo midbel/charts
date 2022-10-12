@@ -143,17 +143,17 @@ func (c Chart[T, U]) drawAxis() svg.Element {
 		g.Append(el)
 	}
 	if c.Right.Scaler != nil {
-		c.Left.Orientation = OrientRight
+		c.Right.Orientation = OrientRight
 		el := c.Right.Render(c.DrawingHeight(), c.DrawingWidth(), c.Width-c.Padding.Right, c.Padding.Top)
 		g.Append(el)
 	}
 	if c.Top.Scaler != nil {
-		c.Left.Orientation = OrientTop
+		c.Top.Orientation = OrientTop
 		el := c.Top.Render(c.DrawingWidth(), c.DrawingHeight(), c.Padding.Left, c.Padding.Top)
 		g.Append(el)
 	}
 	if c.Bottom.Scaler != nil {
-		c.Left.Orientation = OrientBottom
+		c.Bottom.Orientation = OrientBottom
 		el := c.Bottom.Render(c.DrawingWidth(), c.DrawingHeight(), c.Padding.Left, c.Height-c.Padding.Bottom)
 		g.Append(el)
 	}
