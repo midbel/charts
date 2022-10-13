@@ -8,22 +8,22 @@ import (
 )
 
 const (
+	kwSet     = "set"
+	kwLoad    = "load"
+	kwUsing   = "using"
+	kwRender  = "render"
+	kwWith    = "with"
+	kwInclude = "include"
+)
+
+const (
 	Invalid rune = -(iota + 1)
+	Keyword
 	Literal
-	Command
-	Reference
-	Skip
-	Date
-	Datetime
-	Number
-	Boolean
 	Comment
-	Equal
-	Colon
+	Comma
 	Lparen
 	Rparen
-	Comma
-	Blank
 	EOL
 	EOF
 )
@@ -42,38 +42,20 @@ func (t Token) String() string {
 		prefix = "invalid"
 	case Literal:
 		prefix = "literal"
-	case Command:
-		prefix = "command"
-	case Reference:
-		prefix = "reference"
-	case Skip:
-		return "<skip>"
-	case Date:
-		prefix = "date"
-	case Datetime:
-		prefix = "datetime"
-	case Number:
-		prefix = "number"
-	case Boolean:
-		prefix = "boolean"
 	case Comment:
 		prefix = "comment"
-	case Equal:
-		return "<equal>"
-	case Colon:
-		return "<colon>"
-	case Lparen:
-		return "<lparen>"
-	case Rparen:
-		return "<rparen>"
+	case Keyword:
+		prefix = "keyword"
 	case Comma:
 		return "<comma>"
-	case Blank:
-		return "<blank>"
 	case EOL:
 		return "<eol>"
 	case EOF:
 		return "<eof>"
+	case Lparen:
+		return "<lparen>"
+	case Rparen:
+		return "<rparen>"
 	}
 	return fmt.Sprintf("%s(%s)", prefix, t.Literal)
 }
@@ -98,6 +80,9 @@ func Scan(r io.Reader) *Scanner {
 
 func (s *Scanner) Scan() Token {
 	s.read()
+	if isBlank(s.char) {
+		s.skipBlank()
+	}
 
 	var tok Token
 	if s.done() {
@@ -107,56 +92,36 @@ func (s *Scanner) Scan() Token {
 	switch {
 	case isComment(s.char):
 		s.scanComment(&tok)
-	case isReference(s.char):
-		s.scanReference(&tok)
-	case isLetter(s.char):
-		s.scanLiteral(&tok)
 	case isQuote(s.char):
 		s.scanQuote(&tok)
-	case isDigit(s.char) || s.char == dash:
-		s.scanNumber(&tok)
-	case isBlank(s.char):
-		s.scanBlank(&tok)
 	case isNL(s.char):
 		s.scanNewline(&tok)
 	case isPunct(s.char):
 		s.scanPunct(&tok)
 	default:
-		tok.Type = Invalid
+		s.scanLiteral(&tok)
 	}
 	return tok
 }
 
 func (s *Scanner) scanPunct(tok *Token) {
 	switch s.char {
-	case equal:
-		tok.Type = Equal
-	case colon:
-		tok.Type = Colon
 	case comma:
 		tok.Type = Comma
+		s.read()
+		s.skipBlank()
 	case lparen:
 		tok.Type = Lparen
 	case rparen:
 		tok.Type = Rparen
 	default:
+		tok.Type = Invalid
 	}
-}
-
-func (s *Scanner) scanBlank(tok *Token) {
-	tok.Type = Blank
-	s.skipBlank()
 }
 
 func (s *Scanner) scanNewline(tok *Token) {
-	s.read()
+	s.skipNL()
 	tok.Type = EOL
-	if isBlank(s.char) {
-		s.skipBlank()
-		tok.Type = Blank
-	} else {
-		s.skipNL()
-	}
 }
 
 func (s *Scanner) scanComment(tok *Token) {
@@ -173,16 +138,19 @@ func (s *Scanner) scanComment(tok *Token) {
 }
 
 func (s *Scanner) scanLiteral(tok *Token) {
-	defer s.unread()
-
 	pos := s.curr
-	for isLetter(s.char) {
+	for !isBlank(s.char) && !isPunct(s.char) && !isNL(s.char) && !s.done() {
 		s.read()
 	}
 	tok.Type = Literal
 	tok.Literal = string(s.input[pos:s.curr])
-	if tok.Literal == "true" || tok.Literal == "false" {
-		tok.Type = Boolean
+	if !isBlank(s.char) {
+		s.unread()
+	}
+	switch tok.Literal {
+	default:
+	case kwSet, kwLoad, kwRender, kwUsing, kwWith, kwInclude:
+		tok.Type = Keyword
 	}
 }
 
@@ -194,105 +162,6 @@ func (s *Scanner) scanQuote(tok *Token) {
 		s.read()
 	}
 	tok.Type = Literal
-	tok.Literal = string(s.input[pos:s.curr])
-}
-
-func (s *Scanner) scanCommand(tok *Token) {
-	s.read()
-	pos := s.curr
-	for s.char != rparen {
-		s.read()
-	}
-	tok.Type = Command
-	tok.Literal = string(s.input[pos:s.curr])
-}
-
-func (s *Scanner) scanReference(tok *Token) {
-	s.read()
-	if s.char == lparen {
-		s.scanCommand(tok)
-		return
-	}
-	defer s.unread()
-	pos := s.curr
-	for isLetter(s.char) {
-		s.read()
-	}
-	tok.Type = Reference
-	tok.Literal = string(s.input[pos:s.curr])
-}
-
-func (s *Scanner) scanNumber(tok *Token) {
-	defer s.unread()
-
-	pos := s.curr
-	if s.char == dash {
-		s.read()
-		if isBlank(s.char) {
-			tok.Type = Skip
-			return
-		}
-	}
-	for isDigit(s.char) {
-		s.read()
-	}
-	switch s.char {
-	case dot:
-		s.read()
-		for isDigit(s.char) {
-			s.read()
-		}
-	case dash:
-		s.scanDate(pos, tok)
-		return
-	default:
-	}
-	tok.Type = Number
-	tok.Literal = string(s.input[pos:s.curr])
-}
-
-func (s *Scanner) scanDate(pos int, tok *Token) {
-	s.read()
-	for isDigit(s.char) {
-		s.read()
-	}
-	if s.char != dash {
-		tok.Type = Invalid
-		return
-	}
-	s.read()
-	for isDigit(s.char) {
-		s.read()
-	}
-	tok.Type = Date
-	tok.Literal = string(s.input[pos:s.curr])
-	if s.char == 'T' {
-		s.scanTime(pos, tok)
-	}
-}
-
-func (s *Scanner) scanTime(pos int, tok *Token) {
-	s.read()
-	for isDigit(s.char) {
-		s.read()
-	}
-	if s.char != colon {
-		tok.Type = Invalid
-		return
-	}
-	s.read()
-	for isDigit(s.char) {
-		s.read()
-	}
-	if s.char != colon {
-		tok.Type = Invalid
-		return
-	}
-	s.read()
-	for isDigit(s.char) {
-		s.read()
-	}
-	tok.Type = Datetime
 	tok.Literal = string(s.input[pos:s.curr])
 }
 
@@ -355,7 +224,7 @@ const (
 )
 
 func isPunct(r rune) bool {
-	return r == equal || r == colon || r == lparen || r == rparen || r == comma
+	return r == comma || r == lparen || r == rparen
 }
 
 func isComment(r rune) bool {
@@ -380,10 +249,6 @@ func isUpper(r rune) bool {
 
 func isDigit(r rune) bool {
 	return r >= '0' && r <= '9'
-}
-
-func isReference(r rune) bool {
-	return r == dollar
 }
 
 func isBlank(r rune) bool {
