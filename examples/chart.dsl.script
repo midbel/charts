@@ -17,22 +17,38 @@ set xticks label time
 set xticks format %y-%m-%d
 
 set yticks 10
-set yticks values 0,50,150,250,350
 set yticks position left
 set yticks label prices
 set yticks format "%.2f"
 
 set yticks with (
 	count 10
-	values 0,50,150,250,350
 	position left
 	label prices
 	format "%.2f"
 )
 
-load data/GOOG.csv using 0,1 with line(color=blue)
-load data/MSFT.csv using 0,1 with line(color=red)
-load data/AAPL.csv using 0,1 with line(color=green)
-load data/TWTR.csv using 0,1 with line(color=grey)
+set style with (
+	color black
+	ignore-missing true
+	text-position text-after
+)
+
+load data/GOOG.csv using 0,1 with (
+	type line
+	color blue
+)
+load data/MSFT.csv using 0,1 with (
+	type line
+	color red
+)
+load data/AAPL.csv using 0,1 with (
+	type line
+	color green
+)
+load data/TWTR.csv using 0,1 with (
+	type line
+	color grey
+)
 
 render tmp/out.svg

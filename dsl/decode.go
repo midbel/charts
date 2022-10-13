@@ -4,11 +4,13 @@ import (
 	"fmt"
 	"io"
 	"os"
+	"path/filepath"
 	"strconv"
 )
 
 type Decoder struct {
 	path string
+
 	scan *Scanner
 	curr Token
 	peek Token
@@ -17,7 +19,7 @@ type Decoder struct {
 func NewDecoder(r io.Reader) *Decoder {
 	var d Decoder
 	if r, ok := r.(interface{ Name() string }); ok {
-		d.path = r.Name()
+		d.path = filepath.Dir(r.Name())
 	}
 	d.scan = Scan(r)
 	d.next()
@@ -32,7 +34,6 @@ func (d *Decoder) Decode() error {
 
 func (d *Decoder) decode(cfg *Config) error {
 	for !d.done() {
-		fmt.Println(d.curr, d.peek)
 		if d.curr.Type == Comment {
 			d.next()
 			continue
@@ -69,238 +70,221 @@ func (d *Decoder) decodeInclude(cfg *Config) error {
 		return err
 	}
 	defer r.Close()
-	return NewDecoder(r).decode(cfg)
+	if err := NewDecoder(r).decode(cfg); err != nil {
+		return err
+	}
+	return d.eol()
 }
 
 func (d *Decoder) decodeSet(cfg *Config) error {
-	fmt.Println("enter decodeSet")
-	defer fmt.Println(">> leave decodeSet")
 	d.next()
-	var err error
-	switch d.curr.Literal {
+	var (
+		err error
+		cmd = d.curr.Literal
+	)
+	d.next()
+	switch cmd {
 	case "title":
-		d.next()
-		cfg.Title = d.curr.Literal
-		d.next()
+		cfg.Title, err = d.getString()
 	case "size":
-		d.next()
-		cfg.Width, err = strconv.ParseFloat(d.curr.Literal, 64)
-		if err != nil {
-			break
-		}
-		d.next()
-		if d.curr.Type != Comma {
-			err = fmt.Errorf("unexpected token %s", d.curr)
-		}
-		d.next()
-		cfg.Height, err = strconv.ParseFloat(d.curr.Literal, 64)
+		list, err := d.getFloatList()
 		if err != nil {
 			return err
 		}
-		d.next()
+		switch len(list) {
+		case 1:
+			cfg.Width, cfg.Height = list[0], list[0]
+		case 2:
+			cfg.Width, cfg.Height = list[0], list[1]
+		default:
+			err = fmt.Errorf("invalid number values given for size")
+		}
 	case "padding":
-		d.next()
-		var list []float64
-		for d.curr.Type != EOL && d.curr.Type != EOF {
-			f, err := strconv.ParseFloat(d.curr.Literal, 64)
-			if err != nil {
-				return err
-			}
-			list = append(list, f)
-			d.next()
-			switch d.curr.Type {
-			case Comma:
-				d.next()
-			case EOF, EOL:
-			default:
-				return fmt.Errorf("unexpected token %s", d.curr)
-			}
+		list, err := d.getFloatList()
+		if err != nil {
+			return err
 		}
 		switch len(list) {
-		case 0:
 		case 1:
 			cfg.Pad.Top = list[0]
 			cfg.Pad.Right = list[0]
 			cfg.Pad.Bottom = list[0]
 			cfg.Pad.Left = list[0]
 		case 2:
-			cfg.Pad.Top = list[0]
-			cfg.Pad.Right = list[1]
-			cfg.Pad.Bottom = list[0]
-			cfg.Pad.Left = list[1]
+			cfg.Pad.Top, cfg.Pad.Bottom = list[0], list[0]
+			cfg.Pad.Right, cfg.Pad.Left = list[1], list[1]
 		case 3:
 			cfg.Pad.Top = list[0]
-			cfg.Pad.Right = list[1]
 			cfg.Pad.Bottom = list[2]
-			cfg.Pad.Left = list[1]
+			cfg.Pad.Right, cfg.Pad.Left = list[1], list[1]
 		case 4:
 			cfg.Pad.Top = list[0]
 			cfg.Pad.Right = list[1]
 			cfg.Pad.Bottom = list[2]
 			cfg.Pad.Left = list[3]
 		default:
-			err = fmt.Errorf("too many values given for padding")
+			err = fmt.Errorf("invalid number values given for padding")
 		}
 	case "xdata":
-		d.next()
-		cfg.Types.X = d.curr.Literal
-		d.next()
+		cfg.Types.X, err = d.getType()
 	case "xcenter":
-		d.next()
-		cfg.Center.X = d.curr.Literal
-		d.next()
+		cfg.Center.X, err = d.getString()
 	case "xdomain":
-		d.next()
-		for d.curr.Type != EOL && d.curr.Type != EOF {
-			cfg.Domains.X.Domain = append(cfg.Domains.X.Domain, d.curr.Literal)
-			d.next()
-			switch d.curr.Type {
-			case Comma:
-				d.next()
-			case EOF, EOL:
-			default:
-				return fmt.Errorf("unexpected token %s", d.curr)
-			}
-		}
+		cfg.Domains.X.Domain, err = d.getStringList()
 	case "ydata":
-		d.next()
-		cfg.Types.Y = d.curr.Literal
-		d.next()
+		cfg.Types.Y, err = d.getType()
 	case "ycenter":
-		d.next()
-		cfg.Center.Y = d.curr.Literal
-		d.next()
+		cfg.Center.Y, err = d.getString()
 	case "ydomain":
-		d.next()
-		for d.curr.Type != EOL && d.curr.Type != EOF {
-			cfg.Domains.Y.Domain = append(cfg.Domains.Y.Domain, d.curr.Literal)
-			d.next()
-			switch d.curr.Type {
-			case Comma:
-				d.next()
-			case EOF, EOL:
-			default:
-				return fmt.Errorf("unexpected token %s", d.curr)
-			}
-		}
+		cfg.Domains.Y.Domain, err = d.getStringList()
 	case "xticks":
 		return d.decodeTicks(&cfg.Domains.X)
 	case "yticks":
 		return d.decodeTicks(&cfg.Domains.Y)
+	case "style":
+		return d.decodeStyle(&cfg.Style)
 	case "timefmt":
-		d.next()
-		cfg.TimeFormat = d.curr.Literal
-		d.next()
+		cfg.TimeFormat, err = d.getString()
 	default:
-		err = fmt.Errorf("%s unsupported/unknown option", d.curr.Literal)
+		err = fmt.Errorf("%s unsupported/unknown option", cmd)
 	}
-	if d.curr.Type != EOL && d.curr.Type != EOF {
-		return fmt.Errorf("expected end of line, got %s", d.curr)
+	if err != nil {
+		return err
 	}
-	d.next()
-	return err
+	return d.eol()
 }
 
-func (d *Decoder) decodeTicks(dom *Domain) error {
+func (d *Decoder) decodeStyle(style *Style) error {
+	var (
+		cmd = d.curr.Literal
+		err error
+	)
 	d.next()
-	if d.peek.Type == EOL || d.peek.Type == EOF {
-		count, err := strconv.Atoi(d.curr.Literal)
-		if err != nil {
-			return err
-		}
-		dom.Ticks = count
-		d.next()
-		if d.curr.Type != EOL && d.curr.Type != EOF {
+	switch cmd {
+	case "type":
+		style.Type, err = d.getRenderType()
+	case "color":
+		style.Stroke, err = d.getString()
+	case "fill":
+		style.Fill, err = d.getBool()
+	case "ignore-missing":
+		style.IgnoreMissing, err = d.getBool()
+	case "text-position":
+		style.TextPosition, err = d.getString()
+	case "inner-radius":
+		style.InnerRadius, err = d.getFloat()
+	case "outer-radius":
+		style.OuterRadius, err = d.getFloat()
+	case kwWith:
+		if d.curr.Type != Lparen {
 			return fmt.Errorf("unexpected token %s", d.curr)
 		}
 		d.next()
-		return nil
-	}
-	if d.peek.Type == Keyword && d.peek.Literal == kwWith {
-		d.next()
-		d.next()
-		if d.curr.Type != Lparen {
-			return fmt.Errorf("unexepected token %s", d.curr)
-		}
-		d.next()
+		d.skipEOL()
 		for d.curr.Type != Rparen && !d.done() {
-			
+			if err := d.decodeStyle(style); err != nil {
+				return err
+			}
 		}
-		return nil
-	}
-	switch d.curr.Literal {
-	case "count":
+		if d.curr.Type != Rparen {
+			return fmt.Errorf("unexpected token %s", d.curr)
+		}
 		d.next()
-		count, err := strconv.Atoi(d.curr.Literal)
+	default:
+		err = fmt.Errorf("%s unsupported/unknown option for style", d.curr.Literal)
+	}
+	if err != nil {
+		return err
+	}
+	return d.eol()
+}
+
+func (d *Decoder) decodeTicks(dom *Domain) error {
+	if d.peek.Type == EOL || d.peek.Type == EOF {
+		count, err := d.getInt()
 		if err != nil {
 			return err
 		}
 		dom.Ticks = count
-		d.next()
+		return d.eol()
+	}
+	var (
+		cmd = d.curr.Literal
+		err error
+	)
+	d.next()
+	switch cmd {
+	case "count":
+		dom.Ticks, err = d.getInt()
 	case "position":
-		d.next()
-		dom.Position = d.curr.Literal
-		d.next()
+		dom.Position, err = d.getString()
 	case "label":
-		d.next()
-		dom.Label = d.curr.Literal
-		d.next()
+		dom.Label, err = d.getString()
 	case "format":
-		d.next()
-		dom.Format = d.curr.Literal
-		d.next()
+		dom.Format, err = d.getString()
 	case "inner-ticks":
-		d.next()
-		ok, err := strconv.ParseBool(d.curr.Literal)
-		if err != nil {
-			return err
-		}
-		dom.InnerTicks = ok
-		d.next()
+		dom.InnerTicks, err = d.getBool()
 	case "outer-ticks":
-		d.next()
-		ok, err := strconv.ParseBool(d.curr.Literal)
-		if err != nil {
-			return err
-		}
-		dom.OuterTicks = ok
-		d.next()
+		dom.OuterTicks, err = d.getBool()
 	case "label-ticks":
-		d.next()
-		ok, err := strconv.ParseBool(d.curr.Literal)
-		if err != nil {
-			return err
-		}
-		dom.LabelTicks = ok
-		d.next()
+		dom.LabelTicks, err = d.getBool()
 	case "band-ticks":
-		d.next()
-		ok, err := strconv.ParseBool(d.curr.Literal)
-		if err != nil {
-			return err
+		dom.BandTicks, err = d.getBool()
+	case kwWith:
+		if d.curr.Type != Lparen {
+			return fmt.Errorf("unexpected token %s", d.curr)
 		}
-		dom.BandTicks = ok
+		d.next()
+		d.skipEOL()
+		for d.curr.Type != Rparen && !d.done() {
+			if err := d.decodeTicks(dom); err != nil {
+				return err
+			}
+		}
+		if d.curr.Type != Rparen {
+			return fmt.Errorf("unexpected token %s", d.curr)
+		}
 		d.next()
 	default:
-		return fmt.Errorf("%s unsupported/unknown option for ticks", d.curr.Literal)
+		err = fmt.Errorf("%s unsupported/unknown option for ticks", cmd)
 	}
-	if d.curr.Type != EOL && d.curr.Type != EOF {
-		return fmt.Errorf("expected end of line, got %s", d.curr)
+	if err != nil {
+		return err
 	}
-	d.next()
-	return nil
+	return d.eol()
 }
 
 func (d *Decoder) decodeLoad(cfg *Config) error {
 	d.next()
-	var fi File
-	fi.Path = d.curr.Literal
-	d.next()
+	var (
+		fi  File
+		err error
+	)
+	if fi.Path, err = d.getString(); err != nil {
+		return err
+	}
 	if d.curr.Type != Keyword && d.curr.Literal != kwUsing {
-		return fmt.Errorf("unexpected word %s", d.curr)
+		return fmt.Errorf("unexpected token %s", d.curr)
 	}
 	d.next()
-	return nil
+	if d.peek.Type == Comma {
+		if fi.X, err = d.getInt(); err != nil {
+			return err
+		}
+		d.next()
+	}
+	if fi.Y, err = d.getInt(); err != nil {
+		return err
+	}
+	if d.curr.Type == Keyword && d.curr.Literal == kwWith {
+		err = d.decodeStyle(&fi.Style)
+	} else {
+		err = d.eol()
+	}
+	if err == nil {
+		cfg.Files = append(cfg.Files, fi)
+	}
+	return err
 }
 
 func (d *Decoder) decodeRender(cfg *Config) error {
@@ -315,4 +299,120 @@ func (d *Decoder) next() {
 
 func (d *Decoder) done() bool {
 	return d.curr.Type == EOF
+}
+
+func (d *Decoder) eol() error {
+	if d.curr.Type != EOL && d.curr.Type != EOF {
+		return fmt.Errorf("expected end of line, got %s", d.curr)
+	}
+	d.next()
+	return nil
+}
+
+func (d *Decoder) skipEOL() {
+	for d.curr.Type == EOL {
+		d.next()
+	}
+}
+
+func (d *Decoder) getRenderType() (string, error) {
+	str, err := d.getString()
+	if err != nil {
+		return str, err
+	}
+	switch str {
+	case RenderLine, RenderStep, RenderStepAfter, RenderStepBefore:
+		return str, nil
+	default:
+		return "", fmt.Errorf("%s: unknown type provided", str)
+	}
+}
+
+func (d *Decoder) getType() (string, error) {
+	str, err := d.getString()
+	if err != nil {
+		return str, err
+	}
+	switch str {
+	case TypeNumber, TypeTime, TypeString:
+		return str, nil
+	default:
+		return "", fmt.Errorf("%s: unknown type provided", str)
+	}
+}
+
+func (d *Decoder) getString() (string, error) {
+	if d.curr.Type != Literal {
+		return "", fmt.Errorf("expected literal, got %s", d.curr)
+	}
+	defer d.next()
+	return d.curr.Literal, nil
+}
+
+func (d *Decoder) getBool() (bool, error) {
+	if d.curr.Type != Literal {
+		return false, fmt.Errorf("expected literal, got %s", d.curr)
+	}
+	defer d.next()
+	return strconv.ParseBool(d.curr.Literal)
+}
+
+func (d *Decoder) getInt() (int, error) {
+	if d.curr.Type != Literal {
+		return 0, fmt.Errorf("expected literal, got %s", d.curr)
+	}
+	defer d.next()
+	return strconv.Atoi(d.curr.Literal)
+}
+
+func (d *Decoder) getFloat() (float64, error) {
+	if d.curr.Type != Literal {
+		return 0, fmt.Errorf("expected literal, got %s", d.curr)
+	}
+	defer d.next()
+	return strconv.ParseFloat(d.curr.Literal, 64)
+}
+
+func (d *Decoder) getStringList() ([]string, error) {
+	var list []string
+	for d.curr.Type != EOL && d.curr.Type != EOF {
+		if d.curr.Type != Literal {
+			return nil, fmt.Errorf("expected literal, got %s", d.curr)
+		}
+		list = append(list, d.curr.Literal)
+		d.next()
+		switch d.curr.Type {
+		case Comma:
+			if d.peek.Type == EOL || d.peek.Type == EOF {
+				return nil, fmt.Errorf("unexpected token %s", d.curr)
+			}
+			d.next()
+		case EOF, EOL:
+		default:
+			return nil, fmt.Errorf("unexpected token %s", d.curr)
+		}
+	}
+	return list, nil
+}
+
+func (d *Decoder) getFloatList() ([]float64, error) {
+	var list []float64
+	for d.curr.Type != EOL && d.curr.Type != EOF {
+		f, err := d.getFloat()
+		if err != nil {
+			return nil, err
+		}
+		list = append(list, f)
+		switch d.curr.Type {
+		case Comma:
+			if d.peek.Type == EOL || d.peek.Type == EOF {
+				return nil, fmt.Errorf("unexpected token %s", d.curr)
+			}
+			d.next()
+		case EOF, EOL:
+		default:
+			return nil, fmt.Errorf("unexpected token %s", d.curr)
+		}
+	}
+	return list, nil
 }

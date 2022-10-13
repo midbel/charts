@@ -14,6 +14,7 @@ const (
 	kwRender  = "render"
 	kwWith    = "with"
 	kwInclude = "include"
+	kwTo = "to"
 )
 
 const (
@@ -72,16 +73,17 @@ type Scanner struct {
 
 func Scan(r io.Reader) *Scanner {
 	in, _ := io.ReadAll(r)
-	scan := Scanner{
+	sc := Scanner{
 		input: bytes.ReplaceAll(in, []byte{cr, nl}, []byte{nl}),
 	}
-	return &scan
+	return &sc
 }
 
 func (s *Scanner) Scan() Token {
 	s.read()
 	if isBlank(s.char) {
 		s.skipBlank()
+		s.read()
 	}
 
 	var tok Token
@@ -90,8 +92,6 @@ func (s *Scanner) Scan() Token {
 		return tok
 	}
 	switch {
-	case isComment(s.char):
-		s.scanComment(&tok)
 	case isQuote(s.char):
 		s.scanQuote(&tok)
 	case isNL(s.char):
@@ -102,6 +102,23 @@ func (s *Scanner) Scan() Token {
 		s.scanLiteral(&tok)
 	}
 	return tok
+}
+
+func (s *Scanner) scanLiteral(tok *Token) {
+	pos := s.curr
+	for !isBlank(s.char) && !isPunct(s.char) && !isNL(s.char) && !s.done() {
+		s.read()
+	}
+	tok.Type = Literal
+	tok.Literal = string(s.input[pos:s.curr])
+	if !isBlank(s.char) {
+		s.unread()
+	}
+	switch tok.Literal {
+	default:
+	case kwSet, kwLoad, kwRender, kwUsing, kwWith, kwInclude, kwTo:
+		tok.Type = Keyword
+	}
 }
 
 func (s *Scanner) scanPunct(tok *Token) {
@@ -120,38 +137,10 @@ func (s *Scanner) scanPunct(tok *Token) {
 }
 
 func (s *Scanner) scanNewline(tok *Token) {
-	s.skipNL()
+	if isNL(s.peek()) {
+		s.skipNL()
+	}
 	tok.Type = EOL
-}
-
-func (s *Scanner) scanComment(tok *Token) {
-	s.read()
-	s.skipBlank()
-	s.read()
-	pos := s.curr
-	for !isNL(s.char) {
-		s.read()
-	}
-	tok.Type = Comment
-	tok.Literal = string(s.input[pos:s.curr])
-	s.skipNL()
-}
-
-func (s *Scanner) scanLiteral(tok *Token) {
-	pos := s.curr
-	for !isBlank(s.char) && !isPunct(s.char) && !isNL(s.char) && !s.done() {
-		s.read()
-	}
-	tok.Type = Literal
-	tok.Literal = string(s.input[pos:s.curr])
-	if !isBlank(s.char) {
-		s.unread()
-	}
-	switch tok.Literal {
-	default:
-	case kwSet, kwLoad, kwRender, kwUsing, kwWith, kwInclude:
-		tok.Type = Keyword
-	}
 }
 
 func (s *Scanner) scanQuote(tok *Token) {
@@ -195,8 +184,10 @@ func (s *Scanner) read() {
 }
 
 func (s *Scanner) unread() {
+	var size int
+	s.char, size = utf8.DecodeRune(s.input[s.curr:])
 	s.next = s.curr
-	s.curr = s.curr - utf8.RuneLen(s.char)
+	s.curr -= size
 }
 
 func (s *Scanner) peek() rune {
@@ -227,12 +218,12 @@ func isPunct(r rune) bool {
 	return r == comma || r == lparen || r == rparen
 }
 
-func isComment(r rune) bool {
-	return r == hash
-}
-
 func isLetter(r rune) bool {
 	return isLower(r) || isUpper(r) || r == dash || r == underscore
+}
+
+func isAlpha(r rune) bool {
+	return isLetter(r) || isDigit(r)
 }
 
 func isQuote(r rune) bool {

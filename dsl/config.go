@@ -26,6 +26,15 @@ const (
 	TypeString = "string"
 )
 
+const (
+	RenderLine       = "line"
+	RenderPie        = "pie"
+	RenderBar        = "bar"
+	RenderStep       = "step"
+	RenderStepAfter  = "step-after"
+	RenderStepBefore = "step-before"
+)
+
 type Config struct {
 	Title  string
 	Path   string
@@ -51,6 +60,8 @@ type Config struct {
 		Y string
 	}
 	Files []File
+
+	Style Style
 }
 
 func Default() Config {
@@ -59,6 +70,7 @@ func Default() Config {
 		Width:      DefaultWidth,
 		Height:     DefaultHeight,
 		TimeFormat: TimeFormat,
+		Style:      GlobalStyle(),
 	}
 	cfg.Types.X = TypeNumber
 	cfg.Types.Y = TypeNumber
@@ -90,8 +102,9 @@ type Domain struct {
 }
 
 type Style struct {
+	Type          string
 	Stroke        string
-	Fill          string
+	Fill          bool
 	Point         string
 	InnerRadius   float64
 	OuterRadius   float64
@@ -99,9 +112,12 @@ type Style struct {
 	TextPosition  string
 }
 
-type Renderer struct {
-	Type string
-	Style
+func GlobalStyle() Style {
+	return Style{
+		Type:   RenderLine,
+		Stroke: "black",
+		Fill:   false,
+	}
 }
 
 type File struct {
@@ -109,7 +125,7 @@ type File struct {
 	Ident string
 	X     int
 	Y     int
-	Renderer
+	Style
 }
 
 func (f File) Name() string {
