@@ -1,61 +1,38 @@
-scale time-scale with
-	type=time
-	range=0,700
-	domain=2018-08-01,2022-10-01
+set size 800, 600
+set padding 10, 60, 60, 60
+set title "stock prices evolution"
 
-scale number-scale with
-	type=number
-	range=0,530
-	domain=350,0
+set timefmt %y-%m-%d
 
-axis x-axis with
-	legend=time
-	type=time
-	scale=$time-scale
-	ticks=7
-	bands-ticks=true
-	format="%y-%m-%d"
+set xdata time
+set ydata number
+set xcenter 0
+set xdomain 2018-08-01,2022-10-01
+set ycenter 0
+set ydomain 0,350
 
-axis y-axis with
-	legend="price evolution"
-	type=number
-	scale=$number-scale
-	ticks=5
-	outer-ticks=true
-	format="%.2f"
+set xticks 7
+set xticks position bottom
+set xticks label time
+set xticks format %y-%m-%d
 
-line line-render with
-	color=steelblue
-	point=circle
-	ignore-missing=true
+set yticks 10
+set yticks values 0,50,150,250,350
+set yticks position left
+set yticks label prices
+set yticks format "%.2f"
 
-pie pie-render with
-	inner-radius=200
-	outer-radius=500
-	colors=steelblue,cornflowerblue,darkorange,orange
+set yticks with (
+	count 10
+	values 0,50,150,250,350
+	position left
+	label prices
+	format "%.2f"
+)
 
-serie GOOG with
-	x=$time-scale
-	y=$number-scale
-	renderer=$line-render
-	values=$(csv "../data/GOOG.csv" x=0 x-type=time y=1 y-type=number)
+load data/GOOG.csv using 0,1 with line(color=blue)
+load data/MSFT.csv using 0,1 with line(color=red)
+load data/AAPL.csv using 0,1 with line(color=green)
+load data/TWTR.csv using 0,1 with line(color=grey)
 
-serie MSFT with
-	x=$time-scale
-	y=$number-scale
-	renderer=$line-render
-	values=$(csv "../data/MSFT.csv" x=0 x-type=time y=1 y-type=number)
-
-chart stock-time with
-	width=800
-	height=600
-	title=stock-time
-	padding=10,40,60,60
-	left-axis=$y-axis
-	bottom-axis=$x-axis
-	legend=$(legend title="stock prices" position=right,top)
-
-
-render "tmp/out.svg" with
-	chart=$stock-time
-	series=$DUMMY,$MSFT,$GOOG
+render tmp/out.svg
