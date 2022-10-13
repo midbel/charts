@@ -176,20 +176,9 @@ func (d *Decoder) decodeStyle(style *Style) error {
 	case "outer-radius":
 		style.OuterRadius, err = d.getFloat()
 	case kwWith:
-		if d.curr.Type != Lparen {
-			return fmt.Errorf("unexpected token %s", d.curr)
-		}
-		d.next()
-		d.skipEOL()
-		for d.curr.Type != Rparen && !d.done() {
-			if err := d.decodeStyle(style); err != nil {
-				return err
-			}
-		}
-		if d.curr.Type != Rparen {
-			return fmt.Errorf("unexpected token %s", d.curr)
-		}
-		d.next()
+		err = d.decodeWith(func() error {
+			return d.decodeStyle(style)
+		})
 	default:
 		err = fmt.Errorf("%s unsupported/unknown option for style", d.curr.Literal)
 	}
@@ -231,20 +220,9 @@ func (d *Decoder) decodeTicks(dom *Domain) error {
 	case "band-ticks":
 		dom.BandTicks, err = d.getBool()
 	case kwWith:
-		if d.curr.Type != Lparen {
-			return fmt.Errorf("unexpected token %s", d.curr)
-		}
-		d.next()
-		d.skipEOL()
-		for d.curr.Type != Rparen && !d.done() {
-			if err := d.decodeTicks(dom); err != nil {
-				return err
-			}
-		}
-		if d.curr.Type != Rparen {
-			return fmt.Errorf("unexpected token %s", d.curr)
-		}
-		d.next()
+		err = d.decodeWith(func() error {
+			return d.decodeTicks(dom)
+		})
 	default:
 		err = fmt.Errorf("%s unsupported/unknown option for ticks", cmd)
 	}
@@ -287,7 +265,20 @@ func (d *Decoder) decodeLoad(cfg *Config) error {
 	return err
 }
 
-func (d *Decoder) decodeRender(cfg *Config) error {
+func (d *Decoder) decodeWith(decode func() error) error {
+	if d.curr.Type != Lparen {
+		return fmt.Errorf("unexpected token %s", d.curr)
+	}
+	d.next()
+	d.skipEOL()
+	for d.curr.Type != Rparen && !d.done() {
+		if err := decode(); err != nil {
+			return err
+		}
+	}
+	if d.curr.Type != Rparen {
+		return fmt.Errorf("unexpected token %s", d.curr)
+	}
 	d.next()
 	return nil
 }
