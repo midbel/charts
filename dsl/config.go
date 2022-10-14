@@ -292,7 +292,7 @@ func (s Style) makeTimeRenderer(g Style) (charts.Renderer[time.Time, float64], e
 		rdr   charts.Renderer[time.Time, float64]
 		style = s.merge(g)
 	)
-	switch s.Type {
+	switch style.Type {
 	case "line":
 		rdr = charts.LinearRenderer[time.Time, float64]{
 			Color:         style.Stroke,
@@ -328,6 +328,9 @@ func (s Style) makeTimeRenderer(g Style) (charts.Renderer[time.Time, float64], e
 }
 
 func (s Style) merge(g Style) Style {
+	if s.Type == "" {
+		s.Type = g.Type
+	}
 	if s.Stroke == "" {
 		s.Stroke = g.Stroke
 	}

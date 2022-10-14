@@ -39,7 +39,7 @@ set style with (
 )
 
 load data/GOOG.csv using 0,1 with (
-	type line
+	type  step
 	color blue
 
 )

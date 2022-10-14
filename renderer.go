@@ -338,7 +338,7 @@ type StepRenderer[T, U ScalerConstraint] struct {
 
 func (r StepRenderer[T, U]) Render(serie Serie[T, U]) svg.Element {
 	var (
-		grp = getBaseGroup(r.Color, "line")
+		grp = getBaseGroup(r.Color, "line", "line-step")
 		pat = getBasePath(r.Fill)
 		pos = svg.NewPos(serie.X.Min(), serie.Y.Max())
 		ori svg.Pos
@@ -375,6 +375,17 @@ func (r StepRenderer[T, U]) Render(serie Serie[T, U]) svg.Element {
 			grp.Append(r.Point(pos))
 		}
 	}
+	switch r.Text {
+	case TextBefore:
+		pt := slices.Fst(serie.Points)
+		txt := getLineText(serie.Title, 0, serie.Y.Scale(pt.Y), true)
+		grp.Append(txt.AsElement())
+	case TextAfter:
+		pt := slices.Lst(serie.Points)
+		txt := getLineText(serie.Title, serie.X.Scale(pt.X), serie.Y.Scale(pt.Y), false)
+		grp.Append(txt.AsElement())
+	default:
+	}
 	if r.Fill {
 		pos.Y = serie.Y.Max()
 		pat.AbsLineTo(pos)
@@ -393,7 +404,7 @@ type StepAfterRenderer[T, U ScalerConstraint] struct {
 
 func (r StepAfterRenderer[T, U]) Render(serie Serie[T, U]) svg.Element {
 	var (
-		grp = getBaseGroup(r.Color, "line")
+		grp = getBaseGroup(r.Color, "line", "line-step-after")
 		pat = getBasePath(r.Fill)
 		pos svg.Pos
 		ori svg.Pos
@@ -432,6 +443,19 @@ func (r StepAfterRenderer[T, U]) Render(serie Serie[T, U]) svg.Element {
 			grp.Append(r.Point(pos))
 		}
 	}
+
+	switch r.Text {
+	case TextBefore:
+		pt := slices.Fst(serie.Points)
+		txt := getLineText(serie.Title, 0, serie.Y.Scale(pt.Y), true)
+		grp.Append(txt.AsElement())
+	case TextAfter:
+		pt := slices.Lst(serie.Points)
+		txt := getLineText(serie.Title, serie.X.Scale(pt.X), serie.Y.Scale(pt.Y), false)
+		grp.Append(txt.AsElement())
+	default:
+	}
+
 	if r.Fill {
 		pos.X = serie.X.Max()
 		pat.AbsLineTo(pos)
@@ -452,7 +476,7 @@ type StepBeforeRenderer[T, U ScalerConstraint] struct {
 
 func (r StepBeforeRenderer[T, U]) Render(serie Serie[T, U]) svg.Element {
 	var (
-		grp = getBaseGroup(r.Color, "line")
+		grp = getBaseGroup(r.Color, "line", "line-step-before")
 		pat = getBasePath(r.Fill)
 		pos svg.Pos
 		ori svg.Pos
@@ -493,6 +517,19 @@ func (r StepBeforeRenderer[T, U]) Render(serie Serie[T, U]) svg.Element {
 			grp.Append(r.Point(pos))
 		}
 	}
+
+	switch r.Text {
+	case TextBefore:
+		pt := slices.Fst(serie.Points)
+		txt := getLineText(serie.Title, 0, serie.Y.Scale(pt.Y), true)
+		grp.Append(txt.AsElement())
+	case TextAfter:
+		pt := slices.Lst(serie.Points)
+		txt := getLineText(serie.Title, serie.X.Scale(pt.X), serie.Y.Scale(pt.Y), false)
+		grp.Append(txt.AsElement())
+	default:
+	}
+
 	if r.Fill {
 		pos.Y = serie.Y.Max()
 		pat.AbsLineTo(pos)
