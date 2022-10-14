@@ -80,11 +80,11 @@ func (c Chart[T, U]) drawTitle() svg.Element {
 		return nil
 	}
 	txt := svg.NewText(c.Title)
-	txt.Font = svg.NewFont(FontSize*1.2)
+	txt.Font = svg.NewFont(FontSize * 1.2)
 	txt.Anchor = "middle"
 	txt.Baseline = "auto"
-	txt.Pos.X = c.Width/2
-	txt.Pos.Y = c.Padding.Top/2
+	txt.Pos.X = c.Width / 2
+	txt.Pos.Y = c.Padding.Top / 2
 	if c.Padding.Top == 0 {
 		txt.Pos.Y = FontSize * 1.1
 	}

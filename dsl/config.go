@@ -5,6 +5,8 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"net/http"
+	"net/url"
 	"os"
 	"path/filepath"
 	"strconv"
@@ -395,7 +397,7 @@ func (f File) makeTimeSerie(g Style, timefmt string, x charts.Scaler[time.Time],
 type PointFunc[T, U charts.ScalerConstraint] func([]string) (charts.Point[T, U], error)
 
 func loadPoints[T, U charts.ScalerConstraint](file string, get PointFunc[T, U]) ([]charts.Point[T, U], error) {
-	r, err := os.Open(file)
+	r, err := readFrom(file)
 	if err != nil {
 		return nil, err
 	}
@@ -421,6 +423,32 @@ func loadPoints[T, U charts.ScalerConstraint](file string, get PointFunc[T, U]) 
 		list = append(list, pt)
 	}
 	return list, nil
+}
+
+func readFrom(location string) (io.ReadCloser, error) {
+	u, err := url.Parse(location)
+	if err != nil {
+		return nil, err
+	}
+	switch u.Scheme {
+	case "http", "https":
+		req, err := http.NewRequest(http.MethodGet, u.String(), nil)
+		if err != nil {
+			return nil, err
+		}
+		res, err := http.DefaultClient.Do(req)
+		if err != nil {
+			return nil, err
+		}
+		if res.StatusCode != 200 {
+			return nil, fmt.Errorf("request does not end with success result code")
+		}
+		return res.Body, nil
+	case "", "file":
+		return os.Open(u.Path)
+	default:
+		return nil, fmt.Errorf("%s: unsupported scheme", u.Scheme)
+	}
 }
 
 func loadTimePoints(f File, parseTime func(string) (time.Time, error)) ([]charts.Point[time.Time, float64], error) {
