@@ -193,7 +193,7 @@ func (s *Scanner) skipNL() {
 
 func (s *Scanner) skip(accept func(rune) bool) {
 	defer s.unread()
-	for accept(s.char) {
+	for accept(s.char) && !s.done() {
 		s.read()
 	}
 }

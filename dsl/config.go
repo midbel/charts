@@ -89,6 +89,7 @@ func (c Config) Render() error {
 	var err error
 	switch {
 	case c.Types.X == TypeNumber && c.Types.Y == TypeNumber:
+		err = c.renderNumberChart()
 	case c.Types.X == TypeTime && c.Types.Y == TypeNumber:
 		err = c.renderTimeChart()
 	default:
@@ -151,7 +152,59 @@ func (c Config) renderTimeChart() error {
 	return renderChart(c.Path, chart, series)
 }
 
-// func (c Config) renderChart()
+func (c Config) renderNumberChart() error {
+	var (
+		xrange = c.createRangeX()
+		yrange = c.createRangeY()
+	)
+	xscale, err := c.Domains.X.makeNumberScale(xrange, false)
+	if err != nil {
+		return err
+	}
+	yscale, err := c.Domains.Y.makeNumberScale(yrange, true)
+	if err != nil {
+		return err
+	}
+	chart := charts.Chart[float64, float64]{
+		Title:  c.Title,
+		Width:  c.Width,
+		Height: c.Height,
+		Padding: charts.Padding{
+			Top:    c.Pad.Top,
+			Right:  c.Pad.Right,
+			Bottom: c.Pad.Bottom,
+			Left:   c.Pad.Left,
+		},
+	}
+
+	var series []charts.Data
+	for _, s := range c.Files {
+		ser, err := s.makeNumberSerie(c.Style, xscale, yscale)
+		if err != nil {
+			return err
+		}
+		series = append(series, ser)
+	}
+	switch c.Domains.X.Position {
+	case "bottom":
+		chart.Bottom, err = c.Domains.X.makeNumberAxis(xscale)
+	case "top":
+		chart.Top, err = c.Domains.X.makeNumberAxis(xscale)
+	}
+	if err != nil {
+		return err
+	}
+	switch c.Domains.Y.Position {
+	case "left":
+		chart.Left, err = c.Domains.Y.makeNumberAxis(yscale)
+	case "right":
+		chart.Right, err = c.Domains.Y.makeNumberAxis(yscale)
+	}
+	if err != nil {
+		return err
+	}
+	return renderChart(c.Path, chart, series)
+}
 
 func (c Config) createRangeX() charts.Range {
 	return charts.NewRange(0, c.Width-c.Pad.Left-c.Pad.Right)
@@ -329,6 +382,46 @@ func (s Style) makeTimeRenderer(g Style) (charts.Renderer[time.Time, float64], e
 	return rdr, nil
 }
 
+func (s Style) makeNumberRenderer(g Style) (charts.Renderer[float64, float64], error) {
+	var (
+		rdr   charts.Renderer[float64, float64]
+		style = s.merge(g)
+	)
+	switch style.Type {
+	case "line":
+		rdr = charts.LinearRenderer[float64, float64]{
+			Color:         style.Stroke,
+			IgnoreMissing: style.IgnoreMissing,
+			Text:          style.getTextPosition(),
+			Point:         style.getPointFunc(),
+		}
+	case "step":
+		rdr = charts.StepRenderer[float64, float64]{
+			Color:         style.Stroke,
+			IgnoreMissing: style.IgnoreMissing,
+			Text:          style.getTextPosition(),
+			Point:         style.getPointFunc(),
+		}
+	case "step-after":
+		rdr = charts.StepAfterRenderer[float64, float64]{
+			Color:         style.Stroke,
+			IgnoreMissing: style.IgnoreMissing,
+			Text:          style.getTextPosition(),
+			Point:         style.getPointFunc(),
+		}
+	case "step-before":
+		rdr = charts.StepBeforeRenderer[float64, float64]{
+			Color:         style.Stroke,
+			IgnoreMissing: style.IgnoreMissing,
+			Text:          style.getTextPosition(),
+			Point:         style.getPointFunc(),
+		}
+	default:
+		return nil, fmt.Errorf("%s: can not use for number chart", s.Type)
+	}
+	return rdr, nil
+}
+
 func (s Style) merge(g Style) Style {
 	if s.Type == "" {
 		s.Type = g.Type
@@ -394,6 +487,25 @@ func (f File) makeTimeSerie(g Style, timefmt string, x charts.Scaler[time.Time],
 	return ser, err
 }
 
+func (f File) makeNumberSerie(g Style, x charts.Scaler[float64], y charts.Scaler[float64]) (charts.Data, error) {
+	rdr, err := f.makeNumberRenderer(g)
+	if err != nil {
+		return nil, err
+	}
+	points, err := loadNumberPoints(f)
+	if err != nil {
+		return nil, err
+	}
+	ser := charts.Serie[float64, float64]{
+		Title:    f.Name(),
+		Renderer: rdr,
+		Points:   points,
+		X:        x,
+		Y:        y,
+	}
+	return ser, nil
+}
+
 type PointFunc[T, U charts.ScalerConstraint] func([]string) (charts.Point[T, U], error)
 
 func loadPoints[T, U charts.ScalerConstraint](file string, get PointFunc[T, U]) ([]charts.Point[T, U], error) {
@@ -449,6 +561,25 @@ func readFrom(location string) (io.ReadCloser, error) {
 	default:
 		return nil, fmt.Errorf("%s: unsupported scheme", u.Scheme)
 	}
+}
+
+func loadNumberPoints(f File) ([]charts.Point[float64, float64], error) {
+	get := func(row []string) (charts.Point[float64, float64], error) {
+		var (
+			pt  charts.Point[float64, float64]
+			err error
+		)
+		pt.X, err = strconv.ParseFloat(row[f.X], 64)
+		if err != nil {
+			return pt, err
+		}
+		pt.Y, err = strconv.ParseFloat(row[f.Y], 64)
+		if err != nil {
+			return pt, err
+		}
+		return pt, nil
+	}
+	return loadPoints[float64, float64](f.Path, get)	
 }
 
 func loadTimePoints(f File, parseTime func(string) (time.Time, error)) ([]charts.Point[time.Time, float64], error) {

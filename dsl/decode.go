@@ -70,6 +70,7 @@ func (d *Decoder) decode(cfg *Config) error {
 			return err
 		}
 	}
+	fmt.Println(d.curr, d.peek)
 	if d.curr.Type != Keyword && d.curr.Literal != kwRender {
 		return fmt.Errorf("expected keyword but got %q", d.curr.Literal)
 	}
