@@ -120,11 +120,14 @@ func (s *Scanner) scanCommand(tok *Token) {
 	}
 	s.read()
 	pos := s.curr
-	for s.char != rparen {
+	for s.char != rparen && !s.done() {
 		s.read()
 	}
 	tok.Type = Command
 	tok.Literal = string(s.input[pos:s.curr])
+	if s.char != rparen {
+		tok.Type = Invalid
+	}
 }
 
 func (s *Scanner) scanLiteral(tok *Token) {
@@ -170,11 +173,14 @@ func (s *Scanner) scanQuote(tok *Token) {
 	quote := s.char
 	s.read()
 	pos := s.curr
-	for s.char != quote {
+	for s.char != quote && !s.done() {
 		s.read()
 	}
 	tok.Type = Literal
 	tok.Literal = string(s.input[pos:s.curr])
+	if s.char != quote {
+		tok.Type = Invalid
+	}
 }
 
 func (s *Scanner) skipBlank() {
