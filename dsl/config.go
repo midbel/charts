@@ -16,8 +16,9 @@ var (
 	DefaultWidth  = 800.0
 	DefaultHeight = 600.0
 
-	TimeFormat  = "%y-%m-%d"
-	DefaultPath = "out.svg"
+	TimeFormat   = "%y-%m-%d"
+	DefaultPath  = "out.svg"
+	DefaultDelim = ","
 )
 
 const (
@@ -46,6 +47,7 @@ type Config struct {
 		Bottom float64
 		Left   float64
 	}
+	Delimiter  string
 	TimeFormat string
 	Types      struct {
 		X string

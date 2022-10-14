@@ -59,8 +59,29 @@ func (d *Decoder) decode(cfg *Config) error {
 			return err
 		}
 	}
+	if d.curr.Type != Keyword && d.curr.Literal != kwRender {
+		return fmt.Errorf("expected keyword but got %q", d.curr.Literal)
+	}
+	if err := d.decodeRender(cfg); err != nil {
+		return err
+	}
+	if d.curr.Type != EOF {
+		return fmt.Errorf("unexpected token %s", d.curr)
+	}
 	fmt.Printf("%+v\n", cfg)
 	return cfg.Render()
+}
+
+func (d *Decoder) decodeRender(cfg *Config) error {
+	d.next()
+	switch d.curr.Type {
+	case Literal:
+		cfg.Path, _ = d.getString()
+	case EOL, EOF:
+	default:
+		return fmt.Errorf("unexpected token %s", d.curr)
+	}
+	return d.eol()
 }
 
 func (d *Decoder) decodeInclude(cfg *Config) error {
@@ -145,6 +166,8 @@ func (d *Decoder) decodeSet(cfg *Config) error {
 		return d.decodeStyle(&cfg.Style)
 	case "timefmt":
 		cfg.TimeFormat, err = d.getString()
+	case "delimiter":
+		cfg.Delimiter, err = d.getString()
 	default:
 		err = fmt.Errorf("%s unsupported/unknown option", cmd)
 	}

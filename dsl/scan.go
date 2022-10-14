@@ -14,7 +14,8 @@ const (
 	kwRender  = "render"
 	kwWith    = "with"
 	kwInclude = "include"
-	kwTo = "to"
+	// kwTo      = "to"
+	// kwAs      = "as"
 )
 
 const (
@@ -116,7 +117,7 @@ func (s *Scanner) scanLiteral(tok *Token) {
 	}
 	switch tok.Literal {
 	default:
-	case kwSet, kwLoad, kwRender, kwUsing, kwWith, kwInclude, kwTo:
+	case kwSet, kwLoad, kwRender, kwUsing, kwWith, kwInclude:
 		tok.Type = Keyword
 	}
 }
