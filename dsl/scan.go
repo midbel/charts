@@ -22,6 +22,7 @@ const (
 	Invalid rune = -(iota + 1)
 	Keyword
 	Literal
+	Command
 	Comment
 	Comma
 	Lparen
@@ -48,6 +49,8 @@ func (t Token) String() string {
 		prefix = "comment"
 	case Keyword:
 		prefix = "keyword"
+	case Command:
+		prefix = "command"
 	case Comma:
 		return "<comma>"
 	case EOL:
@@ -93,6 +96,8 @@ func (s *Scanner) Scan() Token {
 		return tok
 	}
 	switch {
+	case isDollar(s.char):
+		s.scanCommand(&tok)
 	case isQuote(s.char):
 		s.scanQuote(&tok)
 	case isNL(s.char):
@@ -103,6 +108,23 @@ func (s *Scanner) Scan() Token {
 		s.scanLiteral(&tok)
 	}
 	return tok
+}
+
+func (s *Scanner) scanCommand(tok *Token) {
+	s.read()
+	if s.char != lparen {
+		s.unread()
+		tok.Type = Literal
+		tok.Literal = "$"
+		return
+	}
+	s.read()
+	pos := s.curr
+	for s.char != rparen {
+		s.read()
+	}
+	tok.Type = Command
+	tok.Literal = string(s.input[pos:s.curr])
 }
 
 func (s *Scanner) scanLiteral(tok *Token) {
@@ -214,6 +236,10 @@ const (
 	dquote          = '"'
 	underscore      = '_'
 )
+
+func isDollar(r rune) bool {
+	return r == dollar
+}
 
 func isPunct(r rune) bool {
 	return r == comma || r == lparen || r == rparen

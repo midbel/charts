@@ -1,15 +1,25 @@
 package dsl
 
 import (
+	"bytes"
 	"fmt"
 	"io"
 	"os"
+	"os/exec"
 	"path/filepath"
 	"strconv"
+	"strings"
+)
+
+var (
+	DefaultShell     = "sh"
+	DefaultShellArgs = "-c"
 )
 
 type Decoder struct {
 	path string
+
+	shell string
 
 	scan *Scanner
 	curr Token
@@ -21,6 +31,7 @@ func NewDecoder(r io.Reader) *Decoder {
 	if r, ok := r.(interface{ Name() string }); ok {
 		d.path = filepath.Dir(r.Name())
 	}
+	d.shell = DefaultShell
 	d.scan = Scan(r)
 	d.next()
 	d.next()
@@ -355,45 +366,61 @@ func (d *Decoder) getType() (string, error) {
 }
 
 func (d *Decoder) getString() (string, error) {
-	if d.curr.Type != Literal {
+	var str string
+	switch d.curr.Type {
+	case Literal:
+		str = d.curr.Literal
+	case Command:
+		var (
+			out bytes.Buffer
+			err bytes.Buffer
+		)
+		cmd := exec.Command(d.shell, "-c", d.curr.Literal)
+		cmd.Stdout = &out
+		cmd.Stderr = &err
+		if errc := cmd.Run(); errc != nil {
+			return "", fmt.Errorf("%w: %s", errc, err.String())
+		}
+		str = strings.TrimSpace(out.String())
+	default:
 		return "", fmt.Errorf("expected literal, got %s", d.curr)
 	}
 	defer d.next()
-	return d.curr.Literal, nil
+	return str, nil
 }
 
 func (d *Decoder) getBool() (bool, error) {
-	if d.curr.Type != Literal {
-		return false, fmt.Errorf("expected literal, got %s", d.curr)
+	str, err := d.getString()
+	if err != nil {
+		return false, err
 	}
-	defer d.next()
-	return strconv.ParseBool(d.curr.Literal)
+	return strconv.ParseBool(str)
 }
 
 func (d *Decoder) getInt() (int, error) {
-	if d.curr.Type != Literal {
-		return 0, fmt.Errorf("expected literal, got %s", d.curr)
+	str, err := d.getString()
+	if err != nil {
+		return 0, err
 	}
-	defer d.next()
-	return strconv.Atoi(d.curr.Literal)
+	return strconv.Atoi(str)
 }
 
 func (d *Decoder) getFloat() (float64, error) {
-	if d.curr.Type != Literal {
-		return 0, fmt.Errorf("expected literal, got %s", d.curr)
+	str, err := d.getString()
+	if err != nil {
+		return 0, err
 	}
-	defer d.next()
-	return strconv.ParseFloat(d.curr.Literal, 64)
+	return strconv.ParseFloat(str, 64)
 }
 
 func (d *Decoder) getStringList() ([]string, error) {
 	var list []string
 	for d.curr.Type != EOL && d.curr.Type != EOF {
-		if d.curr.Type != Literal {
-			return nil, fmt.Errorf("expected literal, got %s", d.curr)
+		str, err := d.getString()
+		if err != nil {
+			return nil, err
 		}
-		list = append(list, d.curr.Literal)
-		d.next()
+		list = append(list, str)
 		switch d.curr.Type {
 		case Comma:
 			if d.peek.Type == EOL || d.peek.Type == EOF {
