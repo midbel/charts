@@ -68,7 +68,6 @@ func (d *Decoder) decode(cfg *Config) error {
 	if d.curr.Type != EOF {
 		return fmt.Errorf("unexpected token %s", d.curr)
 	}
-	fmt.Printf("%+v\n", cfg)
 	return cfg.Render()
 }
 

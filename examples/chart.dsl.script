@@ -2,7 +2,7 @@ set size 800, 600
 set padding 10, 60, 60, 60
 set title "stock prices evolution"
 
-set timefmt %y-%m-%d
+set timefmt %Y-%m-%d
 
 set xdata time
 set ydata number
@@ -11,24 +11,28 @@ set xdomain 2018-08-01,2022-10-01
 set ycenter 0
 set ydomain 0,350
 
-set xticks 7
-set xticks position bottom
-set xticks label time
-set xticks format %y-%m-%d
-
-set yticks 10
-set yticks position left
-set yticks label prices
-set yticks format "%.2f"
+set xticks with (
+	count 7
+	position bottom
+	label time
+	format %Y-%m-%d
+	label-ticks true
+	band-ticks true
+	inner-ticks true
+)
 
 set yticks with (
 	count 10
 	position left
 	label prices
 	format "%.2f"
+	label-ticks true
+	outer-ticks true
+	inner-ticks true
 )
 
 set style with (
+	type line
 	color black
 	ignore-missing true
 	text-position text-after
@@ -37,6 +41,7 @@ set style with (
 load data/GOOG.csv using 0,1 with (
 	type line
 	color blue
+
 )
 load data/MSFT.csv using 0,1 with (
 	type line
