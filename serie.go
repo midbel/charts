@@ -10,20 +10,22 @@ import (
 type Data interface {
 	OffsetX() float64
 	OffsetY() float64
+
 	Render() svg.Element
+	GetColor() string
+
+	fmt.Stringer
 }
 
 type Serie[T, U ScalerConstraint] struct {
-	Color         string
 	Title         string
-	IgnoreMissing bool
 
 	X      Scaler[T]
 	Y      Scaler[U]
 	Points []Point[T, U]
 	Series []Serie[T, U]
 
-	Renderer Renderer[T, U]
+	Renderer[T, U]
 }
 
 func (s Serie[T, U]) OffsetX() float64 {
@@ -64,6 +66,7 @@ func (s Serie[T, U]) Depth() int {
 type Point[T, U ScalerConstraint] struct {
 	X T
 	Y U
+	Label string
 }
 
 func NumberPoint(x, y float64) Point[float64, float64] {

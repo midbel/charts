@@ -66,6 +66,10 @@ type Config struct {
 		X string
 		Y string
 	}
+	Legend struct {
+		Title string
+		Position []string
+	}
 	Files []File
 
 	Style Style
@@ -558,7 +562,7 @@ func createRenderer[T, U charts.ScalerConstraint](style Style) (charts.Renderer[
 }
 
 func createChart[T, U charts.ScalerConstraint](cfg Config) charts.Chart[T, U] {
-	return charts.Chart[T, U]{
+	ch := charts.Chart[T, U]{
 		Title:  cfg.Title,
 		Width:  cfg.Width,
 		Height: cfg.Height,
@@ -569,4 +573,20 @@ func createChart[T, U charts.ScalerConstraint](cfg Config) charts.Chart[T, U] {
 			Left:   cfg.Pad.Left,
 		},
 	}
+	ch.Legend.Title = cfg.Legend.Title
+	for _, p := range cfg.Legend.Position {
+		switch p {
+		case "top":
+			ch.Legend.Orient |= charts.OrientTop
+		case "bottom":
+			ch.Legend.Orient |= charts.OrientBottom
+		case "right":
+			ch.Legend.Orient |= charts.OrientRight
+		case "left":
+			ch.Legend.Orient |= charts.OrientLeft
+		default:
+			// pass or returns an error???
+		}
+	}
+	return ch
 }

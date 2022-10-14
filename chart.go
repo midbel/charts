@@ -50,7 +50,8 @@ func (c Chart[T, U]) DrawingHeight() float64 {
 }
 
 func (c Chart[T, U]) Render(w io.Writer, set ...Data) {
-	el := svg.NewSVG(svg.WithDimension(c.Width, c.Height))
+	var el svg.SVG
+	el.Dim = svg.NewDim(c.Width, c.Height)
 	el.OmitProlog = true
 
 	if txt := c.drawTitle(); txt != nil {
@@ -62,6 +63,9 @@ func (c Chart[T, U]) Render(w io.Writer, set ...Data) {
 		ar.Append(s.Render())
 		el.Append(ar.AsElement())
 	}
+	if ld := c.drawLegend(set); ld != nil {
+		el.Append(ld)
+	}
 
 	bw := bufio.NewWriter(w)
 	defer bw.Flush()
@@ -71,6 +75,7 @@ func (c Chart[T, U]) Render(w io.Writer, set ...Data) {
 func (c Chart[T, U]) getArea(s Data) svg.Group {
 	var g svg.Group
 	g.Class = append(g.Class, "area")
+	g.Id = s.String()
 	g.Transform = svg.Translate(c.Padding.Left-s.OffsetX(), c.Padding.Top+s.OffsetY())
 	return g
 }
@@ -91,7 +96,7 @@ func (c Chart[T, U]) drawTitle() svg.Element {
 	return txt.AsElement()
 }
 
-func (c Chart[T, U]) drawLegend(series []Serie[T, U]) svg.Element {
+func (c Chart[T, U]) drawLegend(series []Data) svg.Element {
 	var (
 		offset = FontSize * 1.4
 		height = float64(len(series)) * offset
@@ -102,15 +107,16 @@ func (c Chart[T, U]) drawLegend(series []Serie[T, U]) svg.Element {
 		height += offset
 	}
 	for i, s := range series {
-		if n := float64(len(s.Title)); i == 0 || n > width {
+		title := s.String()
+		if n := float64(len(title)); i == 0 || n > width {
 			width = n
 		}
 		var g svg.Group
 		g.Transform = svg.Translate(0, float64(i)*offset)
 		li := svg.NewLine(svg.NewPos(0, 0), svg.NewPos(20, 0))
-		li.Stroke = svg.NewStroke(s.Color, 1)
+		li.Stroke = svg.NewStroke(s.GetColor(), 4)
 
-		tx := svg.NewText(s.Title)
+		tx := svg.NewText(title)
 		tx.Pos = svg.NewPos(30, 0)
 		tx.Font = svg.NewFont(FontSize)
 		tx.Baseline = "middle"
@@ -155,7 +161,8 @@ func (c Chart[T, U]) drawLegend(series []Serie[T, U]) svg.Element {
 }
 
 func (c Chart[T, U]) drawAxis() svg.Element {
-	g := svg.NewGroup(svg.WithID("axis"))
+	var g svg.Group
+	g.Id = "axis"
 	if c.Left.Scaler != nil {
 		c.Left.Orientation = OrientLeft
 		el := c.Left.Render(c.DrawingHeight(), c.DrawingWidth(), c.Padding.Left, c.Padding.Top)

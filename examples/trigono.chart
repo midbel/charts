@@ -2,7 +2,10 @@ set title "sinus vs cosinus"
 set padding 60
 
 set xdomain -16,16
-set ydomain -1.1,1.1
+set ydomain -1.0,1.0
+
+set legend title "trigonometry"
+set legend position top,right
 
 set xticks with (
 	count 10
@@ -22,6 +25,8 @@ set yticks with (
 	outer-ticks true
 	inner-ticks true
 )
+
+set style text-position text-after
 
 load data/sin.csv using 0,1 with (
 	type line

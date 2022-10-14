@@ -178,9 +178,38 @@ func (d *Decoder) decodeSet(cfg *Config) error {
 		cfg.TimeFormat, err = d.getString()
 	case "delimiter":
 		cfg.Delimiter, err = d.getString()
+	case "legend":
+		return d.decodeLegend(cfg)
 	default:
 		err = fmt.Errorf("%s unsupported/unknown option", cmd)
 	}
+	if err != nil {
+		return err
+	}
+	return d.eol()
+}
+
+func (d *Decoder) decodeLegend(cfg *Config) error {
+	var (
+		cmd = d.curr.Literal
+		err error
+	)
+	d.next()
+	switch cmd {
+	case "title":
+		cfg.Legend.Title, err = d.getString()
+	case "position":
+		cfg.Legend.Position, err = d.getStringList()
+		if len(cfg.Legend.Position) > 2 && err == nil {
+			err = fmt.Errorf("too many values given for legend position")
+		}
+	case kwWith:
+		err = d.decodeWith(func() error {
+			return d.decodeLegend(cfg)
+		})
+	default:
+		err = fmt.Errorf("%s unsupported/unknown option for legend", d.curr.Literal)
+	}	
 	if err != nil {
 		return err
 	}

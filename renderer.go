@@ -18,6 +18,7 @@ const currentColour = "currentColour"
 
 type Renderer[T, U ScalerConstraint] interface {
 	Render(Serie[T, U]) svg.Element
+	GetColor() string
 }
 
 // type SunburstRenderer [T ~string, U ~float64] struct {
@@ -205,6 +206,10 @@ type PointRenderer[T, U ScalerConstraint] struct {
 	Point PointFunc
 }
 
+func (r PointRenderer[T, U]) GetColor() string {
+	return r.Color
+}
+
 func (r PointRenderer[T, U]) Render(serie Serie[T, U]) svg.Element {
 	grp := getBaseGroup(r.Color, "scatter")
 	for i, pt := range serie.Points {
@@ -227,6 +232,10 @@ type CubicRenderer[T, U ScalerConstraint] struct {
 	Fill    bool
 	Skip    int
 	Point   PointFunc
+}
+
+func (r CubicRenderer[T, U]) GetColor() string {
+	return r.Color
 }
 
 func (r CubicRenderer[T, U]) Render(serie Serie[T, U]) svg.Element {
@@ -277,6 +286,10 @@ type LinearRenderer[T, U ScalerConstraint] struct {
 	IgnoreMissing bool
 }
 
+func (r LinearRenderer[T, U]) GetColor() string {
+	return r.Color
+}
+
 func (r LinearRenderer[T, U]) Render(serie Serie[T, U]) svg.Element {
 	var (
 		grp = getBaseGroup(r.Color, "line")
@@ -284,6 +297,7 @@ func (r LinearRenderer[T, U]) Render(serie Serie[T, U]) svg.Element {
 		pos svg.Pos
 		nan bool
 	)
+	grp.Id = serie.Title
 	for i, pt := range serie.Points {
 		if r.Skip != 0 && i > 0 && i%r.Skip == 0 {
 			continue
@@ -336,6 +350,10 @@ type StepRenderer[T, U ScalerConstraint] struct {
 	IgnoreMissing bool
 }
 
+func (r StepRenderer[T, U]) GetColor() string {
+	return r.Color
+}
+
 func (r StepRenderer[T, U]) Render(serie Serie[T, U]) svg.Element {
 	var (
 		grp = getBaseGroup(r.Color, "line", "line-step")
@@ -344,6 +362,8 @@ func (r StepRenderer[T, U]) Render(serie Serie[T, U]) svg.Element {
 		ori svg.Pos
 		nan bool
 	)
+	grp.Id = serie.Title
+
 	pat.AbsMoveTo(pos)
 	pos.Y = serie.Y.Scale(slices.Fst(serie.Points).Y)
 	pat.AbsLineTo(pos)
@@ -402,6 +422,10 @@ type StepAfterRenderer[T, U ScalerConstraint] struct {
 	IgnoreMissing bool
 }
 
+func (r StepAfterRenderer[T, U]) GetColor() string {
+	return r.Color
+}
+
 func (r StepAfterRenderer[T, U]) Render(serie Serie[T, U]) svg.Element {
 	var (
 		grp = getBaseGroup(r.Color, "line", "line-step-after")
@@ -410,6 +434,8 @@ func (r StepAfterRenderer[T, U]) Render(serie Serie[T, U]) svg.Element {
 		ori svg.Pos
 		nan bool
 	)
+	grp.Id = serie.Title
+
 	pos.X = serie.X.Scale(slices.Fst(serie.Points).X)
 	pos.Y = serie.Y.Max()
 	pat.AbsMoveTo(pos)
@@ -474,6 +500,10 @@ type StepBeforeRenderer[T, U ScalerConstraint] struct {
 	IgnoreMissing bool
 }
 
+func (r StepBeforeRenderer[T, U]) GetColor() string {
+	return r.Color
+}
+
 func (r StepBeforeRenderer[T, U]) Render(serie Serie[T, U]) svg.Element {
 	var (
 		grp = getBaseGroup(r.Color, "line", "line-step-before")
@@ -482,6 +512,8 @@ func (r StepBeforeRenderer[T, U]) Render(serie Serie[T, U]) svg.Element {
 		ori svg.Pos
 		nan bool
 	)
+	grp.Id = serie.Title
+
 	pos.X = serie.X.Min()
 	pos.Y = serie.Y.Max()
 	pat.AbsMoveTo(pos)
@@ -555,6 +587,7 @@ func getLineText(str string, x, y float64, before bool) svg.Text {
 
 func getBasePath(fill bool) svg.Path {
 	var pat svg.Path
+	pat.Rendering = "geometricPrecision"
 	pat.Stroke = svg.NewStroke(currentColour, 1)
 	if fill {
 		pat.Fill = svg.NewFill(currentColour)

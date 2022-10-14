@@ -1,8 +1,13 @@
-set size 800, 600
+set size 1366, 600
 set padding 40,60,80,80
 set title "stock prices evolution"
 
 set timefmt %Y-%m-%d
+
+set legend with (
+	title "companies"
+	position top,right
+)
 
 set xdata time
 set ydata number
