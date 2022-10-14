@@ -240,7 +240,7 @@ func (d Domain) makeTimeAxis(scale charts.Scaler[time.Time]) (charts.Axis[time.T
 		WithOuterTicks: d.OuterTicks,
 		WithLabelTicks: d.LabelTicks,
 		WithBands:      d.BandTicks,
-		Format: formatTime,
+		Format:         formatTime,
 	}
 	return axe, nil
 }
@@ -289,7 +289,7 @@ func (s Style) getPointFunc() charts.PointFunc {
 
 func (s Style) makeTimeRenderer(g Style) (charts.Renderer[time.Time, float64], error) {
 	var (
-		rdr charts.Renderer[time.Time, float64]
+		rdr   charts.Renderer[time.Time, float64]
 		style = s.merge(g)
 	)
 	switch s.Type {
@@ -347,10 +347,10 @@ func (s Style) merge(g Style) Style {
 }
 
 type File struct {
-	Path  string
-	Ident string
-	X     int
-	Y     int
+	Path       string
+	Ident      string
+	X          int
+	Y          int
 	TimeFormat string
 	Style
 }
@@ -382,7 +382,7 @@ func (f File) makeTimeSerie(g Style, timefmt string, x charts.Scaler[time.Time],
 	ser := charts.Serie[time.Time, float64]{
 		Title:    f.Name(),
 		Renderer: rdr,
-		Points: points,
+		Points:   points,
 		X:        x,
 		Y:        y,
 	}

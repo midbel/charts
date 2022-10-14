@@ -52,11 +52,20 @@ func (a Axis[T]) Render(length, size, left, top float64) svg.Element {
 	g.Append(d.AsElement())
 
 	var (
-		data = a.Domain
-		font = svg.NewFont(FontSize)
+		data   = a.Domain
+		offset float64
+		font   = svg.NewFont(FontSize)
 	)
 	if len(data) == 0 {
 		data = a.Scaler.Values(a.Ticks)
+	}
+	if a.Label != "" {
+		offset := left
+		if a.Orientation == OrientRight || a.Orientation == OrientTop {
+			offset = top
+		}
+		txt := axisText(a.Orientation, a.Label, length/2, offset, font)
+		g.Append(txt.AsElement())
 	}
 	for i, t := range data {
 		var (
@@ -73,7 +82,7 @@ func (a Axis[T]) Render(length, size, left, top float64) svg.Element {
 			grp.Append(tick.AsElement())
 		}
 		if a.WithLabelTicks && a.Format != nil {
-			text := tickText(a.Orientation, a.Format(t), 0, a.Rotate, font)
+			text := tickText(a.Orientation, a.Format(t), offset, a.Rotate, font)
 			grp.Append(text.AsElement())
 		}
 		if i < len(data)-1 {
@@ -143,6 +152,32 @@ func lineTick(orient Orientation, offset, size float64, stroke svg.Stroke) svg.L
 	tick := svg.NewLine(pos1, pos2)
 	tick.Stroke = stroke
 	return tick
+}
+
+func axisText(orient Orientation, str string, x, y float64, font svg.Font) svg.Text {
+	txt := svg.NewText(str)
+	txt.Font = font
+	txt.Anchor = "middle"
+	txt.Baseline = "auto"
+	txt.Pos = svg.NewPos(x, y*0.8)
+	switch orient {
+	case OrientBottom:
+		txt.Baseline = "start"
+	case OrientTop:
+		txt.Baseline = "hanging"
+		txt.Pos.Y = -txt.Pos.Y
+	case OrientLeft:
+		txt.Pos.X, txt.Pos.Y = -txt.Pos.Y, txt.Pos.X
+		txt.Transform.RX = txt.Pos.X
+		txt.Transform.RY = txt.Pos.Y
+		txt.Transform.RA = -90
+	case OrientRight:
+		txt.Pos.X, txt.Pos.Y = txt.Pos.Y, txt.Pos.X
+		txt.Transform.RX = txt.Pos.X
+		txt.Transform.RY = txt.Pos.Y
+		txt.Transform.RA = -90
+	}
+	return txt
 }
 
 func tickText(orient Orientation, str string, offset, rotate float64, font svg.Font) svg.Text {

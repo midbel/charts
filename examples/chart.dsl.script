@@ -1,5 +1,5 @@
 set size 800, 600
-set padding 10, 60, 60, 60
+set padding 40,60,80,80
 set title "stock prices evolution"
 
 set timefmt %Y-%m-%d
@@ -7,14 +7,14 @@ set timefmt %Y-%m-%d
 set xdata time
 set ydata number
 set xcenter 0
-set xdomain 2018-08-01,2022-10-01
+set xdomain 2018-09-19,2022-10-01
 set ycenter 0
 set ydomain 0,350
 
 set xticks with (
 	count 7
 	position bottom
-	label time
+	label "time (2018-09-19 - 2022-10-01)"
 	format %Y-%m-%d
 	label-ticks true
 	band-ticks true
@@ -24,7 +24,7 @@ set xticks with (
 set yticks with (
 	count 10
 	position left
-	label prices
+	label "prices ($)"
 	format "%.2f"
 	label-ticks true
 	outer-ticks true

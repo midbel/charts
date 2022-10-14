@@ -32,7 +32,7 @@ const percent = '%'
 var specifiers = map[rune]string{
 	'D': "01/02/06", // month/day/year
 	'Y': "2006",     // year four digits
-	'y': "06", // year two digits
+	'y': "06",       // year two digits
 	'm': "01",       // month two digits
 	'B': "January",  // full month name
 	'b': "Jan",      // abreviate month name
