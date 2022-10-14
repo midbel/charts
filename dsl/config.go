@@ -343,83 +343,11 @@ func (s Style) getPointFunc() charts.PointFunc {
 }
 
 func (s Style) makeTimeRenderer(g Style) (charts.Renderer[time.Time, float64], error) {
-	var (
-		rdr   charts.Renderer[time.Time, float64]
-		style = s.merge(g)
-	)
-	switch style.Type {
-	case "line":
-		rdr = charts.LinearRenderer[time.Time, float64]{
-			Color:         style.Stroke,
-			IgnoreMissing: style.IgnoreMissing,
-			Text:          style.getTextPosition(),
-			Point:         style.getPointFunc(),
-		}
-	case "step":
-		rdr = charts.StepRenderer[time.Time, float64]{
-			Color:         style.Stroke,
-			IgnoreMissing: style.IgnoreMissing,
-			Text:          style.getTextPosition(),
-			Point:         style.getPointFunc(),
-		}
-	case "step-after":
-		rdr = charts.StepAfterRenderer[time.Time, float64]{
-			Color:         style.Stroke,
-			IgnoreMissing: style.IgnoreMissing,
-			Text:          style.getTextPosition(),
-			Point:         style.getPointFunc(),
-		}
-	case "step-before":
-		rdr = charts.StepBeforeRenderer[time.Time, float64]{
-			Color:         style.Stroke,
-			IgnoreMissing: style.IgnoreMissing,
-			Text:          style.getTextPosition(),
-			Point:         style.getPointFunc(),
-		}
-	default:
-		return nil, fmt.Errorf("%s: can not use for time chart", s.Type)
-	}
-	return rdr, nil
+	return createRenderer[time.Time, float64](s.merge(g))
 }
 
 func (s Style) makeNumberRenderer(g Style) (charts.Renderer[float64, float64], error) {
-	var (
-		rdr   charts.Renderer[float64, float64]
-		style = s.merge(g)
-	)
-	switch style.Type {
-	case "line":
-		rdr = charts.LinearRenderer[float64, float64]{
-			Color:         style.Stroke,
-			IgnoreMissing: style.IgnoreMissing,
-			Text:          style.getTextPosition(),
-			Point:         style.getPointFunc(),
-		}
-	case "step":
-		rdr = charts.StepRenderer[float64, float64]{
-			Color:         style.Stroke,
-			IgnoreMissing: style.IgnoreMissing,
-			Text:          style.getTextPosition(),
-			Point:         style.getPointFunc(),
-		}
-	case "step-after":
-		rdr = charts.StepAfterRenderer[float64, float64]{
-			Color:         style.Stroke,
-			IgnoreMissing: style.IgnoreMissing,
-			Text:          style.getTextPosition(),
-			Point:         style.getPointFunc(),
-		}
-	case "step-before":
-		rdr = charts.StepBeforeRenderer[float64, float64]{
-			Color:         style.Stroke,
-			IgnoreMissing: style.IgnoreMissing,
-			Text:          style.getTextPosition(),
-			Point:         style.getPointFunc(),
-		}
-	default:
-		return nil, fmt.Errorf("%s: can not use for number chart", s.Type)
-	}
-	return rdr, nil
+	return createRenderer[float64, float64](s.merge(g))
 }
 
 func (s Style) merge(g Style) Style {
@@ -442,6 +370,43 @@ func (s Style) merge(g Style) Style {
 		s.TextPosition = g.TextPosition
 	}
 	return s
+}
+
+func createRenderer[T, U charts.ScalerConstraint](style Style) (charts.Renderer[T, U], error) {
+	var rdr charts.Renderer[T, U]
+	switch style.Type {
+	case "line":
+		rdr = charts.LinearRenderer[T, U]{
+			Color:         style.Stroke,
+			IgnoreMissing: style.IgnoreMissing,
+			Text:          style.getTextPosition(),
+			Point:         style.getPointFunc(),
+		}
+	case "step":
+		rdr = charts.StepRenderer[T, U]{
+			Color:         style.Stroke,
+			IgnoreMissing: style.IgnoreMissing,
+			Text:          style.getTextPosition(),
+			Point:         style.getPointFunc(),
+		}
+	case "step-after":
+		rdr = charts.StepAfterRenderer[T, U]{
+			Color:         style.Stroke,
+			IgnoreMissing: style.IgnoreMissing,
+			Text:          style.getTextPosition(),
+			Point:         style.getPointFunc(),
+		}
+	case "step-before":
+		rdr = charts.StepBeforeRenderer[T, U]{
+			Color:         style.Stroke,
+			IgnoreMissing: style.IgnoreMissing,
+			Text:          style.getTextPosition(),
+			Point:         style.getPointFunc(),
+		}
+	default:
+		return nil, fmt.Errorf("%s: can not use for number chart", style.Type)
+	}
+	return rdr, nil
 }
 
 type File struct {
@@ -579,7 +544,7 @@ func loadNumberPoints(f File) ([]charts.Point[float64, float64], error) {
 		}
 		return pt, nil
 	}
-	return loadPoints[float64, float64](f.Path, get)	
+	return loadPoints[float64, float64](f.Path, get)
 }
 
 func loadTimePoints(f File, parseTime func(string) (time.Time, error)) ([]charts.Point[time.Time, float64], error) {
