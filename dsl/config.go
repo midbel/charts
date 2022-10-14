@@ -102,6 +102,8 @@ func (c Config) renderTimeChart() error {
 	var (
 		xrange = c.createRangeX()
 		yrange = c.createRangeY()
+		chart  = createChart[time.Time, float64](c)
+		series []charts.Data
 	)
 	xscale, err := c.Domains.X.makeTimeScale(xrange, false)
 	if err != nil {
@@ -111,19 +113,6 @@ func (c Config) renderTimeChart() error {
 	if err != nil {
 		return err
 	}
-	chart := charts.Chart[time.Time, float64]{
-		Title:  c.Title,
-		Width:  c.Width,
-		Height: c.Height,
-		Padding: charts.Padding{
-			Top:    c.Pad.Top,
-			Right:  c.Pad.Right,
-			Bottom: c.Pad.Bottom,
-			Left:   c.Pad.Left,
-		},
-	}
-
-	var series []charts.Data
 	for _, s := range c.Files {
 		ser, err := s.makeTimeSerie(c.Style, c.TimeFormat, xscale, yscale)
 		if err != nil {
@@ -156,6 +145,8 @@ func (c Config) renderNumberChart() error {
 	var (
 		xrange = c.createRangeX()
 		yrange = c.createRangeY()
+		chart  = createChart[float64, float64](c)
+		series []charts.Data
 	)
 	xscale, err := c.Domains.X.makeNumberScale(xrange, false)
 	if err != nil {
@@ -165,19 +156,6 @@ func (c Config) renderNumberChart() error {
 	if err != nil {
 		return err
 	}
-	chart := charts.Chart[float64, float64]{
-		Title:  c.Title,
-		Width:  c.Width,
-		Height: c.Height,
-		Padding: charts.Padding{
-			Top:    c.Pad.Top,
-			Right:  c.Pad.Right,
-			Bottom: c.Pad.Bottom,
-			Left:   c.Pad.Left,
-		},
-	}
-
-	var series []charts.Data
 	for _, s := range c.Files {
 		ser, err := s.makeNumberSerie(c.Style, xscale, yscale)
 		if err != nil {
@@ -372,43 +350,6 @@ func (s Style) merge(g Style) Style {
 	return s
 }
 
-func createRenderer[T, U charts.ScalerConstraint](style Style) (charts.Renderer[T, U], error) {
-	var rdr charts.Renderer[T, U]
-	switch style.Type {
-	case "line":
-		rdr = charts.LinearRenderer[T, U]{
-			Color:         style.Stroke,
-			IgnoreMissing: style.IgnoreMissing,
-			Text:          style.getTextPosition(),
-			Point:         style.getPointFunc(),
-		}
-	case "step":
-		rdr = charts.StepRenderer[T, U]{
-			Color:         style.Stroke,
-			IgnoreMissing: style.IgnoreMissing,
-			Text:          style.getTextPosition(),
-			Point:         style.getPointFunc(),
-		}
-	case "step-after":
-		rdr = charts.StepAfterRenderer[T, U]{
-			Color:         style.Stroke,
-			IgnoreMissing: style.IgnoreMissing,
-			Text:          style.getTextPosition(),
-			Point:         style.getPointFunc(),
-		}
-	case "step-before":
-		rdr = charts.StepBeforeRenderer[T, U]{
-			Color:         style.Stroke,
-			IgnoreMissing: style.IgnoreMissing,
-			Text:          style.getTextPosition(),
-			Point:         style.getPointFunc(),
-		}
-	default:
-		return nil, fmt.Errorf("%s: can not use for number chart", style.Type)
-	}
-	return rdr, nil
-}
-
 type File struct {
 	Path       string
 	Ident      string
@@ -502,32 +443,6 @@ func loadPoints[T, U charts.ScalerConstraint](file string, get PointFunc[T, U]) 
 	return list, nil
 }
 
-func readFrom(location string) (io.ReadCloser, error) {
-	u, err := url.Parse(location)
-	if err != nil {
-		return nil, err
-	}
-	switch u.Scheme {
-	case "http", "https":
-		req, err := http.NewRequest(http.MethodGet, u.String(), nil)
-		if err != nil {
-			return nil, err
-		}
-		res, err := http.DefaultClient.Do(req)
-		if err != nil {
-			return nil, err
-		}
-		if res.StatusCode != 200 {
-			return nil, fmt.Errorf("request does not end with success result code")
-		}
-		return res.Body, nil
-	case "", "file":
-		return os.Open(u.Path)
-	default:
-		return nil, fmt.Errorf("%s: unsupported scheme", u.Scheme)
-	}
-}
-
 func loadNumberPoints(f File) ([]charts.Point[float64, float64], error) {
 	get := func(row []string) (charts.Point[float64, float64], error) {
 		var (
@@ -566,6 +481,32 @@ func loadTimePoints(f File, parseTime func(string) (time.Time, error)) ([]charts
 	return loadPoints[time.Time, float64](f.Path, get)
 }
 
+func readFrom(location string) (io.ReadCloser, error) {
+	u, err := url.Parse(location)
+	if err != nil {
+		return nil, err
+	}
+	switch u.Scheme {
+	case "http", "https":
+		req, err := http.NewRequest(http.MethodGet, u.String(), nil)
+		if err != nil {
+			return nil, err
+		}
+		res, err := http.DefaultClient.Do(req)
+		if err != nil {
+			return nil, err
+		}
+		if res.StatusCode != 200 {
+			return nil, fmt.Errorf("request does not end with success result code")
+		}
+		return res.Body, nil
+	case "", "file":
+		return os.Open(u.Path)
+	default:
+		return nil, fmt.Errorf("%s: unsupported scheme", u.Scheme)
+	}
+}
+
 func renderChart[T, U charts.ScalerConstraint](file string, chart charts.Chart[T, U], series []charts.Data) error {
 	if len(series) == 0 {
 		return nil
@@ -577,4 +518,55 @@ func renderChart[T, U charts.ScalerConstraint](file string, chart charts.Chart[T
 	defer w.Close()
 	chart.Render(w, series...)
 	return nil
+}
+
+func createRenderer[T, U charts.ScalerConstraint](style Style) (charts.Renderer[T, U], error) {
+	var rdr charts.Renderer[T, U]
+	switch style.Type {
+	case "line":
+		rdr = charts.LinearRenderer[T, U]{
+			Color:         style.Stroke,
+			IgnoreMissing: style.IgnoreMissing,
+			Text:          style.getTextPosition(),
+			Point:         style.getPointFunc(),
+		}
+	case "step":
+		rdr = charts.StepRenderer[T, U]{
+			Color:         style.Stroke,
+			IgnoreMissing: style.IgnoreMissing,
+			Text:          style.getTextPosition(),
+			Point:         style.getPointFunc(),
+		}
+	case "step-after":
+		rdr = charts.StepAfterRenderer[T, U]{
+			Color:         style.Stroke,
+			IgnoreMissing: style.IgnoreMissing,
+			Text:          style.getTextPosition(),
+			Point:         style.getPointFunc(),
+		}
+	case "step-before":
+		rdr = charts.StepBeforeRenderer[T, U]{
+			Color:         style.Stroke,
+			IgnoreMissing: style.IgnoreMissing,
+			Text:          style.getTextPosition(),
+			Point:         style.getPointFunc(),
+		}
+	default:
+		return nil, fmt.Errorf("%s: can not use for number chart", style.Type)
+	}
+	return rdr, nil
+}
+
+func createChart[T, U charts.ScalerConstraint](cfg Config) charts.Chart[T, U] {
+	return charts.Chart[T, U]{
+		Title:  cfg.Title,
+		Width:  cfg.Width,
+		Height: cfg.Height,
+		Padding: charts.Padding{
+			Top:    cfg.Pad.Top,
+			Right:  cfg.Pad.Right,
+			Bottom: cfg.Pad.Bottom,
+			Left:   cfg.Pad.Left,
+		},
+	}
 }
