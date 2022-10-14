@@ -53,6 +53,9 @@ func (c Chart[T, U]) Render(w io.Writer, set ...Data) {
 	el := svg.NewSVG(svg.WithDimension(c.Width, c.Height))
 	el.OmitProlog = true
 
+	if txt := c.drawTitle(); txt != nil {
+		el.Append(txt)
+	}
 	el.Append(c.drawAxis())
 	for _, s := range set {
 		ar := c.getArea(s)
@@ -70,6 +73,22 @@ func (c Chart[T, U]) getArea(s Data) svg.Group {
 	g.Class = append(g.Class, "area")
 	g.Transform = svg.Translate(c.Padding.Left-s.OffsetX(), c.Padding.Top+s.OffsetY())
 	return g
+}
+
+func (c Chart[T, U]) drawTitle() svg.Element {
+	if c.Title == "" {
+		return nil
+	}
+	txt := svg.NewText(c.Title)
+	txt.Font = svg.NewFont(FontSize*1.2)
+	txt.Anchor = "middle"
+	txt.Baseline = "auto"
+	txt.Pos.X = c.Width/2
+	txt.Pos.Y = c.Padding.Top/2
+	if c.Padding.Top == 0 {
+		txt.Pos.Y = FontSize * 1.1
+	}
+	return txt.AsElement()
 }
 
 func (c Chart[T, U]) drawLegend(series []Serie[T, U]) svg.Element {
