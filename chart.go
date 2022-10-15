@@ -38,7 +38,7 @@ type Chart[T, U ScalerConstraint] struct {
 		Title  string
 		Orient Orientation
 	}
-	//Center Point[T, U]
+	Center Point[T, U]
 }
 
 func (c Chart[T, U]) DrawingWidth() float64 {

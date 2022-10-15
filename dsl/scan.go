@@ -14,6 +14,7 @@ const (
 	kwRender  = "render"
 	kwWith    = "with"
 	kwInclude = "include"
+	kwDefine  = "define"
 	// kwTo      = "to"
 	// kwAs      = "as"
 )
@@ -22,6 +23,7 @@ const (
 	Invalid rune = -(iota + 1)
 	Keyword
 	Literal
+	Variable
 	Command
 	Comment
 	Comma
@@ -49,6 +51,8 @@ func (t Token) String() string {
 		prefix = "comment"
 	case Keyword:
 		prefix = "keyword"
+	case Variable:
+		prefix = "variable"
 	case Command:
 		prefix = "command"
 	case Comma:
@@ -110,12 +114,22 @@ func (s *Scanner) Scan() Token {
 	return tok
 }
 
+func (s *Scanner) scanVariable(tok *Token) {
+	pos := s.curr
+	for !isBlank(s.char) && !isPunct(s.char) && !isNL(s.char) && !s.done() {
+		s.read()
+	}
+	tok.Type = Variable
+	tok.Literal = string(s.input[pos:s.curr])
+	if !isBlank(s.char) {
+		s.unread()
+	}
+}
+
 func (s *Scanner) scanCommand(tok *Token) {
 	s.read()
 	if s.char != lparen {
-		s.unread()
-		tok.Type = Literal
-		tok.Literal = "$"
+		s.scanVariable(tok)
 		return
 	}
 	s.read()
@@ -142,7 +156,7 @@ func (s *Scanner) scanLiteral(tok *Token) {
 	}
 	switch tok.Literal {
 	default:
-	case kwSet, kwLoad, kwRender, kwUsing, kwWith, kwInclude:
+	case kwSet, kwLoad, kwRender, kwUsing, kwWith, kwInclude, kwDefine:
 		tok.Type = Keyword
 	}
 }

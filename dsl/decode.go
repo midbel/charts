@@ -9,6 +9,8 @@ import (
 	"path/filepath"
 	"strconv"
 	"strings"
+
+	"github.com/midbel/slices"
 )
 
 var (
@@ -21,6 +23,8 @@ type Decoder struct {
 
 	shell string
 
+	env *env
+
 	scan *Scanner
 	curr Token
 	peek Token
@@ -31,6 +35,7 @@ func NewDecoder(r io.Reader) *Decoder {
 	if r, ok := r.(interface{ Name() string }); ok {
 		d.path = filepath.Dir(r.Name())
 	}
+	d.env = emptyEnv()
 	d.shell = DefaultShell
 	d.scan = Scan(r)
 	d.next()
@@ -63,6 +68,8 @@ func (d *Decoder) decode(cfg *Config) error {
 			err = d.decodeLoad(cfg)
 		case kwInclude:
 			err = d.decodeInclude(cfg)
+		case kwDefine:
+			err = d.decodeDefine()
 		default:
 			err = fmt.Errorf("unexpected keyword %s", d.curr.Literal)
 		}
@@ -80,6 +87,22 @@ func (d *Decoder) decode(cfg *Config) error {
 		return fmt.Errorf("unexpected token %s", d.curr)
 	}
 	return cfg.Render()
+}
+
+func (d *Decoder) decodeDefine() error {
+	d.next()
+	if d.curr.Type != Literal {
+		return fmt.Errorf("unexpected token %s", d.curr)
+	}
+	ident := d.curr.Literal
+	d.next()
+
+	values, err := d.getStringList()
+	if err != nil {
+		return err
+	}
+	d.env.Define(ident, values)
+	return d.eol()
 }
 
 func (d *Decoder) decodeRender(cfg *Config) error {
@@ -399,6 +422,12 @@ func (d *Decoder) getString() (string, error) {
 	switch d.curr.Type {
 	case Literal:
 		str = d.curr.Literal
+	case Variable:
+		vs, err := d.env.Resolve(d.curr.Literal)
+		if err != nil {
+			return "", err
+		}
+		str = slices.Fst(vs)
 	case Command:
 		var (
 			out bytes.Buffer

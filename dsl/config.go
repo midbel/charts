@@ -160,6 +160,9 @@ func (c Config) renderNumberChart() error {
 	if err != nil {
 		return err
 	}
+	if pt, ok, err := c.getNumberCenter(); ok && err == nil {
+		chart.Center = pt
+	}
 	for _, s := range c.Files {
 		ser, err := s.makeNumberSerie(c.Style, xscale, yscale)
 		if err != nil {
@@ -186,6 +189,25 @@ func (c Config) renderNumberChart() error {
 		return err
 	}
 	return renderChart(c.Path, chart, series)
+}
+
+func (c Config) getNumberCenter() (charts.Point[float64, float64], bool, error) {
+	var (
+		pt charts.Point[float64, float64]
+		err error
+	)
+	if c.Center.X == "" || c.Center.Y == "" {
+		return pt, false, err
+	}
+	pt.X, err = strconv.ParseFloat(c.Center.X, 64)
+	if err != nil {
+		return pt, false, err
+	}
+	pt.Y, err = strconv.ParseFloat(c.Center.Y, 64)
+	if err != nil {
+		return pt, false, err
+	}
+	return pt, true, nil
 }
 
 func (c Config) createRangeX() charts.Range {

@@ -11,9 +11,7 @@ set legend with (
 
 set xdata time
 set ydata number
-set xcenter 0
 set xdomain 2018-09-19,$(date +%Y-%m-%d)
-set ycenter 0
 set ydomain 0,350
 
 set xticks with (

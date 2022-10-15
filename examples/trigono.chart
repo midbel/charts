@@ -1,17 +1,21 @@
 set title "sinus vs cosinus"
 set padding 60
 
+set xcenter -16
+set ycenter 0
 set xdomain -16,16
 set ydomain -1.0,1.0
 
 set legend title "trigonometry"
 set legend position top,right
 
+define numfmt %.2f
+
 set xticks with (
 	count 10
 	position bottom
 	label "x"
-	format %.2f
+	format $numfmt
 	label-ticks true
 	inner-ticks true
 )
@@ -20,7 +24,7 @@ set yticks with (
 	count 5
 	position left
 	label "y=sin(x)"
-	format "%.2f"
+	format $numfmt
 	label-ticks true
 	outer-ticks true
 	inner-ticks true
