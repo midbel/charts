@@ -59,7 +59,7 @@ func (c Chart[T, U]) Render(w io.Writer, set ...Data) {
 	}
 	el.Append(c.drawAxis())
 	for _, s := range set {
-		ar := c.getArea(s)
+		ar := c.getArea()
 		ar.Append(s.Render())
 		el.Append(ar.AsElement())
 	}
@@ -72,11 +72,10 @@ func (c Chart[T, U]) Render(w io.Writer, set ...Data) {
 	el.Render(bw)
 }
 
-func (c Chart[T, U]) getArea(s Data) svg.Group {
+func (c Chart[T, U]) getArea() svg.Group {
 	var g svg.Group
 	g.Class = append(g.Class, "area")
-	g.Id = s.String()
-	g.Transform = svg.Translate(c.Padding.Left-s.OffsetX(), c.Padding.Top+s.OffsetY())
+	g.Transform = svg.Translate(c.Padding.Left, c.Padding.Top)
 	return g
 }
 

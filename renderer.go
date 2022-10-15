@@ -1,7 +1,9 @@
 package charts
 
 import (
+	"fmt"
 	"math"
+	"html"
 
 	"github.com/midbel/slices"
 	"github.com/midbel/svg"
@@ -12,6 +14,15 @@ type TextPosition int
 const (
 	TextBefore TextPosition = 1 << iota
 	TextAfter
+	TextCenter
+)
+
+type LineStyle int
+
+const (
+	StyleStraight LineStyle = 1 << iota
+	StyleDotted
+	StyleDashed
 )
 
 const currentColour = "currentColour"
@@ -20,25 +31,29 @@ type Renderer[T, U ScalerConstraint] interface {
 	Render(Serie[T, U]) svg.Element
 }
 
-// type SunburstRenderer [T ~string, U ~float64] struct {
-// 	Fill       []string
-// 	InnerRadius float64
-// 	OuterRadius float64
-// }
-
-// func (r SunburstRenderer[T, U]) Render(serie Serie[T, U]) svg.Element {
-// 	return nil
-// }
-
-type PieRenderer[T ~string, U ~float64] struct {
+type SunburstRenderer[T ~string, U ~float64] struct {
 	Fill        []string
 	InnerRadius float64
 	OuterRadius float64
 }
 
+func (r SunburstRenderer[T, U]) Render(serie Serie[T, U]) svg.Element {
+	return nil
+}
+
+type PieRenderer[T ~string, U ~float64] struct {
+	Fill        []string
+	InnerRadius float64
+	OuterRadius float64
+	Text        TextPosition
+}
+
 func (r PieRenderer[T, U]) Render(serie Serie[T, U]) svg.Element {
 	if r.InnerRadius <= 0 {
 		r.InnerRadius = r.OuterRadius
+	}
+	if len(r.Fill) == 0 {
+		r.Fill = Tableau10
 	}
 	var (
 		part  = fullcircle / sumY(serie.Points)
@@ -54,7 +69,6 @@ func (r PieRenderer[T, U]) Render(serie Serie[T, U]) svg.Element {
 			pos4 = r.getPos4(rad)
 			pat  svg.Path
 		)
-		pat.Rendering = "geometricPrecision"
 		pat.Fill = svg.NewFill(r.Fill[i%len(r.Fill)])
 
 		pat.AbsMoveTo(r.getPos1(rad))
@@ -68,6 +82,13 @@ func (r PieRenderer[T, U]) Render(serie Serie[T, U]) svg.Element {
 		grp.Append(pat.AsElement())
 
 		angle += val
+
+		switch r.Text {
+		case TextAfter:
+		case TextCenter:
+		default:
+		}
+
 	}
 	return grp.AsElement()
 }
@@ -92,78 +113,54 @@ func (r PieRenderer[T, U]) difference() float64 {
 	return r.OuterRadius - r.InnerRadius
 }
 
+type GroupRenderer[T ~string, U float64] struct {
+	Fill  []string
+	Width float64
+}
+
+func (r GroupRenderer[T, U]) Render(serie Serie[T, U]) svg.Element {
+	return nil
+}
+
 type StackedRenderer[T ~string, U ~float64] struct {
 	Fill       []string
 	Width      float64
-	Horizontal bool
-	WithText   bool
-	WithValue  bool
 }
 
 func (r StackedRenderer[T, U]) Render(serie Serie[T, U]) svg.Element {
 	if r.Width <= 0 {
 		r.Width = 1
 	}
-	if r.Horizontal {
-		return r.renderHorizontal(serie)
+	if len(r.Fill) == 0 {
+		r.Fill = Tableau10
 	}
-	return r.renderVertical(serie)
-}
-
-func (r StackedRenderer[T, U]) renderHorizontal(serie Serie[T, U]) svg.Element {
-	var grp svg.Group
-	for _, s := range serie.Series {
-		bar := getBaseGroup("", "bar")
-		bar.Transform = svg.Translate(serie.X.Scale(any(s.Title).(T)), 0)
-		for i, pt := range s.Points {
-			var (
-				w   = s.X.Space() * r.Width
-				x   = float64(i) * s.X.Space()
-				y   = s.Y.Scale(pt.Y)
-				pos = svg.NewPos(x, y)
-				dim = svg.NewDim(w, s.Y.Max()-y)
-			)
-			var el svg.Rect
-			el.Title = any(pt.X).(string)
-			el.Pos = pos
-			el.Dim = dim
-			el.Fill = svg.NewFill(r.Fill[i%len(r.Fill)])
-			bar.Append(el.AsElement())
-		}
-		grp.Append(bar.AsElement())
-	}
-	return grp.AsElement()
-}
-
-func (r StackedRenderer[T, U]) renderVertical(serie Serie[T, U]) svg.Element {
-	var grp svg.Group
-	for _, s := range serie.Series {
+	var (
+		grp svg.Group
+		max = serie.Y.Max()
+		size = serie.X.Space()
+	)
+	for _, pt := range serie.Points {
 		var (
-			total  float64
-			height = serie.Y.Max()
+			offset float64
 			bar    = getBaseGroup("", "bar")
 		)
-		bar.Transform = svg.Translate(serie.X.Scale(any(s.Title).(T)), 0)
-		for i, pt := range s.Points {
-			total += any(pt.Y).(float64)
+		bar.Transform = svg.Translate(serie.X.Scale(pt.X), 0)
+		for i, pt := range pt.Sub {
 			var (
-				y  = serie.Y.Scale(any(total).(U))
-				w  = serie.X.Space() * r.Width
-				o  = (serie.X.Space() - w) / 2
+				y = serie.Y.Scale(pt.Y)
+				w = size * r.Width
+				o = (size - w) / 2
 				el svg.Rect
 			)
-			el.Title = any(pt.X).(string)
-			el.Pos = svg.NewPos(o, y)
-			el.Dim = svg.NewDim(serie.X.Space()*r.Width, height-y)
+			el.Pos = svg.NewPos(o, y - offset)
+			el.Dim = svg.NewDim(w, max-y)
 			el.Fill = svg.NewFill(r.Fill[i%len(r.Fill)])
+			if s, ok := any(pt.X).(string); ok {
+				el.Title = fmt.Sprintf("%s: %.0f", html.EscapeString(s), pt.Y)
+			}
 			bar.Append(el.AsElement())
-			if r.WithText {
 
-			}
-			if r.WithValue {
-
-			}
-			height = y
+			offset += max - y
 		}
 		grp.Append(bar.AsElement())
 	}
@@ -180,15 +177,16 @@ func (r BarRenderer[T, U]) Render(serie Serie[T, U]) svg.Element {
 	if r.Width <= 0 {
 		r.Width = 1
 	}
-	grp := getBaseGroup("")
+	if len(r.Fill) == 0 {
+		r.Fill = Tableau10
+	}
+	grp := getBaseGroup("", "bar")
 	for i, pt := range serie.Points {
 		var (
-			w   = serie.X.Space() * r.Width
-			o   = (serie.X.Space() - w) / 2
-			x   = serie.X.Scale(pt.X) + o
-			y   = serie.Y.Scale(pt.Y)
-			pos = svg.NewPos(x, y)
-			dim = svg.NewDim(w, serie.Y.Max()-y)
+			width  = serie.X.Space() * r.Width
+			offset = (serie.X.Space() - width) / 2
+			pos    = svg.NewPos(serie.X.Scale(pt.X)+offset, serie.Y.Scale(pt.Y))
+			dim    = svg.NewDim(width, serie.Y.Max()-pos.Y)
 		)
 		var el svg.Rect
 		el.Pos = pos
@@ -226,6 +224,7 @@ type CubicRenderer[T, U ScalerConstraint] struct {
 	Color   string
 	Fill    bool
 	Skip    int
+	Style   LineStyle
 	Point   PointFunc
 }
 
@@ -274,6 +273,7 @@ type LinearRenderer[T, U ScalerConstraint] struct {
 	Skip          int
 	Point         PointFunc
 	Text          TextPosition
+	Style         LineStyle
 	IgnoreMissing bool
 }
 
@@ -334,6 +334,7 @@ type StepRenderer[T, U ScalerConstraint] struct {
 	Fill          bool
 	Point         PointFunc
 	Text          TextPosition
+	Style         LineStyle
 	IgnoreMissing bool
 }
 
@@ -402,6 +403,7 @@ type StepAfterRenderer[T, U ScalerConstraint] struct {
 	Fill          bool
 	Point         PointFunc
 	Text          TextPosition
+	Style         LineStyle
 	IgnoreMissing bool
 }
 
@@ -476,6 +478,7 @@ type StepBeforeRenderer[T, U ScalerConstraint] struct {
 	Fill          bool
 	Point         PointFunc
 	Text          TextPosition
+	Style         LineStyle
 	IgnoreMissing bool
 }
 
