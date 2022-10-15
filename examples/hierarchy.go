@@ -9,13 +9,14 @@ import (
 	"math"
 	"os"
 	"strconv"
+	"sort"
 
 	"github.com/midbel/charts"
 	"github.com/midbel/slices"
 )
 
 const (
-	defaultWidth  = 800
+	defaultWidth  = 1366
 	defaultHeight = 600
 )
 
@@ -27,6 +28,10 @@ var pad = charts.Padding{
 }
 
 func main() {
+	var (
+		typname = flag.String("t", "", "type")
+		normal  = flag.Bool("n", false, "normalize")
+	)
 	flag.Parse()
 
 	dat, err := readFile(flag.Arg(0))
@@ -34,14 +39,23 @@ func main() {
 		fmt.Fprintln(os.Stderr, err)
 		os.Exit(1)
 	}
+	sort.Slice(dat.Serie.Points, func(i, j int) bool {
+		return dat.Serie.Points[i].Y > dat.Serie.Points[j].Y
+	})
+	dat.List = dat.List[:0]
+	for i := range dat.Serie.Points {
+		dat.List = append(dat.List, dat.Serie.Points[i].X)
+	}
 
+	rdr, err := getRenderer(*typname, *normal)
+	if err != nil {
+		fmt.Fprintln(os.Stderr, err)
+		os.Exit(2)
+	}
+	dat.Serie.Renderer = rdr
 	xscale := charts.StringScaler(dat.List, charts.NewRange(0, defaultWidth-pad.Horizontal()))
 	yscale := charts.NumberScaler(charts.NumberDomain(dat.Max, 0), charts.NewRange(0, defaultHeight-pad.Vertical()))
 
-	dat.Serie.Renderer = charts.BarRenderer[string, float64]{
-		Width: 0.5,
-		Fill:  []string{"steelblue"},
-	}
 	dat.Serie.X = xscale
 	dat.Serie.Y = yscale
 
@@ -50,10 +64,33 @@ func main() {
 		Width:   defaultWidth,
 		Height:  defaultHeight,
 		Padding: pad,
-		Left:    getLeftAxis(yscale),
-		Bottom:  getBottomAxis(xscale),
 	}
+	if *typname != "pie" {
+		ch.Left = getLeftAxis(yscale)
+		ch.Bottom = getBottomAxis(xscale)
+	}
+	sort.Slice(dat.Serie.Points, func(i, j int) bool {
+		return dat.Serie.Points[i].Y > dat.Serie.Points[j].Y
+	})
 	ch.Render(os.Stdout, dat.Serie)
+}
+
+func getRenderer(name string, normalize bool) (charts.Renderer[string, float64], error) {
+	var rdr charts.Renderer[string, float64]
+	switch name {
+	case "stacked", "vert", "vertical", "":
+		rdr = charts.StackedRenderer[string, float64]{
+			Width:     0.8,
+			Fill: charts.Tableau10,
+		}
+	case "group", "horiz", "horizontal":
+		rdr = charts.GroupRenderer[string, float64]{
+			Width: 0.8,
+		}
+	default:
+		return nil, fmt.Errorf("%s: invalid renderer name - choose between stacked or group", name)
+	}
+	return rdr, nil
 }
 
 type Data struct {
@@ -77,7 +114,9 @@ func readFile(file string) (Data, error) {
 	dat.Serie.Title = "population"
 
 	rs := csv.NewReader(r)
-	rs.Read()
+	head, _ := rs.Read()
+	head = slices.Rest(head)
+
 	for {
 		row, err := rs.Read()
 		if err != nil {
@@ -87,22 +126,22 @@ func readFile(file string) (Data, error) {
 			return dat, err
 		}
 		dat.List = append(dat.List, slices.Fst(row))
-		total := sumValues(slices.Rest(row))
+		var (
+			pt charts.Point[string, float64]
+			total float64
+		)
+		for i, n := range slices.Rest(row) {
+			f, _ := strconv.ParseFloat(n, 64)
+			pt.Sub = append(pt.Sub, charts.CategoryPoint(head[i], f))
+			total += f
+		}
+		pt.X = slices.Fst(row)
+		pt.Y = total
+		dat.Serie.Points = append(dat.Serie.Points, pt)
 
-		dat.Serie.Points = append(dat.Serie.Points, charts.CategoryPoint(slices.Fst(row), total))
-		dat.Total += total
 		dat.Max = math.Max(dat.Max, total)
 	}
 	return dat, err
-}
-
-func sumValues(row []string) float64 {
-	var total float64
-	for _, n := range slices.Rest(row) {
-		f, _ := strconv.ParseFloat(n, 64)
-		total += f
-	}
-	return total
 }
 
 func getBottomAxis(scaler charts.Scaler[string]) charts.Axis[string] {
@@ -120,7 +159,7 @@ func getBottomAxis(scaler charts.Scaler[string]) charts.Axis[string] {
 
 func getLeftAxis(scaler charts.Scaler[float64]) charts.Axis[float64] {
 	return charts.Axis[float64]{
-		Label:          "population",
+		Label:          "population (million)",
 		Ticks:          10,
 		Orientation:    charts.OrientLeft,
 		Scaler:         scaler,
@@ -131,7 +170,7 @@ func getLeftAxis(scaler charts.Scaler[float64]) charts.Axis[float64] {
 			if f == 0 {
 				return "0"
 			}
-			return strconv.FormatFloat(f/1000, 'f', 0, 64) + "K"
+			return strconv.FormatFloat(f/(1000*1000), 'f', 0, 64) + "M"
 		},
 	}
 }
