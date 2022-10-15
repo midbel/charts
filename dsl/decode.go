@@ -232,7 +232,7 @@ func (d *Decoder) decodeLegend(cfg *Config) error {
 		})
 	default:
 		err = fmt.Errorf("%s unsupported/unknown option for legend", d.curr.Literal)
-	}	
+	}
 	if err != nil {
 		return err
 	}

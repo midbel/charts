@@ -56,6 +56,9 @@ func (a Axis[T]) Render(length, size, left, top float64) svg.Element {
 		offset float64
 		font   = svg.NewFont(FontSize)
 	)
+	if _, ok := any(a).(Axis[string]); ok {
+		offset = a.Scaler.Space() / 2
+	}
 	if len(data) == 0 {
 		data = a.Scaler.Values(a.Ticks)
 	}

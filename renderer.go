@@ -18,7 +18,6 @@ const currentColour = "currentColour"
 
 type Renderer[T, U ScalerConstraint] interface {
 	Render(Serie[T, U]) svg.Element
-	GetColor() string
 }
 
 // type SunburstRenderer [T ~string, U ~float64] struct {
@@ -206,10 +205,6 @@ type PointRenderer[T, U ScalerConstraint] struct {
 	Point PointFunc
 }
 
-func (r PointRenderer[T, U]) GetColor() string {
-	return r.Color
-}
-
 func (r PointRenderer[T, U]) Render(serie Serie[T, U]) svg.Element {
 	grp := getBaseGroup(r.Color, "scatter")
 	for i, pt := range serie.Points {
@@ -232,10 +227,6 @@ type CubicRenderer[T, U ScalerConstraint] struct {
 	Fill    bool
 	Skip    int
 	Point   PointFunc
-}
-
-func (r CubicRenderer[T, U]) GetColor() string {
-	return r.Color
 }
 
 func (r CubicRenderer[T, U]) Render(serie Serie[T, U]) svg.Element {
@@ -284,10 +275,6 @@ type LinearRenderer[T, U ScalerConstraint] struct {
 	Point         PointFunc
 	Text          TextPosition
 	IgnoreMissing bool
-}
-
-func (r LinearRenderer[T, U]) GetColor() string {
-	return r.Color
 }
 
 func (r LinearRenderer[T, U]) Render(serie Serie[T, U]) svg.Element {
@@ -348,10 +335,6 @@ type StepRenderer[T, U ScalerConstraint] struct {
 	Point         PointFunc
 	Text          TextPosition
 	IgnoreMissing bool
-}
-
-func (r StepRenderer[T, U]) GetColor() string {
-	return r.Color
 }
 
 func (r StepRenderer[T, U]) Render(serie Serie[T, U]) svg.Element {
@@ -420,10 +403,6 @@ type StepAfterRenderer[T, U ScalerConstraint] struct {
 	Point         PointFunc
 	Text          TextPosition
 	IgnoreMissing bool
-}
-
-func (r StepAfterRenderer[T, U]) GetColor() string {
-	return r.Color
 }
 
 func (r StepAfterRenderer[T, U]) Render(serie Serie[T, U]) svg.Element {
@@ -498,10 +477,6 @@ type StepBeforeRenderer[T, U ScalerConstraint] struct {
 	Point         PointFunc
 	Text          TextPosition
 	IgnoreMissing bool
-}
-
-func (r StepBeforeRenderer[T, U]) GetColor() string {
-	return r.Color
 }
 
 func (r StepBeforeRenderer[T, U]) Render(serie Serie[T, U]) svg.Element {

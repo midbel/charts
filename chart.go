@@ -113,15 +113,15 @@ func (c Chart[T, U]) drawLegend(series []Data) svg.Element {
 		}
 		var g svg.Group
 		g.Transform = svg.Translate(0, float64(i)*offset)
-		li := svg.NewLine(svg.NewPos(0, 0), svg.NewPos(20, 0))
-		li.Stroke = svg.NewStroke(s.GetColor(), 4)
+		// li := svg.NewLine(svg.NewPos(0, 0), svg.NewPos(20, 0))
+		// li.Stroke = svg.NewStroke(s.GetColor(), 4)
 
 		tx := svg.NewText(title)
 		tx.Pos = svg.NewPos(30, 0)
 		tx.Font = svg.NewFont(FontSize)
 		tx.Baseline = "middle"
 
-		g.Append(li.AsElement())
+		// g.Append(li.AsElement())
 		g.Append(tx.AsElement())
 		grp.Append(g.AsElement())
 	}

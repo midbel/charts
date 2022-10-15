@@ -67,7 +67,7 @@ type Config struct {
 		Y string
 	}
 	Legend struct {
-		Title string
+		Title    string
 		Position []string
 	}
 	Files []File
@@ -193,7 +193,7 @@ func (c Config) renderNumberChart() error {
 
 func (c Config) getNumberCenter() (charts.Point[float64, float64], bool, error) {
 	var (
-		pt charts.Point[float64, float64]
+		pt  charts.Point[float64, float64]
 		err error
 	)
 	if c.Center.X == "" || c.Center.Y == "" {

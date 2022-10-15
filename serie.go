@@ -12,13 +12,12 @@ type Data interface {
 	OffsetY() float64
 
 	Render() svg.Element
-	GetColor() string
 
 	fmt.Stringer
 }
 
 type Serie[T, U ScalerConstraint] struct {
-	Title         string
+	Title string
 
 	X      Scaler[T]
 	Y      Scaler[U]
@@ -64,8 +63,8 @@ func (s Serie[T, U]) Depth() int {
 }
 
 type Point[T, U ScalerConstraint] struct {
-	X T
-	Y U
+	X     T
+	Y     U
 	Label string
 }
 
