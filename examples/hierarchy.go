@@ -52,6 +52,9 @@ func main() {
 		fmt.Fprintln(os.Stderr, err)
 		os.Exit(2)
 	}
+	if *normal {
+		dat.Max = 1
+	}
 	dat.Serie.Renderer = rdr
 	xscale := charts.StringScaler(dat.List, charts.NewRange(0, defaultWidth-pad.Horizontal()))
 	yscale := charts.NumberScaler(charts.NumberDomain(dat.Max, 0), charts.NewRange(0, defaultHeight-pad.Vertical()))
@@ -64,10 +67,8 @@ func main() {
 		Width:   defaultWidth,
 		Height:  defaultHeight,
 		Padding: pad,
-	}
-	if *typname != "pie" {
-		ch.Left = getLeftAxis(yscale)
-		ch.Bottom = getBottomAxis(xscale)
+		Left: getLeftAxis(yscale, *normal),
+		Bottom: getBottomAxis(xscale),
 	}
 	sort.Slice(dat.Serie.Points, func(i, j int) bool {
 		return dat.Serie.Points[i].Y > dat.Serie.Points[j].Y
@@ -82,6 +83,7 @@ func getRenderer(name string, normalize bool) (charts.Renderer[string, float64],
 		rdr = charts.StackedRenderer[string, float64]{
 			Width:     0.8,
 			Fill: charts.Tableau10,
+			Normalize: normalize,
 		}
 	case "group", "horiz", "horizontal":
 		rdr = charts.GroupRenderer[string, float64]{
@@ -157,9 +159,15 @@ func getBottomAxis(scaler charts.Scaler[string]) charts.Axis[string] {
 	}
 }
 
-func getLeftAxis(scaler charts.Scaler[float64]) charts.Axis[float64] {
+func getLeftAxis(scaler charts.Scaler[float64], normalize bool) charts.Axis[float64] {
+	var title string
+	if normalize {
+		title = "population (%)"
+	} else {
+		title = "population (million)"
+	}
 	return charts.Axis[float64]{
-		Label:          "population (million)",
+		Label:          title,
 		Ticks:          10,
 		Orientation:    charts.OrientLeft,
 		Scaler:         scaler,
@@ -169,6 +177,9 @@ func getLeftAxis(scaler charts.Scaler[float64]) charts.Axis[float64] {
 		Format: func(f float64) string {
 			if f == 0 {
 				return "0"
+			}
+			if normalize {
+				return strconv.FormatFloat(f*100, 'f', 0, 64) + "%"	
 			}
 			return strconv.FormatFloat(f/(1000*1000), 'f', 0, 64) + "M"
 		},

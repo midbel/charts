@@ -31,6 +31,14 @@ type Renderer[T, U ScalerConstraint] interface {
 	Render(Serie[T, U]) svg.Element
 }
 
+type PolarRenderer[T ~string, U ~float64] struct {
+
+}
+
+func (r PolarRenderer[T, U]) Render(serie Serie[T, U]) svg.Element {
+	return nil
+}
+
 type SunburstRenderer[T ~string, U ~float64] struct {
 	Fill        []string
 	InnerRadius float64
@@ -70,6 +78,11 @@ func (r PieRenderer[T, U]) Render(serie Serie[T, U]) svg.Element {
 			pat  svg.Path
 		)
 		pat.Fill = svg.NewFill(r.Fill[i%len(r.Fill)])
+		pat.Rendering = "geometricPrecision"
+		pat.Stroke = svg.NewStroke("white", 2)
+		if s, ok := any(pt.X).(string); ok {
+			pat.Title = html.EscapeString(s)
+		}
 
 		pat.AbsMoveTo(r.getPos1(rad))
 		pat.AbsArcTo(r.getPos2(angle, val), r.OuterRadius, r.OuterRadius, 0, val > halfcircle, true)
@@ -125,6 +138,7 @@ func (r GroupRenderer[T, U]) Render(serie Serie[T, U]) svg.Element {
 type StackedRenderer[T ~string, U ~float64] struct {
 	Fill       []string
 	Width      float64
+	Normalize  bool
 }
 
 func (r StackedRenderer[T, U]) Render(serie Serie[T, U]) svg.Element {
@@ -139,13 +153,16 @@ func (r StackedRenderer[T, U]) Render(serie Serie[T, U]) svg.Element {
 		max = serie.Y.Max()
 		size = serie.X.Space()
 	)
-	for _, pt := range serie.Points {
+	for _, parent := range serie.Points {
 		var (
 			offset float64
 			bar    = getBaseGroup("", "bar")
 		)
-		bar.Transform = svg.Translate(serie.X.Scale(pt.X), 0)
-		for i, pt := range pt.Sub {
+		bar.Transform = svg.Translate(serie.X.Scale(parent.X), 0)
+		for i, pt := range parent.Sub {
+			if r.Normalize {
+				pt.Y = pt.Y/parent.Y
+			}
 			var (
 				y = serie.Y.Scale(pt.Y)
 				w = size * r.Width
@@ -156,6 +173,9 @@ func (r StackedRenderer[T, U]) Render(serie Serie[T, U]) svg.Element {
 			el.Dim = svg.NewDim(w, max-y)
 			el.Fill = svg.NewFill(r.Fill[i%len(r.Fill)])
 			if s, ok := any(pt.X).(string); ok {
+				if r.Normalize {
+					pt.Y *= 100
+				}
 				el.Title = fmt.Sprintf("%s: %.0f", html.EscapeString(s), pt.Y)
 			}
 			bar.Append(el.AsElement())
