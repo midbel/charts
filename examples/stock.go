@@ -119,13 +119,13 @@ func getSerie(name, color string, skip int) charts.Serie[time.Time, float64] {
 		Color: color,
 		Skip:  skip,
 		Text:  charts.TextAfter,
+		Style: charts.StyleDotted,
 	}
 	if skip > 10 {
 		rdr.Point = charts.GetCircle
 	}
 	return charts.Serie[time.Time, float64]{
 		Title:    name,
-		Color:    color,
 		Renderer: rdr,
 	}
 }

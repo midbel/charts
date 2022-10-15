@@ -64,7 +64,7 @@ func (r PieRenderer[T, U]) Render(serie Serie[T, U]) svg.Element {
 		r.Fill = Tableau10
 	}
 	var (
-		part  = fullcircle / sumY(serie.Points)
+		part  = fullcircle / serie.Sum()
 		angle float64
 		grp   = getBaseGroup("", "pie")
 	)
@@ -251,7 +251,7 @@ type CubicRenderer[T, U ScalerConstraint] struct {
 func (r CubicRenderer[T, U]) Render(serie Serie[T, U]) svg.Element {
 	var (
 		grp = getBaseGroup(r.Color, "line")
-		pat = getBasePath(r.Fill)
+		pat = getBasePath(r.Fill, r.Style)
 		pos = svg.NewPos(serie.X.Min(), serie.Y.Max())
 		ori svg.Pos
 	)
@@ -300,7 +300,7 @@ type LinearRenderer[T, U ScalerConstraint] struct {
 func (r LinearRenderer[T, U]) Render(serie Serie[T, U]) svg.Element {
 	var (
 		grp = getBaseGroup(r.Color, "line")
-		pat = getBasePath(r.Fill)
+		pat = getBasePath(r.Fill, r.Style)
 		pos svg.Pos
 		nan bool
 	)
@@ -361,7 +361,7 @@ type StepRenderer[T, U ScalerConstraint] struct {
 func (r StepRenderer[T, U]) Render(serie Serie[T, U]) svg.Element {
 	var (
 		grp = getBaseGroup(r.Color, "line", "line-step")
-		pat = getBasePath(r.Fill)
+		pat = getBasePath(r.Fill, r.Style)
 		pos = svg.NewPos(serie.X.Min(), serie.Y.Max())
 		ori svg.Pos
 		nan bool
@@ -430,7 +430,7 @@ type StepAfterRenderer[T, U ScalerConstraint] struct {
 func (r StepAfterRenderer[T, U]) Render(serie Serie[T, U]) svg.Element {
 	var (
 		grp = getBaseGroup(r.Color, "line", "line-step-after")
-		pat = getBasePath(r.Fill)
+		pat = getBasePath(r.Fill, r.Style)
 		pos svg.Pos
 		ori svg.Pos
 		nan bool
@@ -505,7 +505,7 @@ type StepBeforeRenderer[T, U ScalerConstraint] struct {
 func (r StepBeforeRenderer[T, U]) Render(serie Serie[T, U]) svg.Element {
 	var (
 		grp = getBaseGroup(r.Color, "line", "line-step-before")
-		pat = getBasePath(r.Fill)
+		pat = getBasePath(r.Fill, r.Style)
 		pos svg.Pos
 		ori svg.Pos
 		nan bool
@@ -583,7 +583,7 @@ func getLineText(str string, x, y float64, before bool) svg.Text {
 	return txt
 }
 
-func getBasePath(fill bool) svg.Path {
+func getBasePath(fill bool, style LineStyle) svg.Path {
 	var pat svg.Path
 	pat.Rendering = "geometricPrecision"
 	pat.Stroke = svg.NewStroke(currentColour, 1)
@@ -592,6 +592,14 @@ func getBasePath(fill bool) svg.Path {
 		pat.Fill.Opacity = 0.5
 	} else {
 		pat.Fill = svg.NewFill("none")
+	}
+	switch style {
+	case StyleStraight:
+	case StyleDotted:
+		pat.Stroke.DashArray(1, 1)
+	case StyleDashed:
+		pat.Stroke.DashArray(10, 5)
+	default:
 	}
 	return pat
 }

@@ -5,6 +5,7 @@ import (
 	"time"
 
 	"github.com/midbel/svg"
+	"github.com/midbel/slices"
 )
 
 type Data interface {
@@ -22,6 +23,19 @@ type Serie[T, U ScalerConstraint] struct {
 
 	Renderer[T, U]
 }
+
+func (s Serie[T, U]) Sum() float64 {
+	pt := slices.Fst(s.Points)
+	if _, ok := any(pt.Y).(float64); !ok {
+		z := len(s.Points)
+		return float64(z)
+	}
+	var sum float64
+	for i := range s.Points {
+		sum += any(s.Points[i].Y).(float64)
+	}
+	return sum
+} 
 
 func (s Serie[T, U]) String() string {
 	return s.Title
@@ -81,12 +95,4 @@ func (p Point[T, U]) Depth() int {
 		}
 	}
 	return depth + 1
-}
-
-func sumY[T ScalerConstraint, U ~float64](points []Point[T, U]) float64 {
-	var s float64
-	for _, p := range points {
-		s += any(p.Y).(float64)
-	}
-	return s
 }
