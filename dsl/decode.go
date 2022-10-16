@@ -262,6 +262,8 @@ func (d *Decoder) decodeStyle(style *Style) error {
 		style.OuterRadius, err = d.getFloat()
 	case "line-style":
 		style.LineStyle, err = d.getLineStyle()
+	case "width":
+		_, err = d.getFloat()
 	case kwWith:
 		err = d.decodeWith(func() error {
 			return d.decodeStyle(style)
@@ -327,6 +329,19 @@ func (d *Decoder) decodeLoad(cfg *Config) error {
 	)
 	if fi.Path, err = d.getString(); err != nil {
 		return err
+	}
+	if d.curr.Type == Keyword && d.curr.Literal == kwLimit {
+		d.next()
+		if d.peek.Type == Comma {
+			fi.Starts, err = d.getInt()
+			if err != nil {
+				return err
+			}
+		}
+		fi.Ends, err = d.getInt()
+		if err != nil {
+			return err
+		}
 	}
 	if d.curr.Type != Keyword && d.curr.Literal != kwUsing {
 		return fmt.Errorf("unexpected token %s", d.curr)

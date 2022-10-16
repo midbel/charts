@@ -13,11 +13,28 @@ const (
 	kwUsing   = "using"
 	kwRender  = "render"
 	kwWith    = "with"
+	kwLimit   = "limit"
 	kwInclude = "include"
 	kwDefine  = "define"
 	// kwTo      = "to"
 	// kwAs      = "as"
 )
+
+func isKeyword(str string) bool {
+	switch str {
+	default:
+		return false
+	case kwSet:
+	case kwLoad:
+	case kwUsing:
+	case kwRender:
+	case kwWith:
+	case kwLimit:
+	case kwInclude:
+	case kwDefine:
+	}
+	return true
+}
 
 const (
 	Invalid rune = -(iota + 1)
@@ -154,9 +171,7 @@ func (s *Scanner) scanLiteral(tok *Token) {
 	if !isBlank(s.char) {
 		s.unread()
 	}
-	switch tok.Literal {
-	default:
-	case kwSet, kwLoad, kwRender, kwUsing, kwWith, kwInclude, kwDefine:
+	if isKeyword(tok.Literal) {
 		tok.Type = Keyword
 	}
 }

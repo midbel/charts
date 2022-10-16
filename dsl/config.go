@@ -15,6 +15,7 @@ import (
 
 	"github.com/midbel/charts"
 	"github.com/midbel/slices"
+	"golang.org/x/sync/errgroup"
 )
 
 var (
@@ -113,7 +114,7 @@ func (c Config) renderTimeChart() error {
 		xrange = c.createRangeX()
 		yrange = c.createRangeY()
 		chart  = createChart[time.Time, float64](c)
-		series []charts.Data
+		series = make([]charts.Data, len(c.Files))
 	)
 	xscale, err := c.Domains.X.makeTimeScale(xrange, false)
 	if err != nil {
@@ -123,12 +124,16 @@ func (c Config) renderTimeChart() error {
 	if err != nil {
 		return err
 	}
-	for _, s := range c.Files {
-		ser, err := s.makeTimeSerie(c.Style, c.TimeFormat, xscale, yscale)
-		if err != nil {
+	var grp errgroup.Group
+	for i := range c.Files {
+		s, j := c.Files[i], i
+		grp.Go(func() (err error) {
+			series[j], err = s.makeTimeSerie(c.Style, c.TimeFormat, xscale, yscale)
 			return err
-		}
-		series = append(series, ser)
+		})
+	}
+	if err := grp.Wait(); err != nil {
+		return err
 	}
 	switch c.Domains.X.Position {
 	case "bottom":
@@ -156,7 +161,7 @@ func (c Config) renderNumberChart() error {
 		xrange = c.createRangeX()
 		yrange = c.createRangeY()
 		chart  = createChart[float64, float64](c)
-		series []charts.Data
+		series = make([]charts.Data, len(c.Files))
 	)
 	xscale, err := c.Domains.X.makeNumberScale(xrange, false)
 	if err != nil {
@@ -169,12 +174,16 @@ func (c Config) renderNumberChart() error {
 	if pt, ok, err := c.getNumberCenter(); ok && err == nil {
 		chart.Center = pt
 	}
-	for _, s := range c.Files {
-		ser, err := s.makeNumberSerie(c.Style, xscale, yscale)
-		if err != nil {
+	var grp errgroup.Group
+	for i := range c.Files {
+		s, j := c.Files[i], i
+		grp.Go(func() (err error) {
+			series[j], err = s.makeNumberSerie(c.Style, xscale, yscale)
 			return err
-		}
-		series = append(series, ser)
+		})
+	}
+	if err := grp.Wait(); err != nil {
+		return err
 	}
 	switch c.Domains.X.Position {
 	case "bottom":
@@ -402,6 +411,8 @@ type File struct {
 	X          int
 	Y          int
 	TimeFormat string
+	Starts     int
+	Ends       int
 	Style
 }
 
