@@ -33,6 +33,12 @@ const (
 )
 
 const (
+	StyleStraight = "straight"
+	StyleDotted   = "dotted"
+	StyleDashed   = "dashed"
+)
+
+const (
 	RenderLine       = "line"
 	RenderPie        = "pie"
 	RenderBar        = "bar"
@@ -313,6 +319,7 @@ type Style struct {
 	OuterRadius   float64
 	IgnoreMissing bool
 	TextPosition  string
+	LineStyle     string
 }
 
 func GlobalStyle() Style {
@@ -344,6 +351,19 @@ func (s Style) getPointFunc() charts.PointFunc {
 	default:
 		return nil
 	}
+}
+
+func (s Style) getLineStyle() charts.LineStyle {
+	var i charts.LineStyle
+	switch s.LineStyle {
+	case "", StyleStraight:
+		i = charts.StyleStraight
+	case StyleDotted:
+		i = charts.StyleDotted
+	case StyleDashed:
+		i = charts.StyleDashed
+	}
+	return i
 }
 
 func (s Style) makeTimeRenderer(g Style) (charts.Renderer[time.Time, float64], error) {
@@ -555,6 +575,7 @@ func createRenderer[T, U charts.ScalerConstraint](style Style) (charts.Renderer[
 			IgnoreMissing: style.IgnoreMissing,
 			Text:          style.getTextPosition(),
 			Point:         style.getPointFunc(),
+			Style:         style.getLineStyle(),
 		}
 	case "step":
 		rdr = charts.StepRenderer[T, U]{
@@ -562,6 +583,7 @@ func createRenderer[T, U charts.ScalerConstraint](style Style) (charts.Renderer[
 			IgnoreMissing: style.IgnoreMissing,
 			Text:          style.getTextPosition(),
 			Point:         style.getPointFunc(),
+			Style:         style.getLineStyle(),
 		}
 	case "step-after":
 		rdr = charts.StepAfterRenderer[T, U]{
@@ -569,6 +591,7 @@ func createRenderer[T, U charts.ScalerConstraint](style Style) (charts.Renderer[
 			IgnoreMissing: style.IgnoreMissing,
 			Text:          style.getTextPosition(),
 			Point:         style.getPointFunc(),
+			Style:         style.getLineStyle(),
 		}
 	case "step-before":
 		rdr = charts.StepBeforeRenderer[T, U]{
@@ -576,7 +599,13 @@ func createRenderer[T, U charts.ScalerConstraint](style Style) (charts.Renderer[
 			IgnoreMissing: style.IgnoreMissing,
 			Text:          style.getTextPosition(),
 			Point:         style.getPointFunc(),
+			Style:         style.getLineStyle(),
 		}
+	case "bar":
+	case "pie":
+	case "sunburst":
+	case "stacked":
+	case "group":
 	default:
 		return nil, fmt.Errorf("%s: can not use for number chart", style.Type)
 	}

@@ -4,8 +4,8 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/midbel/svg"
 	"github.com/midbel/slices"
+	"github.com/midbel/svg"
 )
 
 type Data interface {
@@ -35,7 +35,7 @@ func (s Serie[T, U]) Sum() float64 {
 		sum += any(s.Points[i].Y).(float64)
 	}
 	return sum
-} 
+}
 
 func (s Serie[T, U]) String() string {
 	return s.Title
@@ -46,9 +46,9 @@ func (s Serie[T, U]) Render() svg.Element {
 }
 
 type Point[T, U ScalerConstraint] struct {
-	X     T
-	Y     U
-	Sub   []Point[T, U]
+	X   T
+	Y   U
+	Sub []Point[T, U]
 }
 
 func NumberPoint(x, y float64) Point[float64, float64] {

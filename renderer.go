@@ -2,8 +2,8 @@ package charts
 
 import (
 	"fmt"
-	"math"
 	"html"
+	"math"
 
 	"github.com/midbel/slices"
 	"github.com/midbel/svg"
@@ -32,7 +32,6 @@ type Renderer[T, U ScalerConstraint] interface {
 }
 
 type PolarRenderer[T ~string, U ~float64] struct {
-
 }
 
 func (r PolarRenderer[T, U]) Render(serie Serie[T, U]) svg.Element {
@@ -136,9 +135,9 @@ func (r GroupRenderer[T, U]) Render(serie Serie[T, U]) svg.Element {
 }
 
 type StackedRenderer[T ~string, U ~float64] struct {
-	Fill       []string
-	Width      float64
-	Normalize  bool
+	Fill      []string
+	Width     float64
+	Normalize bool
 }
 
 func (r StackedRenderer[T, U]) Render(serie Serie[T, U]) svg.Element {
@@ -149,8 +148,8 @@ func (r StackedRenderer[T, U]) Render(serie Serie[T, U]) svg.Element {
 		r.Fill = Tableau10
 	}
 	var (
-		grp svg.Group
-		max = serie.Y.Max()
+		grp  svg.Group
+		max  = serie.Y.Max()
 		size = serie.X.Space()
 	)
 	for _, parent := range serie.Points {
@@ -161,15 +160,15 @@ func (r StackedRenderer[T, U]) Render(serie Serie[T, U]) svg.Element {
 		bar.Transform = svg.Translate(serie.X.Scale(parent.X), 0)
 		for i, pt := range parent.Sub {
 			if r.Normalize {
-				pt.Y = pt.Y/parent.Y
+				pt.Y = pt.Y / parent.Y
 			}
 			var (
-				y = serie.Y.Scale(pt.Y)
-				w = size * r.Width
-				o = (size - w) / 2
+				y  = serie.Y.Scale(pt.Y)
+				w  = size * r.Width
+				o  = (size - w) / 2
 				el svg.Rect
 			)
-			el.Pos = svg.NewPos(o, y - offset)
+			el.Pos = svg.NewPos(o, y-offset)
 			el.Dim = svg.NewDim(w, max-y)
 			el.Fill = svg.NewFill(r.Fill[i%len(r.Fill)])
 			if s, ok := any(pt.X).(string); ok {
@@ -587,6 +586,8 @@ func getBasePath(fill bool, style LineStyle) svg.Path {
 	var pat svg.Path
 	pat.Rendering = "geometricPrecision"
 	pat.Stroke = svg.NewStroke(currentColour, 1)
+	pat.Stroke.LineJoin = "round"
+	pat.Stroke.LineCap = "round"
 	if fill {
 		pat.Fill = svg.NewFill(currentColour)
 		pat.Fill.Opacity = 0.5
@@ -596,9 +597,9 @@ func getBasePath(fill bool, style LineStyle) svg.Path {
 	switch style {
 	case StyleStraight:
 	case StyleDotted:
-		pat.Stroke.DashArray(1, 1)
+		pat.Stroke.DashArray = append(pat.Stroke.DashArray, 1, 5)
 	case StyleDashed:
-		pat.Stroke.DashArray(10, 5)
+		pat.Stroke.DashArray = append(pat.Stroke.DashArray, 10, 5)
 	default:
 	}
 	return pat

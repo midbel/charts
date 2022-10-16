@@ -35,11 +35,13 @@ set style text-position text-after
 load data/sin.csv using 0,1 with (
 	type line
 	color blue
+	line-style dashed
 )
 
 load data/cos.csv using 0,1 with (
 	type line
 	color red
+	line-style dotted
 )
 
 render tmp/trigono.svg

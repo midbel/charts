@@ -8,8 +8,8 @@ import (
 	"io"
 	"math"
 	"os"
-	"strconv"
 	"sort"
+	"strconv"
 
 	"github.com/midbel/charts"
 	"github.com/midbel/slices"
@@ -67,8 +67,8 @@ func main() {
 		Width:   defaultWidth,
 		Height:  defaultHeight,
 		Padding: pad,
-		Left: getLeftAxis(yscale, *normal),
-		Bottom: getBottomAxis(xscale),
+		Left:    getLeftAxis(yscale, *normal),
+		Bottom:  getBottomAxis(xscale),
 	}
 	sort.Slice(dat.Serie.Points, func(i, j int) bool {
 		return dat.Serie.Points[i].Y > dat.Serie.Points[j].Y
@@ -82,7 +82,7 @@ func getRenderer(name string, normalize bool) (charts.Renderer[string, float64],
 	case "stacked", "vert", "vertical", "":
 		rdr = charts.StackedRenderer[string, float64]{
 			Width:     0.8,
-			Fill: charts.Tableau10,
+			Fill:      charts.Tableau10,
 			Normalize: normalize,
 		}
 	case "group", "horiz", "horizontal":
@@ -129,7 +129,7 @@ func readFile(file string) (Data, error) {
 		}
 		dat.List = append(dat.List, slices.Fst(row))
 		var (
-			pt charts.Point[string, float64]
+			pt    charts.Point[string, float64]
 			total float64
 		)
 		for i, n := range slices.Rest(row) {
@@ -179,7 +179,7 @@ func getLeftAxis(scaler charts.Scaler[float64], normalize bool) charts.Axis[floa
 				return "0"
 			}
 			if normalize {
-				return strconv.FormatFloat(f*100, 'f', 0, 64) + "%"	
+				return strconv.FormatFloat(f*100, 'f', 0, 64) + "%"
 			}
 			return strconv.FormatFloat(f/(1000*1000), 'f', 0, 64) + "M"
 		},

@@ -260,6 +260,8 @@ func (d *Decoder) decodeStyle(style *Style) error {
 		style.InnerRadius, err = d.getFloat()
 	case "outer-radius":
 		style.OuterRadius, err = d.getFloat()
+	case "line-style":
+		style.LineStyle, err = d.getLineStyle()
 	case kwWith:
 		err = d.decodeWith(func() error {
 			return d.decodeStyle(style)
@@ -388,6 +390,19 @@ func (d *Decoder) eol() error {
 func (d *Decoder) skipEOL() {
 	for d.curr.Type == EOL {
 		d.next()
+	}
+}
+
+func (d *Decoder) getLineStyle() (string, error) {
+	str, err := d.getString()
+	if err != nil {
+		return str, err
+	}
+	switch str {
+	case StyleStraight, StyleDotted, StyleDashed:
+		return str, nil
+	default:
+		return "", fmt.Errorf("%s: unknown line style provided", str)
 	}
 }
 
