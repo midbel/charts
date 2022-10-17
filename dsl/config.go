@@ -319,34 +319,18 @@ func (d Domain) makeTimeScale(rg charts.Range, reverse bool) (charts.Scaler[time
 }
 
 func (d Domain) makeCategoryAxis(scale charts.Scaler[string]) (charts.Axis[string], error) {
-	axe := charts.Axis[string]{
-		Label:          d.Label,
-		Ticks:          d.Ticks,
-		Scaler:         scale,
-		WithInnerTicks: d.InnerTicks,
-		WithOuterTicks: d.OuterTicks,
-		WithLabelTicks: d.LabelTicks,
-		WithBands:      d.BandTicks,
-		Format: func(s string) string {
-			return s
-		},
+	axe := createAxis[string](d, scale)
+	axe.Format = func(s string) string {
+		return s
 	}
 	return axe, nil
 }
 
 func (d Domain) makeNumberAxis(scale charts.Scaler[float64]) (charts.Axis[float64], error) {
-	axe := charts.Axis[float64]{
-		Label:          d.Label,
-		Ticks:          d.Ticks,
-		Scaler:         scale,
-		WithInnerTicks: d.InnerTicks,
-		WithOuterTicks: d.OuterTicks,
-		WithLabelTicks: d.LabelTicks,
-		WithBands:      d.BandTicks,
-		Format: func(f float64) string {
-			return fmt.Sprintf(d.Format, f)
-		},
-	}
+	axe := createAxis[float64](d, scale)
+	axe.Format = func(f float64) string {
+		return fmt.Sprintf(d.Format, f)
+	} 
 	return axe, nil
 }
 
@@ -355,16 +339,8 @@ func (d Domain) makeTimeAxis(scale charts.Scaler[time.Time]) (charts.Axis[time.T
 	if err != nil {
 		return charts.Axis[time.Time]{}, err
 	}
-	axe := charts.Axis[time.Time]{
-		Label:          d.Label,
-		Ticks:          d.Ticks,
-		Scaler:         scale,
-		WithInnerTicks: d.InnerTicks,
-		WithOuterTicks: d.OuterTicks,
-		WithLabelTicks: d.LabelTicks,
-		WithBands:      d.BandTicks,
-		Format:         formatTime,
-	}
+	axe := createAxis[time.Time](d, scale)
+	axe.Format = formatTime
 	return axe, nil
 }
 
@@ -748,6 +724,18 @@ func createRenderer[T, U charts.ScalerConstraint](style Style) (charts.Renderer[
 		return nil, fmt.Errorf("%s: can not use for number chart", style.Type)
 	}
 	return rdr, nil
+}
+
+func createAxis[T charts.ScalerConstraint](d Domain, scale charts.Scaler[T]) charts.Axis[T] {
+	return charts.Axis[T]{
+		Label:          d.Label,
+		Ticks:          d.Ticks,
+		Scaler:         scale,
+		WithInnerTicks: d.InnerTicks,
+		WithOuterTicks: d.OuterTicks,
+		WithLabelTicks: d.LabelTicks,
+		WithBands:      d.BandTicks,
+	}
 }
 
 func createChart[T, U charts.ScalerConstraint](cfg Config) charts.Chart[T, U] {

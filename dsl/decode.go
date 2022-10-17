@@ -412,9 +412,6 @@ func (d *Decoder) decodeLoad(cfg *Config) error {
 		}
 		d.next()
 	}
-	// if fi.Y, err = d.getInt(); err != nil {
-	// 	return err
-	// }
 	if fi.Y, err = d.decodeSelect(); err != nil {
 		return err
 	}
