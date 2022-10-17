@@ -1,8 +1,14 @@
 set title "US Population"
 set padding 60
 
+set size 1366, 600
+
+define file data/US.csv
+
 set xdata string
+set xdomain $file using 0
 set ydata number
+set ydomain $file using 1:+9
 
 set xticks with (
 	position bottom
@@ -11,11 +17,15 @@ set xticks with (
 )
 
 set yticks with (
+	count 10
 	position left
 	label    "population (million)"
+	label-ticks true
+	inner-ticks true
+	format "%.0f"
 )
 
-load data/US.csv limit 10 using 0,1+2+9,3 with (
+load $file limit 10 using 0,1:+9 with (
 	type bar
 	color blue
 	width 0.8

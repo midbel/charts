@@ -7,12 +7,29 @@ import (
 
 var ErrIndex = errors.New("invalid index")
 
+type indexer interface {
+	columns() []int
+}
+
 type Selector interface {
 	Select([]string) ([]float64, error)
+	indexer
 }
 
 type combined struct {
 	selectors []Selector
+}
+
+func (c combined) columns() []int {
+	var list []int
+	for _, s := range c.selectors {
+		x, ok := s.(indexer)
+		if !ok {
+			continue
+		}
+		list = append(list, x.columns()...)
+	}
+	return list
 }
 
 func (c combined) Select(row []string) ([]float64, error) {
@@ -37,6 +54,10 @@ func selectSum(list []int) Selector {
 	}
 }
 
+func (s summer) columns() []int {
+	return s.index
+}
+
 func (s summer) Select(row []string) ([]float64, error) {
 	var sum float64
 	for _, i := range s.index {
@@ -56,10 +77,18 @@ type multi struct {
 	index []int
 }
 
+func selectSingle(i int) Selector {
+	return selectMulti([]int{i})
+}
+
 func selectMulti(list []int) Selector {
 	return multi{
 		index: list,
 	}
+}
+
+func (m multi) columns() []int {
+	return m.index
 }
 
 func (m multi) Select(row []string) ([]float64, error) {

@@ -184,13 +184,15 @@ func (d *Decoder) decodeSet(cfg *Config) error {
 	case "xcenter":
 		cfg.Center.X, err = d.getString()
 	case "xdomain":
-		cfg.Domains.X.Domain, err = d.getStringList()
+		cfg.Domains.X.Domain, err = d.decodeDomain()
+		// cfg.Domains.X.Domain, err = d.getStringList()
 	case "ydata":
 		cfg.Types.Y, err = d.getType()
 	case "ycenter":
 		cfg.Center.Y, err = d.getString()
 	case "ydomain":
-		cfg.Domains.Y.Domain, err = d.getStringList()
+		cfg.Domains.Y.Domain, err = d.decodeDomain()
+		// cfg.Domains.Y.Domain, err = d.getStringList()
 	case "xticks":
 		return d.decodeTicks(&cfg.Domains.X)
 	case "yticks":
@@ -210,6 +212,63 @@ func (d *Decoder) decodeSet(cfg *Config) error {
 		return err
 	}
 	return d.eol()
+}
+
+func (d *Decoder) decodeDomain() (scalerMaker, error) {
+	if d.peek.Type != Keyword {
+		list, err := d.getStringList()
+		if err != nil {
+			return nil, err
+		}
+		return scaleFromList(list), nil
+	}
+	path, err := d.getString()
+	if err != nil {
+		return nil, err
+	}
+	if d.curr.Type != Keyword && d.curr.Literal != kwUsing {
+		return nil, fmt.Errorf("missing using")
+	}
+	d.next()
+	var idx indexer
+	switch d.peek.Type {
+	case Sum:
+		var list []int
+		ix, err := d.getInt()
+		if err != nil {
+			return nil, err
+		}
+		list = append(list, ix)
+		for d.curr.Type == Sum {
+			d.next()
+			ix, err := d.getInt()
+			if err != nil {
+				return nil, err
+			}
+			list = append(list, ix)
+		}
+		idx = selectSum(list)
+	case RangeSum:
+		fst, err := d.getInt()
+		if err != nil {
+			return nil, err
+		}
+		d.next()
+		lst, err := d.getInt()
+		if err != nil {
+			return nil, err
+		}
+		idx = selectSum(expandRange(fst, lst))
+	case EOL, EOF:
+		x, err := d.getInt()
+		if err != nil {
+			return nil, err
+		}
+		idx = selectSingle(x)
+	default:
+		return nil, fmt.Errorf("unexpected token %s", d.peek)
+	}
+	return scaleFromFile(path, idx), nil
 }
 
 func (d *Decoder) decodeLegend(cfg *Config) error {
@@ -263,7 +322,7 @@ func (d *Decoder) decodeStyle(style *Style) error {
 	case "line-style":
 		style.LineStyle, err = d.getLineStyle()
 	case "width":
-		_, err = d.getFloat()
+		style.Width, err = d.getFloat()
 	case kwWith:
 		err = d.decodeWith(func() error {
 			return d.decodeStyle(style)
@@ -353,14 +412,12 @@ func (d *Decoder) decodeLoad(cfg *Config) error {
 		}
 		d.next()
 	}
-	if fi.Y, err = d.getInt(); err != nil {
-		return err
-	}
-	// sel, err := d.decodeSelect()
-	// if err != nil {
+	// if fi.Y, err = d.getInt(); err != nil {
 	// 	return err
 	// }
-	// fmt.Printf("%+v\n", sel)
+	if fi.Y, err = d.decodeSelect(); err != nil {
+		return err
+	}
 	if d.curr.Type == Keyword && d.curr.Literal == kwWith {
 		err = d.decodeStyle(&fi.Style)
 	} else {

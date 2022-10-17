@@ -41,11 +41,14 @@ const (
 
 const (
 	RenderLine       = "line"
-	RenderPie        = "pie"
-	RenderBar        = "bar"
 	RenderStep       = "step"
 	RenderStepAfter  = "step-after"
 	RenderStepBefore = "step-before"
+	RenderPie        = "pie"
+	RenderBar        = "bar"
+	RenderSun        = "sun"
+	RenderStack      = "stack"
+	RenderGroup      = "group"
 )
 
 type Config struct {
@@ -103,10 +106,59 @@ func (c Config) Render() error {
 		err = c.renderNumberChart()
 	case c.Types.X == TypeTime && c.Types.Y == TypeNumber:
 		err = c.renderTimeChart()
+	case c.Types.X == TypeString && c.Types.Y == TypeNumber:
+		err = c.renderCategoryChart()
 	default:
 		err = fmt.Errorf("unsupported chart type %s/%s", c.Types.X, c.Types.Y)
 	}
 	return err
+}
+
+func (c Config) renderCategoryChart() error {
+	var (
+		xrange = c.createRangeX()
+		yrange = c.createRangeY()
+		chart  = createChart[string, float64](c)
+		series = make([]charts.Data, len(c.Files))
+	)
+	xscale, err := c.Domains.X.makeCategoryScale(xrange)
+	if err != nil {
+		return err
+	}
+	yscale, err := c.Domains.Y.makeNumberScale(yrange, true)
+	if err != nil {
+		return err
+	}
+	var grp errgroup.Group
+	for i := range c.Files {
+		s, j := c.Files[i], i
+		grp.Go(func() (err error) {
+			series[j], err = s.makeCategorySerie(c.Style, xscale, yscale)
+			return err
+		})
+	}
+	if err := grp.Wait(); err != nil {
+		return err
+	}
+	switch c.Domains.X.Position {
+	case "bottom":
+		chart.Bottom, err = c.Domains.X.makeCategoryAxis(xscale)
+	case "top":
+		chart.Top, err = c.Domains.X.makeCategoryAxis(xscale)
+	}
+	if err != nil {
+		return err
+	}
+	switch c.Domains.Y.Position {
+	case "left":
+		chart.Left, err = c.Domains.Y.makeNumberAxis(yscale)
+	case "right":
+		chart.Right, err = c.Domains.Y.makeNumberAxis(yscale)
+	}
+	if err != nil {
+		return err
+	}
+	return renderChart(c.Path, chart, series)
 }
 
 func (c Config) renderTimeChart() error {
@@ -237,7 +289,7 @@ type Domain struct {
 	Label      string
 	Ticks      int
 	Format     string
-	Domain     []string
+	Domain     scalerMaker
 	Position   string
 	InnerTicks bool
 	OuterTicks bool
@@ -245,44 +297,41 @@ type Domain struct {
 	BandTicks  bool
 }
 
-func (d Domain) makeNumberScale(rg charts.Range, reverse bool) (charts.Scaler[float64], error) {
-	if len(d.Domain) == 0 {
+func (d Domain) makeCategoryScale(rg charts.Range) (charts.Scaler[string], error) {
+	if d.Domain == nil {
 		return nil, fmt.Errorf("domain not set")
 	}
-	fst, err := strconv.ParseFloat(slices.Fst(d.Domain), 64)
-	if err != nil {
-		return nil, err
+	return d.Domain.makeCategoryScale(rg)
+}
+
+func (d Domain) makeNumberScale(rg charts.Range, reverse bool) (charts.Scaler[float64], error) {
+	if d.Domain == nil {
+		return nil, fmt.Errorf("domain not set")
 	}
-	lst, err := strconv.ParseFloat(slices.Lst(d.Domain), 64)
-	if err != nil {
-		return nil, err
-	}
-	if reverse {
-		fst, lst = lst, fst
-	}
-	return charts.NumberScaler(charts.NumberDomain(fst, lst), rg), nil
+	return d.Domain.makeNumberScale(rg, reverse)
 }
 
 func (d Domain) makeTimeScale(rg charts.Range, reverse bool) (charts.Scaler[time.Time], error) {
-	if len(d.Domain) == 0 {
+	if d.Domain == nil {
 		return nil, fmt.Errorf("domain not set")
 	}
-	parseTime, err := makeParseTime(d.Format)
-	if err != nil {
-		return nil, err
+	return d.Domain.makeTimeScale(rg, d.Format, reverse)
+}
+
+func (d Domain) makeCategoryAxis(scale charts.Scaler[string]) (charts.Axis[string], error) {
+	axe := charts.Axis[string]{
+		Label:          d.Label,
+		Ticks:          d.Ticks,
+		Scaler:         scale,
+		WithInnerTicks: d.InnerTicks,
+		WithOuterTicks: d.OuterTicks,
+		WithLabelTicks: d.LabelTicks,
+		WithBands:      d.BandTicks,
+		Format: func(s string) string {
+			return s
+		},
 	}
-	fst, err := parseTime(slices.Fst(d.Domain))
-	if err != nil {
-		return nil, err
-	}
-	lst, err := parseTime(slices.Lst(d.Domain))
-	if err != nil {
-		return nil, err
-	}
-	if reverse {
-		fst, lst = lst, fst
-	}
-	return charts.TimeScaler(charts.TimeDomain(fst, lst), rg), nil
+	return axe, nil
 }
 
 func (d Domain) makeNumberAxis(scale charts.Scaler[float64]) (charts.Axis[float64], error) {
@@ -384,6 +433,10 @@ func (s Style) makeNumberRenderer(g Style) (charts.Renderer[float64, float64], e
 	return createRenderer[float64, float64](s.merge(g))
 }
 
+func (s Style) makeCategoryRenderer(g Style) (charts.Renderer[string, float64], error) {
+	return createCategoryRenderer(s.merge(g))
+}
+
 func (s Style) merge(g Style) Style {
 	if s.Type == "" {
 		s.Type = g.Type
@@ -410,7 +463,7 @@ type File struct {
 	Path       string
 	Ident      string
 	X          int
-	Y          int
+	Y          Selector
 	TimeFormat string
 	Starts     int
 	Ends       int
@@ -470,6 +523,25 @@ func (f File) makeNumberSerie(g Style, x charts.Scaler[float64], y charts.Scaler
 	return ser, nil
 }
 
+func (f File) makeCategorySerie(g Style, x charts.Scaler[string], y charts.Scaler[float64]) (charts.Data, error) {
+	rdr, err := f.makeCategoryRenderer(g)
+	if err != nil {
+		return nil, err
+	}
+	points, err := loadCategoryPoints(f)
+	if err != nil {
+		return nil, err
+	}
+	ser := charts.Serie[string, float64]{
+		Title:    f.Name(),
+		Renderer: rdr,
+		Points:   points,
+		X:        x,
+		Y:        y,
+	}
+	return ser, nil
+}
+
 type PointFunc[T, U charts.ScalerConstraint] func([]string) (charts.Point[T, U], error)
 
 func loadPoints[T, U charts.ScalerConstraint](file string, get PointFunc[T, U]) ([]charts.Point[T, U], error) {
@@ -501,6 +573,27 @@ func loadPoints[T, U charts.ScalerConstraint](file string, get PointFunc[T, U]) 
 	return list, nil
 }
 
+func loadCategoryPoints(f File) ([]charts.Point[string, float64], error) {
+	get := func(row []string) (charts.Point[string, float64], error) {
+		var (
+			pt  charts.Point[string, float64]
+			err error
+		)
+		pt.X = row[f.X]
+		values, err := f.Y.Select(row)
+		if err != nil {
+			return pt, err
+		}
+		pt.Y = slices.Fst(values)
+		// pt.Y, err = strconv.ParseFloat(row[f.Y], 64)
+		// if err != nil {
+		// 	return pt, err
+		// }
+		return pt, nil
+	}
+	return loadPoints[string, float64](f.Path, get)
+}
+
 func loadNumberPoints(f File) ([]charts.Point[float64, float64], error) {
 	get := func(row []string) (charts.Point[float64, float64], error) {
 		var (
@@ -511,10 +604,15 @@ func loadNumberPoints(f File) ([]charts.Point[float64, float64], error) {
 		if err != nil {
 			return pt, err
 		}
-		pt.Y, err = strconv.ParseFloat(row[f.Y], 64)
+		values, err := f.Y.Select(row)
 		if err != nil {
 			return pt, err
 		}
+		pt.Y = slices.Fst(values)
+		// pt.Y, err = strconv.ParseFloat(row[f.Y], 64)
+		// if err != nil {
+		// 	return pt, err
+		// }
 		return pt, nil
 	}
 	return loadPoints[float64, float64](f.Path, get)
@@ -530,10 +628,15 @@ func loadTimePoints(f File, parseTime func(string) (time.Time, error)) ([]charts
 		if err != nil {
 			return pt, err
 		}
-		pt.Y, err = strconv.ParseFloat(row[f.Y], 64)
+		values, err := f.Y.Select(row)
 		if err != nil {
 			return pt, err
 		}
+		pt.Y = slices.Fst(values)
+		// pt.Y, err = strconv.ParseFloat(row[f.Y], 64)
+		// if err != nil {
+		// 	return pt, err
+		// }
 		return pt, nil
 	}
 	return loadPoints[time.Time, float64](f.Path, get)
@@ -578,6 +681,34 @@ func renderChart[T, U charts.ScalerConstraint](file string, chart charts.Chart[T
 	return nil
 }
 
+func createCategoryRenderer(style Style) (charts.Renderer[string, float64], error) {
+	var rdr charts.Renderer[string, float64]
+	switch style.Type {
+	case RenderBar:
+		rdr = charts.BarRenderer[string, float64]{
+			Fill:  charts.Tableau10,
+			Width: style.Width,
+		}
+	case RenderPie:
+		rdr = charts.PieRenderer[string, float64]{
+			Fill:        charts.Tableau10,
+			InnerRadius: style.InnerRadius,
+			OuterRadius: style.OuterRadius,
+		}
+	case RenderSun:
+	case RenderStack:
+		rdr = charts.StackedRenderer[string, float64]{
+			Fill:      charts.Tableau10,
+			Width:     style.Width,
+			Normalize: false,
+		}
+	case RenderGroup:
+	default:
+		return nil, fmt.Errorf("%s: can not use for number chart", style.Type)
+	}
+	return rdr, nil
+}
+
 func createRenderer[T, U charts.ScalerConstraint](style Style) (charts.Renderer[T, U], error) {
 	var rdr charts.Renderer[T, U]
 	switch style.Type {
@@ -613,25 +744,6 @@ func createRenderer[T, U charts.ScalerConstraint](style Style) (charts.Renderer[
 			Point:         style.getPointFunc(),
 			Style:         style.getLineStyle(),
 		}
-	case RenderBar:
-		rdr = charts.BarRenderer[T, U]{
-			Fill:  charts.Tableau10,
-			Width: style.Width,
-		}
-	case RenderPie:
-		rdr = charts.PieRenderer[T, U]{
-			Fill:        charts.Tableau10,
-			InnerRadius: style.InnerRadius,
-			OuterRadius: style.OuterRadius,
-		}
-	case "sunburst":
-	case "stacked":
-		rdr = charts.StackedRenderer[T, U]{
-			Fill:      charts.Tableau10,
-			Width:     style.Width,
-			Normalize: false,
-		}
-	case "group":
 	default:
 		return nil, fmt.Errorf("%s: can not use for number chart", style.Type)
 	}

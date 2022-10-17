@@ -217,3 +217,24 @@ func (s stringScaler) Values(c int) []string {
 	}
 	return s.Strings
 }
+
+func (s stringScaler) Merge(values []string) Scaler[string] {
+	var (
+		list  []string
+		seen  = make(map[string]struct{})
+		empty = struct{}{}
+	)
+	merge := func(values []string) {
+		for _, v := range values {
+			_, ok := seen[v]
+			if ok {
+				continue
+			}
+			list = append(list, v)
+			seen[v] = empty
+		}
+	}
+	merge(s.Strings)
+	merge(values)
+	return StringScaler(list, s.Range)
+}
