@@ -62,14 +62,14 @@ func (a Axis[T]) Render(length, size, left, top float64) svg.Element {
 	if len(data) == 0 {
 		data = a.Scaler.Values(a.Ticks)
 	}
-	if a.Label != "" {
-		offset := left
-		if a.Orientation == OrientRight || a.Orientation == OrientTop {
-			offset = top
-		}
-		txt := axisText(a.Orientation, a.Label, length/2, offset, font)
-		g.Append(txt.AsElement())
-	}
+	// if a.Label != "" {
+	// 	offset := left
+	// 	if a.Orientation == OrientRight || a.Orientation == OrientTop {
+	// 		offset = top
+	// 	}
+	// 	txt := axisText(a.Orientation, a.Label, length/2, offset, font)
+	// 	g.Append(txt.AsElement())
+	// }
 	for i, t := range data {
 		var (
 			pos = a.Scaler.Scale(t)
@@ -162,20 +162,13 @@ func axisText(orient Orientation, str string, x, y float64, font svg.Font) svg.T
 	txt.Font = font
 	txt.Anchor = "middle"
 	txt.Baseline = "auto"
-	txt.Pos = svg.NewPos(x, y*0.8)
+	txt.Pos = svg.NewPos(x, y)
 	switch orient {
 	case OrientBottom:
 		txt.Baseline = "start"
 	case OrientTop:
 		txt.Baseline = "hanging"
-		txt.Pos.Y = -txt.Pos.Y
-	case OrientLeft:
-		txt.Pos.X, txt.Pos.Y = -txt.Pos.Y, txt.Pos.X
-		txt.Transform.RX = txt.Pos.X
-		txt.Transform.RY = txt.Pos.Y
-		txt.Transform.RA = -90
-	case OrientRight:
-		txt.Pos.X, txt.Pos.Y = txt.Pos.Y, txt.Pos.X
+	case OrientLeft, OrientRight:
 		txt.Transform.RX = txt.Pos.X
 		txt.Transform.RY = txt.Pos.Y
 		txt.Transform.RA = -90

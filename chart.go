@@ -63,9 +63,9 @@ func (c Chart[T, U]) Render(w io.Writer, set ...Data) {
 		ar.Append(s.Render())
 		el.Append(ar.AsElement())
 	}
-	if ld := c.drawLegend(set); ld != nil {
-		el.Append(ld)
-	}
+	// if ld := c.drawLegend(set); ld != nil {
+	// 	el.Append(ld)
+	// }
 
 	bw := bufio.NewWriter(w)
 	defer bw.Flush()
@@ -166,21 +166,37 @@ func (c Chart[T, U]) drawAxis() svg.Element {
 		c.Left.Orientation = OrientLeft
 		el := c.Left.Render(c.DrawingHeight(), c.DrawingWidth(), c.Padding.Left, c.Padding.Top)
 		g.Append(el)
+		if c.Left.Label != "" {
+			txt := axisText(OrientLeft, c.Left.Label, FontSize*1.2, c.Height/2, svg.NewFont(FontSize))
+			g.Append(txt.AsElement())
+		}
 	}
 	if c.Right.Scaler != nil {
 		c.Right.Orientation = OrientRight
 		el := c.Right.Render(c.DrawingHeight(), c.DrawingWidth(), c.Width-c.Padding.Right, c.Padding.Top)
 		g.Append(el)
+		if c.Right.Label != "" {
+			txt := axisText(OrientRight, c.Right.Label, c.Width-FontSize*1.2, c.Height/2, svg.NewFont(FontSize))
+			g.Append(txt.AsElement())
+		}
 	}
 	if c.Top.Scaler != nil {
 		c.Top.Orientation = OrientTop
 		el := c.Top.Render(c.DrawingWidth(), c.DrawingHeight(), c.Padding.Left, c.Padding.Top)
 		g.Append(el)
+		if c.Top.Label != "" {
+			txt := axisText(OrientTop, c.Top.Label, c.Width/2, FontSize*1.2, svg.NewFont(FontSize))
+			g.Append(txt.AsElement())
+		}
 	}
 	if c.Bottom.Scaler != nil {
 		c.Bottom.Orientation = OrientBottom
 		el := c.Bottom.Render(c.DrawingWidth(), c.DrawingHeight(), c.Padding.Left, c.Height-c.Padding.Bottom)
 		g.Append(el)
+		if c.Bottom.Label != "" {
+			txt := axisText(OrientBottom, c.Bottom.Label, c.Width/2, c.Height-FontSize*1.2, svg.NewFont(FontSize))
+			g.Append(txt.AsElement())
+		}
 	}
 	return g.AsElement()
 }

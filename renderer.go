@@ -45,6 +45,12 @@ type SunburstRenderer[T ~string, U ~float64] struct {
 }
 
 func (r SunburstRenderer[T, U]) Render(serie Serie[T, U]) svg.Element {
+	if r.InnerRadius <= 0 {
+		r.InnerRadius = r.OuterRadius
+	}
+	if len(r.Fill) == 0 {
+		r.Fill = Tableau10
+	}
 	return nil
 }
 
