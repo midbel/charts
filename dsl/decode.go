@@ -356,6 +356,11 @@ func (d *Decoder) decodeLoad(cfg *Config) error {
 	if fi.Y, err = d.getInt(); err != nil {
 		return err
 	}
+	// sel, err := d.decodeSelect()
+	// if err != nil {
+	// 	return err
+	// }
+	// fmt.Printf("%+v\n", sel)
 	if d.curr.Type == Keyword && d.curr.Literal == kwWith {
 		err = d.decodeStyle(&fi.Style)
 	} else {
@@ -365,6 +370,89 @@ func (d *Decoder) decodeLoad(cfg *Config) error {
 		cfg.Files = append(cfg.Files, fi)
 	}
 	return err
+}
+
+func (d *Decoder) decodeSelect() (Selector, error) {
+	getRange := func() ([]int, error) {
+		fst, err := d.getInt()
+		if err != nil {
+			return nil, err
+		}
+		d.next()
+		lst, err := d.getInt()
+		if err != nil {
+			return nil, err
+		}
+		return expandRange(fst, lst), nil
+	}
+	getList := func(want rune) ([]int, error) {
+		var list []int
+		i, err := d.getInt()
+		if err != nil {
+			return nil, err
+		}
+		list = append(list, i)
+		for d.curr.Type == want {
+			d.next()
+			i, err := d.getInt()
+			if err != nil {
+				return nil, err
+			}
+			list = append(list, i)
+		}
+		return list, nil
+	}
+	var xs []Selector
+	for d.curr.Type != EOL && d.curr.Type != EOF && d.curr.Type != Keyword {
+		switch d.peek.Type {
+		case Comma:
+			rg, err := getList(Comma)
+			if err != nil {
+				return nil, err
+			}
+			xs = append(xs, selectMulti(rg))
+		case Sum:
+			rg, err := getList(Sum)
+			if err != nil {
+				return nil, err
+			}
+			xs = append(xs, selectSum(rg))
+		case Range:
+			rg, err := getRange()
+			if err != nil {
+				return nil, err
+			}
+			xs = append(xs, selectMulti(rg))
+		case RangeSum:
+			rg, err := getRange()
+			if err != nil {
+				return nil, err
+			}
+			xs = append(xs, selectSum(rg))
+		case Keyword, EOL, EOF:
+			i, err := d.getInt()
+			if err != nil {
+				return nil, err
+			}
+			xs = append(xs, selectMulti([]int{i}))
+		default:
+			return nil, fmt.Errorf("unexpected token %s", d.curr)
+		}
+		switch d.curr.Type {
+		case Comma:
+			d.next()
+		case EOL, EOF, Keyword:
+		default:
+			return nil, fmt.Errorf("oups: unexpected token %s", d.curr)
+		}
+	}
+	if len(xs) == 1 {
+		return slices.Fst(xs), nil
+	}
+	c := combined{
+		selectors: xs,
+	}
+	return c, nil
 }
 
 func (d *Decoder) decodeWith(decode func() error) error {
@@ -427,7 +515,7 @@ func (d *Decoder) getRenderType() (string, error) {
 		return str, err
 	}
 	switch str {
-	case RenderLine, RenderStep, RenderStepAfter, RenderStepBefore:
+	case RenderLine, RenderStep, RenderStepAfter, RenderStepBefore, RenderBar, RenderPie:
 		return str, nil
 	default:
 		return "", fmt.Errorf("%s: unknown type provided", str)

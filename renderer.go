@@ -187,9 +187,8 @@ func (r StackedRenderer[T, U]) Render(serie Serie[T, U]) svg.Element {
 }
 
 type BarRenderer[T ~string, U ~float64] struct {
-	Fill      []string
-	Width     float64
-	WithValue bool
+	Fill  []string
+	Width float64
 }
 
 func (r BarRenderer[T, U]) Render(serie Serie[T, U]) svg.Element {

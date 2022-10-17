@@ -46,6 +46,9 @@ const (
 	Comma
 	Lparen
 	Rparen
+	Sum
+	Range
+	RangeSum
 	EOL
 	EOF
 )
@@ -82,6 +85,12 @@ func (t Token) String() string {
 		return "<lparen>"
 	case Rparen:
 		return "<rparen>"
+	case Sum:
+		return "<sum>"
+	case Range:
+		return "<range>"
+	case RangeSum:
+		return "<range-sum>"
 	}
 	return fmt.Sprintf("%s(%s)", prefix, t.Literal)
 }
@@ -178,6 +187,14 @@ func (s *Scanner) scanLiteral(tok *Token) {
 
 func (s *Scanner) scanPunct(tok *Token) {
 	switch s.char {
+	case colon:
+		tok.Type = Range
+		if s.peek() == plus {
+			tok.Type = RangeSum
+			s.read()
+		}
+	case plus:
+		tok.Type = Sum
 	case comma:
 		tok.Type = Comma
 		s.read()
@@ -259,6 +276,7 @@ const (
 	cr              = '\r'
 	nl              = '\n'
 	colon           = ':'
+	plus            = '+'
 	equal           = '='
 	lparen          = '('
 	rparen          = ')'
@@ -277,7 +295,7 @@ func isDollar(r rune) bool {
 }
 
 func isPunct(r rune) bool {
-	return r == comma || r == lparen || r == rparen
+	return r == comma || r == lparen || r == rparen || r == colon || r == plus
 }
 
 func isLetter(r rune) bool {

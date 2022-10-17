@@ -1,0 +1,24 @@
+set title "US Population"
+set padding 60
+
+set xdata string
+set ydata number
+
+set xticks with (
+	position bottom
+	label-ticks true
+	inner-ticks true
+)
+
+set yticks with (
+	position left
+	label    "population (million)"
+)
+
+load data/US.csv limit 10 using 0,1+2+9,3 with (
+	type bar
+	color blue
+	width 0.8
+)
+
+render tmp/bar.svg

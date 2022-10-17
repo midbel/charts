@@ -324,6 +324,7 @@ type Style struct {
 	Stroke        string
 	Fill          bool
 	Point         string
+	Width         float64
 	InnerRadius   float64
 	OuterRadius   float64
 	IgnoreMissing bool
@@ -580,7 +581,7 @@ func renderChart[T, U charts.ScalerConstraint](file string, chart charts.Chart[T
 func createRenderer[T, U charts.ScalerConstraint](style Style) (charts.Renderer[T, U], error) {
 	var rdr charts.Renderer[T, U]
 	switch style.Type {
-	case "line":
+	case RenderLine:
 		rdr = charts.LinearRenderer[T, U]{
 			Color:         style.Stroke,
 			IgnoreMissing: style.IgnoreMissing,
@@ -588,7 +589,7 @@ func createRenderer[T, U charts.ScalerConstraint](style Style) (charts.Renderer[
 			Point:         style.getPointFunc(),
 			Style:         style.getLineStyle(),
 		}
-	case "step":
+	case RenderStep:
 		rdr = charts.StepRenderer[T, U]{
 			Color:         style.Stroke,
 			IgnoreMissing: style.IgnoreMissing,
@@ -596,7 +597,7 @@ func createRenderer[T, U charts.ScalerConstraint](style Style) (charts.Renderer[
 			Point:         style.getPointFunc(),
 			Style:         style.getLineStyle(),
 		}
-	case "step-after":
+	case RenderStepAfter:
 		rdr = charts.StepAfterRenderer[T, U]{
 			Color:         style.Stroke,
 			IgnoreMissing: style.IgnoreMissing,
@@ -604,7 +605,7 @@ func createRenderer[T, U charts.ScalerConstraint](style Style) (charts.Renderer[
 			Point:         style.getPointFunc(),
 			Style:         style.getLineStyle(),
 		}
-	case "step-before":
+	case RenderStepBefore:
 		rdr = charts.StepBeforeRenderer[T, U]{
 			Color:         style.Stroke,
 			IgnoreMissing: style.IgnoreMissing,
@@ -612,10 +613,24 @@ func createRenderer[T, U charts.ScalerConstraint](style Style) (charts.Renderer[
 			Point:         style.getPointFunc(),
 			Style:         style.getLineStyle(),
 		}
-	case "bar":
-	case "pie":
+	case RenderBar:
+		rdr = charts.BarRenderer[T, U]{
+			Fill:  charts.Tableau10,
+			Width: style.Width,
+		}
+	case RenderPie:
+		rdr = charts.PieRenderer[T, U]{
+			Fill:        charts.Tableau10,
+			InnerRadius: style.InnerRadius,
+			OuterRadius: style.OuterRadius,
+		}
 	case "sunburst":
 	case "stacked":
+		rdr = charts.StackedRenderer[T, U]{
+			Fill:      charts.Tableau10,
+			Width:     style.Width,
+			Normalize: false,
+		}
 	case "group":
 	default:
 		return nil, fmt.Errorf("%s: can not use for number chart", style.Type)
