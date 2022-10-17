@@ -48,6 +48,7 @@ const (
 	RenderBar        = "bar"
 	RenderSun        = "sun"
 	RenderStack      = "stack"
+	RenderNormStack  = "stack-normalize"
 	RenderGroup      = "group"
 )
 
@@ -330,7 +331,7 @@ func (d Domain) makeNumberAxis(scale charts.Scaler[float64]) (charts.Axis[float6
 	axe := createAxis[float64](d, scale)
 	axe.Format = func(f float64) string {
 		return fmt.Sprintf(d.Format, f)
-	} 
+	}
 	return axe, nil
 }
 
@@ -560,7 +561,17 @@ func loadCategoryPoints(f File) ([]charts.Point[string, float64], error) {
 		if err != nil {
 			return pt, err
 		}
-		pt.Y = slices.Fst(values)
+		if len(values) == 1 {
+			pt.Y = slices.Fst(values)
+		} else {
+			var total float64
+			for i := range values {
+				s := charts.CategoryPoint(fmt.Sprintf("%d", i), values[i])
+				pt.Sub = append(pt.Sub, s)
+				total += values[i]
+			}
+			pt.Y = total
+		}
 		// pt.Y, err = strconv.ParseFloat(row[f.Y], 64)
 		// if err != nil {
 		// 	return pt, err
@@ -674,9 +685,14 @@ func createCategoryRenderer(style Style) (charts.Renderer[string, float64], erro
 	case RenderSun:
 	case RenderStack:
 		rdr = charts.StackedRenderer[string, float64]{
+			Fill:  charts.Tableau10,
+			Width: style.Width,
+		}
+	case RenderNormStack:
+		rdr = charts.StackedRenderer[string, float64]{
 			Fill:      charts.Tableau10,
 			Width:     style.Width,
-			Normalize: false,
+			Normalize: true,
 		}
 	case RenderGroup:
 	default:

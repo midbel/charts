@@ -17,17 +17,16 @@ set xticks with (
 )
 
 set yticks with (
-	count 10
+	count 15
+	label "population (million)"
 	position left
-	label    "population (million)"
 	label-ticks true
 	inner-ticks true
 	format "%.0f"
 )
 
-load $file limit 10 using 0,1:+9 with (
-	type bar
-	color blue
+load $file using 0,1:9 with (
+	type stack
 	width 0.8
 )
 

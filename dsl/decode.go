@@ -569,11 +569,12 @@ func (d *Decoder) getRenderType() (string, error) {
 		return str, err
 	}
 	switch str {
-	case RenderLine, RenderStep, RenderStepAfter, RenderStepBefore, RenderBar, RenderPie:
-		return str, nil
+	case RenderLine, RenderStep, RenderStepAfter, RenderStepBefore:
+	case RenderBar, RenderPie, RenderStack, RenderNormStack, RenderGroup:
 	default:
 		return "", fmt.Errorf("%s: unknown type provided", str)
 	}
+	return str, nil
 }
 
 func (d *Decoder) getType() (string, error) {
