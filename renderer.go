@@ -51,7 +51,69 @@ func (r SunburstRenderer[T, U]) Render(serie Serie[T, U]) svg.Element {
 	if len(r.Fill) == 0 {
 		r.Fill = Tableau10
 	}
-	return nil
+	var (
+		grp    = getBaseGroup("", "sun")
+		height = (r.OuterRadius - r.InnerRadius) / float64(serie.Depth())
+		frac   = fullcircle / serie.Sum()
+		offset float64
+	)
+	grp.Transform = svg.Translate(serie.X.Max()/2, serie.Y.Max()/2)
+	for i, pt := range serie.Points {
+		var (
+			g svg.Group
+			f = svg.NewFill(r.Fill[i%len(r.Fill)])
+		)
+		g.Id = any(pt.X).(string)
+
+		r.drawPoints(&g, f, pt, offset, frac, 0, height)
+		grp.Append(g.AsElement())
+		offset += any(pt.Y).(float64) * frac
+	}
+	return grp.AsElement()
+}
+
+func (r SunburstRenderer[T, U]) drawPoints(grp *svg.Group, fill svg.Fill, pt Point[T, U], offset, frac, level, height float64) {
+	var (
+		value    = any(pt.Y).(float64) * frac
+		distance = r.distanceFromCenter() + (height * level) + height
+		pos1     = getPosFromAngle(offset*deg2rad, distance)
+		pos2     = getPosFromAngle((offset+value)*deg2rad, distance)
+		pos3     = getPosFromAngle((offset+value)*deg2rad, distance-height)
+		pos4     = getPosFromAngle(offset*deg2rad, distance-height)
+		pat      svg.Path
+	)
+
+	pat.Fill = fill
+	pat.Rendering = "geometricPrecision"
+	pat.Stroke = svg.NewStroke("white", 2)
+
+	pat.AbsMoveTo(pos1)
+	pat.AbsArcTo(pos2, distance, distance, 0, value > halfcircle, true)
+	pat.AbsLineTo(pos3)
+
+	if pos3.X != pos4.X && pos3.Y != pos4.Y {
+		pat.AbsArcTo(pos4, distance-height, distance-height, 0, value > halfcircle, false)
+	}
+	pat.AbsLineTo(pos1)
+	pat.Title = html.EscapeString(pt.String())
+	grp.Append(pat.AsElement())
+
+	level += 1
+	if pt.isLeaf() {
+		return
+	}
+	for _, p := range pt.Sub {
+		sub := frac * any(p.Y).(float64)
+		r.drawPoints(grp, fill, p, offset, frac, level, height)
+		offset += sub
+	}
+}
+
+func (r SunburstRenderer[T, U]) distanceFromCenter() float64 {
+	if r.OuterRadius == r.InnerRadius {
+		return 0
+	}
+	return r.InnerRadius
 }
 
 type PieRenderer[T ~string, U ~float64] struct {
@@ -69,9 +131,9 @@ func (r PieRenderer[T, U]) Render(serie Serie[T, U]) svg.Element {
 		r.Fill = Tableau10
 	}
 	var (
+		grp   = getBaseGroup("", "pie")
 		part  = fullcircle / serie.Sum()
 		angle float64
-		grp   = getBaseGroup("", "pie")
 	)
 	grp.Transform = svg.Translate(serie.X.Max()/2, serie.Y.Max()/2)
 	for i, pt := range serie.Points {

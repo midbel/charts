@@ -24,6 +24,17 @@ type Serie[T, U ScalerConstraint] struct {
 	Renderer[T, U]
 }
 
+func (s Serie[T, U]) Depth() int {
+	var depth int
+	for _, p := range s.Points {
+		d := p.Depth()
+		if d > depth {
+			depth = d
+		}
+	}
+	return depth
+}
+
 func (s Serie[T, U]) Sum() float64 {
 	pt := slices.Fst(s.Points)
 	if _, ok := any(pt.Y).(float64); !ok {
@@ -84,7 +95,7 @@ func (p Point[T, U]) Reverse() Point[U, T] {
 }
 
 func (p Point[T, U]) Depth() int {
-	if len(p.Sub) == 0 {
+	if p.isLeaf() {
 		return 1
 	}
 	var depth int
@@ -95,4 +106,8 @@ func (p Point[T, U]) Depth() int {
 		}
 	}
 	return depth + 1
+}
+
+func (p Point[T, U]) isLeaf() bool {
+	return len(p.Sub) == 0
 }

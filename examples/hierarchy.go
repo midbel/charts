@@ -21,10 +21,10 @@ const (
 )
 
 var pad = charts.Padding{
-	Top:    40,
+	Top:    10,
 	Right:  10,
-	Bottom: 60,
-	Left:   80,
+	Bottom: 10,
+	Left:   10,
 }
 
 func main() {
@@ -67,8 +67,10 @@ func main() {
 		Width:   defaultWidth,
 		Height:  defaultHeight,
 		Padding: pad,
-		Left:    getLeftAxis(yscale, *normal),
-		Bottom:  getBottomAxis(xscale),
+	}
+	if *typname != "sun" && *typname != "sunburst" {
+		ch.Left = getLeftAxis(yscale, *normal)
+		ch.Bottom = getBottomAxis(xscale)
 	}
 	sort.Slice(dat.Serie.Points, func(i, j int) bool {
 		return dat.Serie.Points[i].Y > dat.Serie.Points[j].Y
@@ -89,8 +91,13 @@ func getRenderer(name string, normalize bool) (charts.Renderer[string, float64],
 		rdr = charts.GroupRenderer[string, float64]{
 			Width: 0.8,
 		}
+	case "sun", "sunburst":
+		rdr = charts.SunburstRenderer[string, float64]{
+			InnerRadius: 10,
+			OuterRadius: 300,
+		}
 	default:
-		return nil, fmt.Errorf("%s: invalid renderer name - choose between stacked or group", name)
+		return nil, fmt.Errorf("%s: invalid renderer name - choose between stacked, group, sun", name)
 	}
 	return rdr, nil
 }
