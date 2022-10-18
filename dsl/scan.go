@@ -57,7 +57,18 @@ const (
 	Pow
 	Div
 	Mod
+	Lt
+	Le
+	Gt
+	Ge
+	Eq
+	Ne
 	Assign
+	Ternary
+	Alt
+	Not
+	And
+	Or
 	EOL
 	EOF
 )
@@ -126,8 +137,30 @@ func (t Token) String() string {
 		return "<modulo>"
 	case Pow:
 		return "<power>"
+	case Lt:
+		return "<lt>"
+	case Le:
+		return "<le>"
+	case Gt:
+		return "<gt>"
+	case Ge:
+		return "<ge>"
+	case Eq:
+		return "<eq>"
+	case Ne:
+		return "<ne>"
+	case And:
+		return "<and>"
+	case Or:
+		return "<or>"
 	case Assign:
 		return "<assign>"
+	case Ternary:
+		return "<ternary>"
+	case Alt:
+		return "<alter>"
+	case Not:
+		return "<not>"
 	}
 	return fmt.Sprintf("%s(%s)", prefix, t.Literal)
 }
@@ -235,6 +268,46 @@ func (x *Lexer) lexVariable(tok *Token) {
 
 func (x *Lexer) lexOperator(tok *Token) {
 	switch x.char {
+	case ampersand:
+		if x.peek() != ampersand {
+			tok.Type = Invalid
+			break
+		}
+		x.read()
+		tok.Type = And
+	case pipe:
+		if x.peek() != pipe {
+			tok.Type = Invalid
+			break
+		}
+		x.read()
+		tok.Type = Or
+	case bang:
+		tok.Type = Not
+		if x.peek() == equal {
+			tok.Type = Ne
+			x.read()
+		}
+	case equal:
+		tok.Type = Assign
+		if x.peek() == equal {
+			tok.Type = Eq
+			x.read()
+		}
+	case langle:
+		tok.Type = Lt
+		if x.peek() == equal {
+			tok.Type = Le
+			x.read()
+		}
+	case rangle:
+		tok.Type = Gt
+		if x.peek() == equal {
+			tok.Type = Ge
+			x.read()
+		}
+	case comma:
+		tok.Type = Comma
 	case lparen:
 		tok.Type = Lparen
 	case rparen:
@@ -253,10 +326,12 @@ func (x *Lexer) lexOperator(tok *Token) {
 		tok.Type = Div
 	case percent:
 		tok.Type = Mod
-	case equal:
-		tok.Type = Assign
 	case semicolon:
 		tok.Type = EOL
+	case question:
+		tok.Type = Ternary
+	case colon:
+		tok.Type = Alt
 	default:
 		tok.Type = Invalid
 	}
@@ -516,6 +591,12 @@ const (
 	squote          = '\''
 	dquote          = '"'
 	underscore      = '_'
+	question        = '?'
+	bang            = '!'
+	langle          = '<'
+	rangle          = '>'
+	ampersand       = '&'
+	pipe            = '|'
 )
 
 func isDollar(r rune) bool {
@@ -528,11 +609,27 @@ func isPunct(r rune) bool {
 
 func isOperator(r rune) bool {
 	switch r {
-	case plus, minus, star, percent, slash, semicolon, lparen, rparen, equal:
-		return true
+	case plus:
+	case minus:
+	case star:
+	case percent:
+	case slash:
+	case semicolon:
+	case lparen:
+	case rparen:
+	case equal:
+	case comma:
+	case question:
+	case colon:
+	case bang:
+	case langle:
+	case rangle:
+	case ampersand:
+	case pipe:
 	default:
 		return false
 	}
+	return true
 }
 
 func isChar(r rune) bool {
