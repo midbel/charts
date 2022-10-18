@@ -62,14 +62,7 @@ func (a Axis[T]) Render(length, size, left, top float64) svg.Element {
 	if len(data) == 0 {
 		data = a.Scaler.Values(a.Ticks)
 	}
-	// if a.Label != "" {
-	// 	offset := left
-	// 	if a.Orientation == OrientRight || a.Orientation == OrientTop {
-	// 		offset = top
-	// 	}
-	// 	txt := axisText(a.Orientation, a.Label, length/2, offset, font)
-	// 	g.Append(txt.AsElement())
-	// }
+
 	for i, t := range data {
 		var (
 			pos = a.Scaler.Scale(t)
@@ -81,7 +74,7 @@ func (a Axis[T]) Render(length, size, left, top float64) svg.Element {
 			grp.Transform = svg.Translate(pos, 0)
 		}
 		if a.WithInnerTicks {
-			tick := lineTick(a.Orientation, 0, FontSize*0.8, d.Stroke)
+			tick := lineTick(a.Orientation, offset, FontSize*0.8, d.Stroke)
 			grp.Append(tick.AsElement())
 		}
 		if a.WithLabelTicks && a.Format != nil {
