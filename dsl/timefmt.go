@@ -27,8 +27,6 @@ func makeParseTime(format string) (func(string) (time.Time, error), error) {
 	}, nil
 }
 
-const percent = '%'
-
 var specifiers = map[rune]string{
 	'D': "01/02/06", // month/day/year
 	'Y': "2006",     // year four digits
