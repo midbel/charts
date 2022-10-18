@@ -18,6 +18,8 @@ import (
 const (
 	defaultWidth  = 1366
 	defaultHeight = 600
+	defaultInner  = 10
+	defaultOuter  = 300
 )
 
 var pad = charts.Padding{
@@ -30,6 +32,10 @@ var pad = charts.Padding{
 func main() {
 	var (
 		typname = flag.String("t", "", "type")
+		width   = flag.Float64("w", defaultWidth, "chart width")
+		height  = flag.Float64("g", defaultHeight, "chart height")
+		inner   = flag.Float64("inner-radius", defaultInner, "inner radius sun")
+		outer   = flag.Float64("outer-radius", defaultOuter, "outer radius sun")
 		normal  = flag.Bool("n", false, "normalize")
 	)
 	flag.Parse()
@@ -47,7 +53,7 @@ func main() {
 		dat.List = append(dat.List, dat.Serie.Points[i].X)
 	}
 
-	rdr, err := getRenderer(*typname, *normal)
+	rdr, err := getRenderer(*typname, *inner, *outer, *normal)
 	if err != nil {
 		fmt.Fprintln(os.Stderr, err)
 		os.Exit(2)
@@ -56,16 +62,16 @@ func main() {
 		dat.Max = 1
 	}
 	dat.Serie.Renderer = rdr
-	xscale := charts.StringScaler(dat.List, charts.NewRange(0, defaultWidth-pad.Horizontal()))
-	yscale := charts.NumberScaler(charts.NumberDomain(dat.Max, 0), charts.NewRange(0, defaultHeight-pad.Vertical()))
+	xscale := charts.StringScaler(dat.List, charts.NewRange(0, *width-pad.Horizontal()))
+	yscale := charts.NumberScaler(charts.NumberDomain(dat.Max, 0), charts.NewRange(0, *height-pad.Vertical()))
 
 	dat.Serie.X = xscale
 	dat.Serie.Y = yscale
 
 	ch := charts.Chart[string, float64]{
 		Title:   "US Population",
-		Width:   defaultWidth,
-		Height:  defaultHeight,
+		Width:   *width,
+		Height:  *height,
 		Padding: pad,
 	}
 	if *typname != "sun" && *typname != "sunburst" {
@@ -78,7 +84,7 @@ func main() {
 	ch.Render(os.Stdout, dat.Serie)
 }
 
-func getRenderer(name string, normalize bool) (charts.Renderer[string, float64], error) {
+func getRenderer(name string, inner, outer float64, normalize bool) (charts.Renderer[string, float64], error) {
 	var rdr charts.Renderer[string, float64]
 	switch name {
 	case "stacked", "vert", "vertical", "":
@@ -93,8 +99,8 @@ func getRenderer(name string, normalize bool) (charts.Renderer[string, float64],
 		}
 	case "sun", "sunburst":
 		rdr = charts.SunburstRenderer[string, float64]{
-			InnerRadius: 10,
-			OuterRadius: 300,
+			InnerRadius: inner,
+			OuterRadius: outer,
 		}
 	default:
 		return nil, fmt.Errorf("%s: invalid renderer name - choose between stacked, group, sun", name)
