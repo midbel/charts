@@ -157,6 +157,24 @@ func evalCall(c call, env *environ[any]) (interface{}, error) {
 			return nil, fmt.Errorf("incompatible type: string expected")
 		}
 		return float64(len(str)), nil
+	case "lower":
+		if len(args) < 1 {
+			return nil, fmt.Errorf("printf: no enough argument given")
+		}
+		str, ok := slices.Fst(args).(string)
+		if !ok {
+			return nil, fmt.Errorf("incompatible type: string expected")
+		}
+		return strings.ToLower(str), nil
+	case "upper":
+		if len(args) < 1 {
+			return nil, fmt.Errorf("printf: no enough argument given")
+		}
+		str, ok := slices.Fst(args).(string)
+		if !ok {
+			return nil, fmt.Errorf("incompatible type: string expected")
+		}
+		return strings.ToUpper(str), nil
 	case "printf", "format":
 		if len(args) < 1 {
 			return nil, fmt.Errorf("printf: no enough argument given")
