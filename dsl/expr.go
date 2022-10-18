@@ -185,21 +185,13 @@ func execLesser(left, right interface{}, eq bool) (interface{}, error) {
 		if !ok {
 			return nil, fmt.Errorf("incompatible type for comparison")
 		}
-		ok = x < y
-		if !ok && eq {
-			ok = x == y
-		}
-		return ok, nil
+		return isLesser(x, y, eq), nil
 	case string:
 		y, ok := right.(string)
 		if !ok {
 			return nil, fmt.Errorf("incompatible type for comparison")
 		}
-		ok = x < y
-		if !ok && eq {
-			ok = x == y
-		}
-		return ok, nil
+		return isLesser(x, y, eq), nil
 	default:
 		return nil, fmt.Errorf("type can not be compared")
 	}
@@ -212,21 +204,13 @@ func execGreater(left, right interface{}, eq bool) (interface{}, error) {
 		if !ok {
 			return nil, fmt.Errorf("incompatible type for comparison")
 		}
-		ok = x > y
-		if !ok && eq {
-			ok = x == y
-		}
-		return ok, nil
+		return isGreater(x, y, eq), nil
 	case string:
 		y, ok := right.(string)
 		if !ok {
 			return nil, fmt.Errorf("incompatible type for comparison")
 		}
-		ok = x > y
-		if !ok && eq {
-			ok = x == y
-		}
-		return ok, nil
+		return isGreater(x, y, eq), nil
 	default:
 		return nil, fmt.Errorf("type can not be compared")
 	}
@@ -239,35 +223,47 @@ func execEqual(left, right interface{}, ne bool) (interface{}, error) {
 		if !ok {
 			return nil, fmt.Errorf("incompatible type for equality")
 		}
-		ok = x == y
-		if ne {
-			ok = x != y
-		}
-		return ok, nil
+		return isEqual(x, y, ne), nil
 	case string:
 		y, ok := right.(string)
 		if !ok {
 			return nil, fmt.Errorf("incompatible type for equality")
 		}
-		ok = x == y
-		if ne {
-			ok = x != y
-		}
-		return ok, nil
+		return isEqual(x, y, ne), nil
 	case bool:
 		y, ok := right.(bool)
 		if !ok {
 			return nil, fmt.Errorf("incompatible type for equality")
 		}
-		ok = x == y
-		if ne {
-			ok = x != y
-		}
-		return ok, nil
+		return isEqual(x, y, ne), nil
 	default:
 		return nil, fmt.Errorf("type can not be compared")
 	}
 	return nil, nil
+}
+
+func isEqual[T float64 | string | bool](left, right T, ne bool) bool {
+	ok := left == right
+	if ne {
+		ok = !ok
+	}
+	return ok
+}
+
+func isLesser[T float64 | string](left, right T, eq bool) bool {
+	ok := left < right
+	if !ok && eq {
+		ok = left == right
+	}
+	return ok
+}
+
+func isGreater[T float64 | string](left, right T, eq bool) bool {
+	ok := left > right
+	if !ok && eq {
+		ok = left == right
+	}
+	return ok
 }
 
 func execAnd(left, right interface{}) (interface{}, error) {
