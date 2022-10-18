@@ -1,0 +1,12 @@
+define by_million {
+	$value = $value / (1000*1000)
+	$value ? printf("%.3f", $value) : "0"
+}
+
+define to_lowercase {
+	lower($value)
+}
+
+define to_uppercase {
+	upper($value)
+}

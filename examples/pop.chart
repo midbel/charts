@@ -1,14 +1,16 @@
 set title "US Population"
-set padding 30,10,40,60
+set padding 30,10,40,80
 
 set size 1366, 600
 
-define file data/US.csv
+declare file data/US.csv
 
 set xdata string
 set xdomain $file using 0
 set ydata number
 set ydomain $file using 1:+9
+
+include functions.chart
 
 set xticks with (
 	position bottom
@@ -22,7 +24,7 @@ set yticks with (
 	position left
 	label-ticks true
 	inner-ticks true
-	format "%.2f"
+	format by_million
 )
 
 load $file using 0,1:+9 with (
