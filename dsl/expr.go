@@ -48,6 +48,8 @@ func eval(expr Expression, env *environ[any]) (interface{}, error) {
 		res, err = evalAssign(e, env)
 	case test:
 		res, err = evalTest(e, env)
+	case while:
+		res, err = evalWhile(e, env)
 	}
 	return res, err
 }
@@ -125,6 +127,27 @@ func evalTest(t test, env *environ[any]) (interface{}, error) {
 	return eval(t.alt, env)
 }
 
+func evalWhile(w while, env *environ[any]) (interface{}, error) {
+	var (
+		res interface{}
+		err error
+	)
+	for {
+		res, err = eval(w.cdt, env)
+		if err != nil {
+			return nil, err
+		}
+		if !isTruthy(res) {
+			break
+		}
+		res, err = eval(w.body, env)
+		if err != nil {
+			return nil, err
+		}
+	}
+	return res, nil
+}
+
 func evalAssign(a assign, env *environ[any]) (interface{}, error) {
 	res, err := eval(a.right, env)
 	if err != nil {
@@ -184,6 +207,11 @@ func evalCall(c call, env *environ[any]) (interface{}, error) {
 			return nil, fmt.Errorf("incompatible type: string expected")
 		}
 		res = fmt.Sprintf(pattern, slices.Rest(args)...)
+	case "print":
+		if len(args) < 1 {
+			return nil, fmt.Errorf("printf: no enough argument given")
+		}
+		res = fmt.Sprint(args...)
 	case "time":
 		if len(args) != 0 {
 			return nil, fmt.Errorf("time: too many arguments given")
@@ -429,10 +457,15 @@ type ret struct {
 	expr Expression
 }
 
+type while struct {
+	cdt  Expression
+	body Expression
+}
+
 type test struct {
 	cdt Expression
-	csq  Expression
-	alt  Expression
+	csq Expression
+	alt Expression
 }
 
 type literal struct {
@@ -668,7 +701,7 @@ func (p *parser) parseIf() (Expression, error) {
 
 	var (
 		expr test
-		err error
+		err  error
 	)
 	expr.cdt, err = p.parse(powLowest)
 	if err != nil {
@@ -678,20 +711,53 @@ func (p *parser) parseIf() (Expression, error) {
 		return nil, fmt.Errorf("unexpected token %s", p.curr)
 	}
 	p.next()
-	expr.alt, err = p.parseBlock()
+	expr.csq, err = p.parseBlock()
 	if err != nil {
 		return nil, err
 	}
 	if p.curr.Type == Keyword && p.curr.Literal == kwElse {
 		p.next()
+		switch p.curr.Type {
+		case Lcurly:
+			expr.alt, err = p.parseBlock()
+		case Keyword:
+			expr.alt, err = p.parseKeyword()
+		default:
+		}
 	}
-	fmt.Println(p.curr, p.peek)
-	return nil, nil
+	if p.curr.Type != EOL && p.curr.Type != EOF {
+		return nil, fmt.Errorf("unexpected token: %s", p.curr)
+	}
+	return expr, nil
 }
 
 func (p *parser) parseWhile() (Expression, error) {
 	p.next()
-	return nil, nil
+	if p.curr.Type != Lparen {
+		return nil, fmt.Errorf("unexpected token %s", p.curr)
+	}
+	p.next()
+
+	var (
+		expr while
+		err  error
+	)
+	expr.cdt, err = p.parse(powLowest)
+	if err != nil {
+		return nil, err
+	}
+	if p.curr.Type != Rparen {
+		return nil, fmt.Errorf("unexpected token %s", p.curr)
+	}
+	p.next()
+	expr.body, err = p.parseBlock()
+	if err != nil {
+		return nil, err
+	}
+	if p.curr.Type != EOL && p.curr.Type != EOF {
+		return nil, fmt.Errorf("unexpected token: %s", p.curr)
+	}
+	return expr, nil
 }
 
 func (p *parser) parseReturn() (Expression, error) {
