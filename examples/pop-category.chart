@@ -1,5 +1,5 @@
 set title "US Population"
-set padding 60
+set padding 30,10,40,60
 
 set size 1366, 600
 
@@ -22,11 +22,11 @@ set yticks with (
 	position left
 	label-ticks true
 	inner-ticks true
-	format "%.0f"
+	format "%.2f"
 )
 
-load $file using 0,1:9 with (
-	type stack
+load $file using 0,1:+9 with (
+	type bar
 	width 0.8
 )
 

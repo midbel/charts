@@ -23,7 +23,7 @@ type Decoder struct {
 
 	shell string
 
-	env *env
+	env *environ[[]string]
 
 	scan *Scanner
 	curr Token
@@ -35,7 +35,7 @@ func NewDecoder(r io.Reader) *Decoder {
 	if r, ok := r.(interface{ Name() string }); ok {
 		d.path = filepath.Dir(r.Name())
 	}
-	d.env = emptyEnv()
+	d.env = emptyEnv[[]string]()
 	d.shell = DefaultShell
 	d.scan = Scan(r)
 	d.next()
