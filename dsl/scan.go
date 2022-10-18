@@ -2,174 +2,10 @@ package dsl
 
 import (
 	"bytes"
-	"fmt"
 	"io"
 	"strings"
 	"unicode/utf8"
 )
-
-const (
-	kwSet     = "set"
-	kwLoad    = "load"
-	kwUsing   = "using"
-	kwRender  = "render"
-	kwWith    = "with"
-	kwLimit   = "limit"
-	kwInclude = "include"
-	kwDefine  = "define"
-	kwDeclare = "declare"
-	// kwTo      = "to"
-	// kwAs      = "as"
-)
-
-func isKeyword(str string) bool {
-	switch str {
-	default:
-		return false
-	case kwSet:
-	case kwLoad:
-	case kwUsing:
-	case kwRender:
-	case kwWith:
-	case kwLimit:
-	case kwInclude:
-	case kwDefine:
-	case kwDeclare:
-	}
-	return true
-}
-
-const (
-	Invalid rune = -(iota + 1)
-	Keyword
-	Literal
-	Ident
-	Variable
-	Number
-	Command
-	Comment
-	Comma
-	Lparen
-	Rparen
-	Expr
-	Sum
-	Range
-	RangeSum
-	Add
-	Sub
-	Mul
-	Pow
-	Div
-	Mod
-	Lt
-	Le
-	Gt
-	Ge
-	Eq
-	Ne
-	Assign
-	Ternary
-	Alt
-	Not
-	And
-	Or
-	EOL
-	EOF
-)
-
-type Position struct {
-	Line   int
-	Column int
-}
-
-func (p Position) String() string {
-	return fmt.Sprintf("%d:%d", p.Line, p.Column)
-}
-
-type Token struct {
-	Literal string
-	Type    rune
-	Position
-}
-
-func (t Token) String() string {
-	var prefix string
-	switch t.Type {
-	default:
-		prefix = "unknown"
-	case Invalid:
-		prefix = "invalid"
-	case Literal:
-		prefix = "literal"
-	case Number:
-		prefix = "number"
-	case Expr:
-		prefix = "expression"
-	case Comment:
-		prefix = "comment"
-	case Keyword:
-		prefix = "keyword"
-	case Variable:
-		prefix = "variable"
-	case Ident:
-		prefix = "identifier"
-	case Command:
-		prefix = "command"
-	case Comma:
-		return "<comma>"
-	case EOL:
-		return "<eol>"
-	case EOF:
-		return "<eof>"
-	case Lparen:
-		return "<lparen>"
-	case Rparen:
-		return "<rparen>"
-	case Sum:
-		return "<sum>"
-	case Range:
-		return "<range>"
-	case RangeSum:
-		return "<range-sum>"
-	case Add:
-		return "<add>"
-	case Sub:
-		return "<subtract>"
-	case Mul:
-		return "<multiply>"
-	case Div:
-		return "<divide>"
-	case Mod:
-		return "<modulo>"
-	case Pow:
-		return "<power>"
-	case Lt:
-		return "<lt>"
-	case Le:
-		return "<le>"
-	case Gt:
-		return "<gt>"
-	case Ge:
-		return "<ge>"
-	case Eq:
-		return "<eq>"
-	case Ne:
-		return "<ne>"
-	case And:
-		return "<and>"
-	case Or:
-		return "<or>"
-	case Assign:
-		return "<assign>"
-	case Ternary:
-		return "<ternary>"
-	case Alt:
-		return "<alter>"
-	case Not:
-		return "<not>"
-	}
-	return fmt.Sprintf("%s(%s)", prefix, t.Literal)
-}
 
 type Lexer struct {
 	input []byte
@@ -320,18 +156,37 @@ func (x *Lexer) lexOperator(tok *Token) {
 		tok.Type = Rparen
 	case plus:
 		tok.Type = Add
+		if x.peek() == equal {
+			tok.Type = AddAssign
+			x.read()
+		}
 	case minus:
 		tok.Type = Sub
+		if x.peek() == equal {
+			tok.Type = SubAssign
+			x.read()
+		}
 	case star:
 		tok.Type = Mul
 		if x.peek() == star {
 			tok.Type = Pow
 			x.read()
+		} else if x.peek() == equal {
+			tok.Type = MulAssign
+			x.read()
 		}
 	case slash:
 		tok.Type = Div
+		if x.peek() == equal {
+			tok.Type = DivAssign
+			x.read()
+		}
 	case percent:
 		tok.Type = Mod
+		if x.peek() == equal {
+			tok.Type = ModAssign
+			x.read()
+		}
 	case semicolon:
 		tok.Type = EOL
 	case question:

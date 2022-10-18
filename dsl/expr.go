@@ -483,23 +483,28 @@ func (p powerMap) Get(r rune) int {
 }
 
 var powers = powerMap{
-	Add:     powAdd,
-	Sub:     powAdd,
-	Mul:     powMul,
-	Div:     powMul,
-	Mod:     powMul,
-	Pow:     powMul,
-	Assign:  powAssign,
-	Lparen:  powCall,
-	Ternary: powTernary,
-	And:     powRelation,
-	Or:      powRelation,
-	Eq:      powEqual,
-	Ne:      powEqual,
-	Lt:      powCompare,
-	Le:      powCompare,
-	Gt:      powCompare,
-	Ge:      powCompare,
+	Add:       powAdd,
+	Sub:       powAdd,
+	Mul:       powMul,
+	Div:       powMul,
+	Mod:       powMul,
+	Pow:       powMul,
+	Assign:    powAssign,
+	AddAssign: powAssign,
+	SubAssign: powAssign,
+	MulAssign: powAssign,
+	DivAssign: powAssign,
+	ModAssign: powAssign,
+	Lparen:    powCall,
+	Ternary:   powTernary,
+	And:       powRelation,
+	Or:        powRelation,
+	Eq:        powEqual,
+	Ne:        powEqual,
+	Lt:        powCompare,
+	Le:        powCompare,
+	Gt:        powCompare,
+	Ge:        powCompare,
 }
 
 type parser struct {
@@ -525,23 +530,28 @@ func Parse(r io.Reader) (Expression, error) {
 		Lparen:   p.parseGroup,
 	}
 	p.infix = map[rune]func(Expression) (Expression, error){
-		Add:     p.parseInfix,
-		Sub:     p.parseInfix,
-		Mul:     p.parseInfix,
-		Div:     p.parseInfix,
-		Mod:     p.parseInfix,
-		Pow:     p.parseInfix,
-		Assign:  p.parseAssign,
-		Lparen:  p.parseCall,
-		Ternary: p.parseTernary,
-		Eq:      p.parseInfix,
-		Ne:      p.parseInfix,
-		Lt:      p.parseInfix,
-		Le:      p.parseInfix,
-		Gt:      p.parseInfix,
-		Ge:      p.parseInfix,
-		And:     p.parseInfix,
-		Or:      p.parseInfix,
+		Add:       p.parseInfix,
+		Sub:       p.parseInfix,
+		Mul:       p.parseInfix,
+		Div:       p.parseInfix,
+		Mod:       p.parseInfix,
+		Pow:       p.parseInfix,
+		Assign:    p.parseAssign,
+		AddAssign: p.parseAssign,
+		SubAssign: p.parseAssign,
+		DivAssign: p.parseAssign,
+		MulAssign: p.parseAssign,
+		ModAssign: p.parseAssign,
+		Lparen:    p.parseCall,
+		Ternary:   p.parseTernary,
+		Eq:        p.parseInfix,
+		Ne:        p.parseInfix,
+		Lt:        p.parseInfix,
+		Le:        p.parseInfix,
+		Gt:        p.parseInfix,
+		Ge:        p.parseInfix,
+		And:       p.parseInfix,
+		Or:        p.parseInfix,
 	}
 	p.next()
 	p.next()
@@ -623,6 +633,7 @@ func (p *parser) parseAssign(left Expression) (Expression, error) {
 	if !ok {
 		return nil, fmt.Errorf("syntax error!")
 	}
+	op := p.curr.Type
 	p.next()
 	right, err := p.parse(powLowest)
 	if err != nil {
@@ -631,6 +642,27 @@ func (p *parser) parseAssign(left Expression) (Expression, error) {
 	expr := assign{
 		ident: v.ident,
 		right: right,
+	}
+	if op != Assign {
+		switch op {
+		case AddAssign:
+			op = Add
+		case SubAssign:
+			op = Sub
+		case MulAssign:
+			op = Mul
+		case DivAssign:
+			op = Div
+		case ModAssign:
+			op = Mod
+		default:
+			return nil, fmt.Errorf("invalid compound assignment operator")
+		}
+		expr.right = binary{
+			op:    op,
+			left:  left,
+			right: right,
+		}
 	}
 	return expr, nil
 }
