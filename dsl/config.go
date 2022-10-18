@@ -683,16 +683,16 @@ func createCategoryRenderer(style Style) (charts.Renderer[string, float64], erro
 			OuterRadius: style.OuterRadius,
 		}
 	case RenderSun:
-	case RenderStack:
-		rdr = charts.StackedRenderer[string, float64]{
-			Fill:  charts.Tableau10,
-			Width: style.Width,
+		rdr = charts.SunburstRenderer[string, float64]{
+			Fill:        charts.Tableau10,
+			InnerRadius: style.InnerRadius,
+			OuterRadius: style.OuterRadius,
 		}
-	case RenderNormStack:
+	case RenderStack, RenderNormStack:
 		rdr = charts.StackedRenderer[string, float64]{
 			Fill:      charts.Tableau10,
 			Width:     style.Width,
-			Normalize: true,
+			Normalize: style.Type == RenderNormStack,
 		}
 	case RenderGroup:
 	default:
