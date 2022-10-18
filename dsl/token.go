@@ -16,6 +16,14 @@ const (
 	kwDeclare = "declare"
 	// kwTo      = "to"
 	// kwAs      = "as"
+	kwIf     = "if"
+	kwElse   = "else"
+	kwWhile  = "while"
+	kwReturn = "return"
+	kwTrue   = "true"
+	kwFalse  = "false"
+	kwBreak  = "break"
+	kwContinue = "continue"
 )
 
 func isKeyword(str string) bool {
@@ -35,6 +43,20 @@ func isKeyword(str string) bool {
 	return true
 }
 
+func isKeywordScript(str string) bool {
+	switch str {
+	case kwIf:
+	case kwElse:
+	case kwWhile:
+	case kwBreak:
+	case kwContinue:
+	case kwReturn:
+	default:
+		return false
+	}
+	return true
+}
+
 const (
 	Invalid rune = -(iota + 1)
 	Keyword
@@ -47,6 +69,8 @@ const (
 	Comma
 	Lparen
 	Rparen
+	Lcurly
+	Rcurly
 	Expr
 	Sum
 	Range
@@ -126,6 +150,10 @@ func (t Token) String() string {
 		return "<lparen>"
 	case Rparen:
 		return "<rparen>"
+	case Lcurly:
+		return "<lcurly>"
+	case Rcurly:
+		return "<rcurly>"
 	case Sum:
 		return "<sum>"
 	case Range:

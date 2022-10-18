@@ -46,8 +46,8 @@ func eval(expr Expression, env *environ[any]) (interface{}, error) {
 		res, err = evalBinary(e, env)
 	case assign:
 		res, err = evalAssign(e, env)
-	case ternary:
-		res, err = evalTernary(e, env)
+	case test:
+		res, err = evalTest(e, env)
 	}
 	return res, err
 }
@@ -114,8 +114,8 @@ func evalBinary(b binary, env *environ[any]) (interface{}, error) {
 	}
 }
 
-func evalTernary(t ternary, env *environ[any]) (interface{}, error) {
-	res, err := eval(t.test, env)
+func evalTest(t test, env *environ[any]) (interface{}, error) {
+	res, err := eval(t.cdt, env)
 	if err != nil {
 		return nil, err
 	}
@@ -425,8 +425,12 @@ type call struct {
 	args  []Expression
 }
 
-type ternary struct {
-	test Expression
+type ret struct {
+	expr Expression
+}
+
+type test struct {
+	cdt Expression
 	csq  Expression
 	alt  Expression
 }
@@ -528,6 +532,7 @@ func Parse(r io.Reader) (Expression, error) {
 		Ident:    p.parsePrefix,
 		Variable: p.parsePrefix,
 		Lparen:   p.parseGroup,
+		Keyword:  p.parseKeyword,
 	}
 	p.infix = map[rune]func(Expression) (Expression, error){
 		Add:       p.parseInfix,
@@ -608,10 +613,106 @@ func (p *parser) parse(pow int) (Expression, error) {
 	return left, nil
 }
 
+func (p *parser) parseKeyword() (Expression, error) {
+	switch p.curr.Literal {
+	case kwIf:
+		return p.parseIf()
+	case kwWhile:
+		return p.parseWhile()
+	case kwBreak:
+		return p.parseBreak()
+	case kwContinue:
+		return p.parseContinue()
+	case kwReturn:
+		return p.parseReturn()
+	default:
+		return nil, fmt.Errorf("%s: keyword not implemented", p.curr.Literal)
+	}
+}
+
+func (p *parser) parseBlock() (Expression, error) {
+	if p.curr.Type != Lcurly {
+		return nil, fmt.Errorf("unexpected token %s", p.curr)
+	}
+	p.next()
+	var list []Expression
+	for p.curr.Type != Rcurly && !p.done() {
+		e, err := p.parse(powLowest)
+		if err != nil {
+			return nil, err
+		}
+		list = append(list, e)
+		if p.curr.Type != EOL {
+			return nil, fmt.Errorf("syntax error! missing eol")
+		}
+		p.next()
+	}
+	if p.curr.Type != Rcurly {
+		return nil, fmt.Errorf("unexpected token %s", p.curr)
+	}
+	p.next()
+	switch len(list) {
+	case 1:
+		return list[0], nil
+	default:
+		return script{list: list}, nil
+	}
+}
+
+func (p *parser) parseIf() (Expression, error) {
+	p.next()
+	if p.curr.Type != Lparen {
+		return nil, fmt.Errorf("unexpected token %s", p.curr)
+	}
+	p.next()
+
+	var (
+		expr test
+		err error
+	)
+	expr.cdt, err = p.parse(powLowest)
+	if err != nil {
+		return nil, err
+	}
+	if p.curr.Type != Rparen {
+		return nil, fmt.Errorf("unexpected token %s", p.curr)
+	}
+	p.next()
+	expr.alt, err = p.parseBlock()
+	if err != nil {
+		return nil, err
+	}
+	if p.curr.Type == Keyword && p.curr.Literal == kwElse {
+		p.next()
+	}
+	fmt.Println(p.curr, p.peek)
+	return nil, nil
+}
+
+func (p *parser) parseWhile() (Expression, error) {
+	p.next()
+	return nil, nil
+}
+
+func (p *parser) parseReturn() (Expression, error) {
+	p.next()
+	return nil, nil
+}
+
+func (p *parser) parseBreak() (Expression, error) {
+	p.next()
+	return nil, nil
+}
+
+func (p *parser) parseContinue() (Expression, error) {
+	p.next()
+	return nil, nil
+}
+
 func (p *parser) parseTernary(left Expression) (Expression, error) {
 	var err error
-	expr := ternary{
-		test: left,
+	expr := test{
+		cdt: left,
 	}
 	p.next()
 	if expr.csq, err = p.parse(powLowest); err != nil {

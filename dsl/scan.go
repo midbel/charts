@@ -73,6 +73,9 @@ func (x *Lexer) lexIdent(tok *Token) {
 	}
 	tok.Type = Ident
 	tok.Literal = string(x.input[pos:x.curr])
+	if isKeywordScript(tok.Literal) {
+		tok.Type = Keyword
+	}
 }
 
 func (x *Lexer) lexNumber(tok *Token) {
@@ -154,6 +157,12 @@ func (x *Lexer) lexOperator(tok *Token) {
 		tok.Type = Lparen
 	case rparen:
 		tok.Type = Rparen
+	case lcurly:
+		tok.Type = Lcurly
+		x.read()
+		x.skipNL()
+	case rcurly:
+		tok.Type = Rcurly
 	case plus:
 		tok.Type = Add
 		if x.peek() == equal {
@@ -505,6 +514,8 @@ func isOperator(r rune) bool {
 	case rangle:
 	case ampersand:
 	case pipe:
+	case lcurly:
+	case rcurly:
 	default:
 		return false
 	}
