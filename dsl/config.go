@@ -83,7 +83,9 @@ type Config struct {
 	}
 	Files []File
 
-	Style Style
+	Style   Style
+	Env     *environ[any]
+	Scripts *environ[Expression]
 }
 
 func Default() Config {
@@ -93,6 +95,7 @@ func Default() Config {
 		Height:     DefaultHeight,
 		TimeFormat: TimeFormat,
 		Style:      GlobalStyle(),
+		Scripts:    emptyEnv[Expression](),
 	}
 	cfg.Types.X = TypeNumber
 	cfg.Types.Y = TypeNumber
@@ -143,18 +146,18 @@ func (c Config) renderCategoryChart() error {
 	}
 	switch c.Domains.X.Position {
 	case "bottom":
-		chart.Bottom, err = c.Domains.X.makeCategoryAxis(xscale)
+		chart.Bottom, err = c.Domains.X.makeCategoryAxis(c, xscale)
 	case "top":
-		chart.Top, err = c.Domains.X.makeCategoryAxis(xscale)
+		chart.Top, err = c.Domains.X.makeCategoryAxis(c, xscale)
 	}
 	if err != nil {
 		return err
 	}
 	switch c.Domains.Y.Position {
 	case "left":
-		chart.Left, err = c.Domains.Y.makeNumberAxis(yscale)
+		chart.Left, err = c.Domains.Y.makeNumberAxis(c, yscale)
 	case "right":
-		chart.Right, err = c.Domains.Y.makeNumberAxis(yscale)
+		chart.Right, err = c.Domains.Y.makeNumberAxis(c, yscale)
 	}
 	if err != nil {
 		return err
@@ -190,18 +193,18 @@ func (c Config) renderTimeChart() error {
 	}
 	switch c.Domains.X.Position {
 	case "bottom":
-		chart.Bottom, err = c.Domains.X.makeTimeAxis(xscale)
+		chart.Bottom, err = c.Domains.X.makeTimeAxis(c, xscale)
 	case "top":
-		chart.Top, err = c.Domains.X.makeTimeAxis(xscale)
+		chart.Top, err = c.Domains.X.makeTimeAxis(c, xscale)
 	}
 	if err != nil {
 		return err
 	}
 	switch c.Domains.Y.Position {
 	case "left":
-		chart.Left, err = c.Domains.Y.makeNumberAxis(yscale)
+		chart.Left, err = c.Domains.Y.makeNumberAxis(c, yscale)
 	case "right":
-		chart.Right, err = c.Domains.Y.makeNumberAxis(yscale)
+		chart.Right, err = c.Domains.Y.makeNumberAxis(c, yscale)
 	}
 	if err != nil {
 		return err
@@ -240,18 +243,18 @@ func (c Config) renderNumberChart() error {
 	}
 	switch c.Domains.X.Position {
 	case "bottom":
-		chart.Bottom, err = c.Domains.X.makeNumberAxis(xscale)
+		chart.Bottom, err = c.Domains.X.makeNumberAxis(c, xscale)
 	case "top":
-		chart.Top, err = c.Domains.X.makeNumberAxis(xscale)
+		chart.Top, err = c.Domains.X.makeNumberAxis(c, xscale)
 	}
 	if err != nil {
 		return err
 	}
 	switch c.Domains.Y.Position {
 	case "left":
-		chart.Left, err = c.Domains.Y.makeNumberAxis(yscale)
+		chart.Left, err = c.Domains.Y.makeNumberAxis(c, yscale)
 	case "right":
-		chart.Right, err = c.Domains.Y.makeNumberAxis(yscale)
+		chart.Right, err = c.Domains.Y.makeNumberAxis(c, yscale)
 	}
 	if err != nil {
 		return err
@@ -319,23 +322,40 @@ func (d Domain) makeTimeScale(rg charts.Range, reverse bool) (charts.Scaler[time
 	return d.Domain.makeTimeScale(rg, d.Format, reverse)
 }
 
-func (d Domain) makeCategoryAxis(scale charts.Scaler[string]) (charts.Axis[string], error) {
-	axe := createAxis[string](d, scale)
-	axe.Format = func(s string) string {
-		return s
+func (d Domain) makeCategoryAxis(cfg Config, scale charts.Scaler[string]) (charts.Axis[string], error) {
+	var (
+		axe    = createAxis[string](d, scale)
+		format func(string) string
+	)
+	if expr, err := cfg.Scripts.Resolve(d.Format); err == nil {
+		format = wrapExpr[string](expr)
+	} else {
+		format = func(s string) string {
+			return s
+		}
 	}
+	axe.Format = format
 	return axe, nil
 }
 
-func (d Domain) makeNumberAxis(scale charts.Scaler[float64]) (charts.Axis[float64], error) {
-	axe := createAxis[float64](d, scale)
-	axe.Format = func(f float64) string {
-		return fmt.Sprintf(d.Format, f)
+func (d Domain) makeNumberAxis(cfg Config, scale charts.Scaler[float64]) (charts.Axis[float64], error) {
+	var (
+		axe    = createAxis[float64](d, scale)
+		format func(float64) string
+	)
+
+	if expr, err := cfg.Scripts.Resolve(d.Format); err == nil {
+		format = wrapExpr[float64](expr)
+	} else {
+		format = func(f float64) string {
+			return fmt.Sprintf(d.Format, f)
+		}
 	}
+	axe.Format = format
 	return axe, nil
 }
 
-func (d Domain) makeTimeAxis(scale charts.Scaler[time.Time]) (charts.Axis[time.Time], error) {
+func (d Domain) makeTimeAxis(cfg Config, scale charts.Scaler[time.Time]) (charts.Axis[time.Time], error) {
 	formatTime, err := makeTimeFormat(d.Format)
 	if err != nil {
 		return charts.Axis[time.Time]{}, err
@@ -343,6 +363,22 @@ func (d Domain) makeTimeAxis(scale charts.Scaler[time.Time]) (charts.Axis[time.T
 	axe := createAxis[time.Time](d, scale)
 	axe.Format = formatTime
 	return axe, nil
+}
+
+func wrapExpr[T any](expr Expression) func(value T) string {
+	return func(value T) string {
+		env := emptyEnv[any]()
+		env.Define("value", value)
+		res, err := eval(expr, env)
+		if err != nil {
+			return fmt.Sprintf("error: %s", err)
+		}
+		str, ok := res.(string)
+		if !ok {
+			return ""
+		}
+		return str
+	}
 }
 
 type Style struct {

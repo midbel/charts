@@ -2,6 +2,7 @@ package dsl
 
 import (
 	"bytes"
+	"errors"
 	"fmt"
 	"io"
 	"os"
@@ -19,8 +20,8 @@ var (
 )
 
 type Decoder struct {
-	path string
-
+	path  string
+	cwd   string
 	shell string
 
 	env *environ[[]string]
@@ -31,13 +32,18 @@ type Decoder struct {
 }
 
 func NewDecoder(r io.Reader) *Decoder {
-	var d Decoder
+	d := Decoder{
+		cwd:   ".",
+		env:   emptyEnv[[]string](),
+		shell: DefaultShell,
+		scan:  Scan(r),
+	}
 	if r, ok := r.(interface{ Name() string }); ok {
 		d.path = filepath.Dir(r.Name())
 	}
-	d.env = emptyEnv[[]string]()
-	d.shell = DefaultShell
-	d.scan = Scan(r)
+	if cwd, err := os.Getwd(); err == nil {
+		d.cwd = cwd
+	}
 	d.next()
 	d.next()
 	return &d
@@ -45,10 +51,10 @@ func NewDecoder(r io.Reader) *Decoder {
 
 func (d *Decoder) Decode() error {
 	cfg := Default()
-	return d.decode(&cfg)
+	return d.decode(&cfg, true)
 }
 
-func (d *Decoder) decode(cfg *Config) error {
+func (d *Decoder) decode(cfg *Config, withRender bool) error {
 	for !d.done() {
 		if d.curr.Type == Comment {
 			d.next()
@@ -69,7 +75,9 @@ func (d *Decoder) decode(cfg *Config) error {
 		case kwInclude:
 			err = d.decodeInclude(cfg)
 		case kwDefine:
-			err = d.decodeDefine()
+			err = d.decodeDefine(cfg)
+		case kwDeclare:
+			err = d.decodeDeclare()
 		default:
 			err = fmt.Errorf("unexpected keyword %s", d.curr.Literal)
 		}
@@ -77,11 +85,13 @@ func (d *Decoder) decode(cfg *Config) error {
 			return err
 		}
 	}
-	if d.curr.Type != Keyword && d.curr.Literal != kwRender {
-		return fmt.Errorf("expected keyword but got %q", d.curr.Literal)
-	}
-	if err := d.decodeRender(cfg); err != nil {
-		return err
+	if withRender {
+		if d.curr.Type != Keyword && d.curr.Literal != kwRender {
+			return fmt.Errorf("expected keyword but got %q", d.curr.Literal)
+		}
+		if err := d.decodeRender(cfg); err != nil {
+			return err
+		}
 	}
 	if d.curr.Type != EOF {
 		return fmt.Errorf("unexpected token %s", d.curr)
@@ -89,7 +99,25 @@ func (d *Decoder) decode(cfg *Config) error {
 	return cfg.Render()
 }
 
-func (d *Decoder) decodeDefine() error {
+func (d *Decoder) decodeDefine(cfg *Config) error {
+	d.next()
+	ident, err := d.getString()
+	if err != nil {
+		return err
+	}
+	if d.curr.Type != Expr {
+		return fmt.Errorf("expected expression, got %s", d.curr)
+	}
+	expr, err := Parse(strings.NewReader(d.curr.Literal))
+	if err != nil {
+		return err
+	}
+	d.next()
+	cfg.Scripts.Define(ident, expr)
+	return d.eol()
+}
+
+func (d *Decoder) decodeDeclare() error {
 	d.next()
 	if d.curr.Type != Literal {
 		return fmt.Errorf("unexpected token %s", d.curr)
@@ -117,15 +145,36 @@ func (d *Decoder) decodeRender(cfg *Config) error {
 	return d.eol()
 }
 
+var errDecode = errors.New("decoder error")
+
 func (d *Decoder) decodeInclude(cfg *Config) error {
-	d.next()
-	r, err := os.Open(d.curr.Literal)
-	if err != nil {
+	decodeFile := func(file string) error {
+		r, err := os.Open(file)
+		if err != nil {
+			return err
+		}
+		defer r.Close()
+
+		err = NewDecoder(r).decode(cfg, false)
+		if err != nil {
+			err = fmt.Errorf("%w: %s in %s", errDecode, err, file)
+		}
 		return err
 	}
-	defer r.Close()
-	if err := NewDecoder(r).decode(cfg); err != nil {
-		return err
+	d.next()
+	list := []string{
+		filepath.Join(d.path, d.curr.Literal),
+		filepath.Join(d.cwd, d.curr.Literal),
+	}
+	d.next()
+	for _, file := range list {
+		err := decodeFile(file)
+		if errors.Is(err, errDecode) {
+			return err
+		}
+		if err == nil {
+			break
+		}
 	}
 	return d.eol()
 }

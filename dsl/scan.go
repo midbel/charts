@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"fmt"
 	"io"
+	"strings"
 	"unicode/utf8"
 )
 
@@ -16,6 +17,7 @@ const (
 	kwLimit   = "limit"
 	kwInclude = "include"
 	kwDefine  = "define"
+	kwDeclare = "declare"
 	// kwTo      = "to"
 	// kwAs      = "as"
 )
@@ -32,6 +34,7 @@ func isKeyword(str string) bool {
 	case kwLimit:
 	case kwInclude:
 	case kwDefine:
+	case kwDeclare:
 	}
 	return true
 }
@@ -48,6 +51,7 @@ const (
 	Comma
 	Lparen
 	Rparen
+	Expr
 	Sum
 	Range
 	RangeSum
@@ -99,6 +103,8 @@ func (t Token) String() string {
 		prefix = "literal"
 	case Number:
 		prefix = "number"
+	case Expr:
+		prefix = "expression"
 	case Comment:
 		prefix = "comment"
 	case Keyword:
@@ -420,10 +426,26 @@ func (s *Scanner) Scan() Token {
 		s.scanNewline(&tok)
 	case isPunct(s.char):
 		s.scanPunct(&tok)
+	case isScript(s.char):
+		s.scanScript(&tok)
 	default:
 		s.scanLiteral(&tok)
 	}
 	return tok
+}
+
+func (s *Scanner) scanScript(tok *Token) {
+	s.read()
+	pos := s.curr
+	for s.char != rcurly && !s.done() {
+		s.read()
+	}
+	str := string(s.input[pos:s.curr])
+	tok.Type = Expr
+	tok.Literal = strings.TrimSpace(str)
+	if s.char != rcurly {
+		tok.Type = Invalid
+	}
 }
 
 func (s *Scanner) scanVariable(tok *Token) {
@@ -583,6 +605,8 @@ const (
 	equal           = '='
 	lparen          = '('
 	rparen          = ')'
+	lcurly          = '{'
+	rcurly          = '}'
 	comma           = ','
 	hash            = '#'
 	dollar          = '$'
@@ -630,6 +654,10 @@ func isOperator(r rune) bool {
 		return false
 	}
 	return true
+}
+
+func isScript(r rune) bool {
+	return r == lcurly
 }
 
 func isChar(r rune) bool {
