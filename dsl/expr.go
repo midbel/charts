@@ -564,14 +564,14 @@ func Parse(r io.Reader) (Expression, error) {
 		lex: Lex(r),
 	}
 	p.prefix = map[rune]func() (Expression, error){
-		Sub:      p.parsePrefix,
-		Not:      p.parsePrefix,
-		Number:   p.parsePrefix,
-		Boolean:   p.parsePrefix,
-		Literal:  p.parsePrefix,
-		Ident:    p.parsePrefix,
-		Lparen:   p.parseGroup,
-		Keyword:  p.parseKeyword,
+		Sub:     p.parsePrefix,
+		Not:     p.parsePrefix,
+		Number:  p.parsePrefix,
+		Boolean: p.parsePrefix,
+		Literal: p.parsePrefix,
+		Ident:   p.parsePrefix,
+		Lparen:  p.parseGroup,
+		Keyword: p.parseKeyword,
 	}
 	p.infix = map[rune]func(Expression) (Expression, error){
 		Add:       p.parseInfix,

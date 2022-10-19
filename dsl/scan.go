@@ -96,22 +96,6 @@ func (x *Lexer) lexNumber(tok *Token) {
 	tok.Literal = string(x.input[pos:x.curr])
 }
 
-func (x *Lexer) lexVariable(tok *Token) {
-	defer x.unread()
-
-	x.read()
-	if !isChar(x.char) {
-		tok.Type = Invalid
-		return
-	}
-	pos := x.curr
-	for isChar(x.char) || isDigit(x.char) {
-		x.read()
-	}
-	tok.Type = Variable
-	tok.Literal = string(x.input[pos:x.curr])
-}
-
 func (x *Lexer) lexOperator(tok *Token) {
 	switch x.char {
 	case ampersand:
@@ -300,15 +284,35 @@ func (s *Scanner) Scan() Token {
 }
 
 func (s *Scanner) scanScript(tok *Token) {
-	s.read()
-	pos := s.curr
-	for s.char != rcurly && !s.done() {
-		s.read()
+	var consume func(int) bool
+	consume = func(level int) bool {
+		for s.char != rcurly && !s.done() {
+			s.read()
+			if s.char == lcurly {
+				s.read()
+				if ok := consume(level + 1); !ok {
+					return ok
+				}
+			}
+		}
+		if s.char != rcurly {
+			return false
+		}
+		if level > 0 {
+			s.read()
+		}
+		return true
 	}
+	s.read()
+	var (
+		pos   = s.curr
+		valid = consume(0)
+	)
+
 	str := string(s.input[pos:s.curr])
 	tok.Type = Expr
 	tok.Literal = strings.TrimSpace(str)
-	if s.char != rcurly {
+	if s.char != rcurly || !valid {
 		tok.Type = Invalid
 	}
 }
