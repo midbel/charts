@@ -11,6 +11,7 @@ import (
 	"strconv"
 	"strings"
 
+	"github.com/midbel/oryx"
 	"github.com/midbel/slices"
 )
 
@@ -108,7 +109,7 @@ func (d *Decoder) decodeDefine(cfg *Config) error {
 	if d.curr.Type != Expr {
 		return fmt.Errorf("expected expression, got %s", d.curr)
 	}
-	expr, err := Parse(strings.NewReader(d.curr.Literal))
+	expr, err := oryx.Parse(strings.NewReader(d.curr.Literal))
 	if err != nil {
 		return err
 	}
