@@ -16,7 +16,106 @@ func Eval(r io.Reader) (interface{}, error) {
 	if err != nil {
 		return nil, err
 	}
-	return eval(expr, emptyEnv[any]())
+	var (
+		env   = emptyEnv[any]()
+		visit = []visitFunc{replaceValue}
+	)
+	if expr, err = traverse(expr, env, visit); err != nil {
+		return nil, err
+	}
+	return eval(expr, env)
+}
+
+type visitFunc func(Expression, *environ[any]) (Expression, error)
+
+func traverse(expr Expression, env *environ[any], visit []visitFunc) (Expression, error) {
+	var err error
+	for _, v := range visit {
+		expr, err = v(expr, env)
+		if err != nil {
+			break
+		}
+	}
+	return expr, err
+}
+
+func replaceExprList(list []Expression, env *environ[any]) ([]Expression, error) {
+	var err error
+	for i := range list {
+		list[i], err = replaceValue(list[i], env)
+		if err != nil {
+			return nil, err
+		}
+	}
+	return list, err
+}
+
+func replaceValue(expr Expression, env *environ[any]) (Expression, error) {
+	var err error
+	switch e := expr.(type) {
+	case script:
+		e.list, err = replaceExprList(e.list, env)
+		return e, err
+	case call:
+		e.args, err = replaceExprList(e.args, env)
+		return e, err
+	case unary:
+		e.right, err = replaceValue(e.right, env)
+		if err != nil {
+			return nil, err
+		}
+		if e.right.isPrimitive() {
+			res, err := evalUnary(e, env)
+			if err != nil {
+				return nil, err
+			}
+			return createPrimitive(res)
+		}
+		return e, nil
+	case binary:
+		e.left, err = replaceValue(e.left, env)
+		if err != nil {
+			return nil, err
+		}
+		e.right, err = replaceValue(e.right, env)
+		if err != nil {
+			return nil, err
+		}
+		if e.left.isPrimitive() && e.right.isPrimitive() {
+			res, err := evalBinary(e, env)
+			if err != nil {
+				return nil, err
+			}
+			return createPrimitive(res)
+		}
+		return e, nil
+	case assign:
+		e.right, err = replaceValue(e.right, env)
+		return e, err
+	case test:
+		e.cdt, err = replaceValue(e.cdt, env)
+		if err != nil {
+			return nil, err
+		}
+		e.csq, err = replaceValue(e.csq, env)
+		if err != nil {
+			return nil, err
+		}
+		if e.alt == nil {
+			return e, nil
+		}
+		e.alt, err = replaceValue(e.alt, env)
+		return e, err
+	case while:
+		e.cdt, err = replaceValue(e.cdt, env)
+		if err != nil {
+			return nil, err
+		}
+		e.body, err = replaceValue(e.body, env)
+		return e, err
+	default:
+		return expr, nil
+	}
 }
 
 func eval(expr Expression, env *environ[any]) (interface{}, error) {
@@ -125,6 +224,9 @@ func evalTest(t test, env *environ[any]) (interface{}, error) {
 	}
 	if isTruthy(res) {
 		return eval(t.csq, env)
+	}
+	if t.alt == nil {
+		return nil, nil
 	}
 	return eval(t.alt, env)
 }
@@ -443,11 +545,15 @@ func isTruthy(v interface{}) bool {
 }
 
 type Expression interface {
-	// TBD
+	isPrimitive() bool
 }
 
 type script struct {
 	list []Expression
+}
+
+func (_ script) isPrimitive() bool {
+	return false
 }
 
 type call struct {
@@ -455,13 +561,17 @@ type call struct {
 	args  []Expression
 }
 
-type ret struct {
-	expr Expression
+func (_ call) isPrimitive() bool {
+	return false
 }
 
 type while struct {
 	cdt  Expression
 	body Expression
+}
+
+func (_ while) isPrimitive() bool {
+	return false
 }
 
 type test struct {
@@ -470,25 +580,86 @@ type test struct {
 	alt Expression
 }
 
+func (_ test) isPrimitive() bool {
+	return false
+}
+
+func createPrimitive(res interface{}) (Expression, error) {
+	switch r := res.(type) {
+	case float64:
+		return createNumber(r), nil
+	case bool:
+		return createBoolean(r), nil
+	case string:
+		return createLiteral(r), nil
+	default:
+		return nil, fmt.Errorf("unexpected returned type from unary")
+	}
+}
+
 type literal struct {
 	str string
+}
+
+func createLiteral(str string) literal {
+	return literal{
+		str: str,
+	}
+}
+
+func (_ literal) isPrimitive() bool {
+	return true
 }
 
 type variable struct {
 	ident string
 }
 
+func createVariable(ident string) variable {
+	return variable{
+		ident: ident,
+	}
+}
+
+func (_ variable) isPrimitive() bool {
+	return false
+}
+
 type boolean struct {
 	value bool
+}
+
+func createBoolean(b bool) boolean {
+	return boolean{
+		value: b,
+	}
+}
+
+func (_ boolean) isPrimitive() bool {
+	return true
 }
 
 type number struct {
 	value float64
 }
 
+func createNumber(f float64) number {
+	return number{
+		value: f,
+	}
+}
+
+func (_ number) isPrimitive() bool {
+	return true
+}
+
 type unary struct {
 	op    rune
 	right Expression
+}
+
+func (_ unary) isPrimitive() bool {
+	return false
 }
 
 type binary struct {
@@ -497,9 +668,17 @@ type binary struct {
 	right Expression
 }
 
+func (_ binary) isPrimitive() bool {
+	return false
+}
+
 type assign struct {
 	ident string
 	right Expression
+}
+
+func (_ assign) isPrimitive() bool {
+	return false
 }
 
 const (
@@ -871,32 +1050,24 @@ func (p *parser) parsePrefix() (Expression, error) {
 			right: right,
 		}
 	case Literal:
-		expr = literal{
-			str: p.curr.Literal,
-		}
+		expr = createLiteral(p.curr.Literal)
 		p.next()
 	case Number:
 		n, err := strconv.ParseFloat(p.curr.Literal, 64)
 		if err != nil {
 			return nil, err
 		}
-		expr = number{
-			value: n,
-		}
+		expr = createNumber(n)
 		p.next()
 	case Ident:
-		expr = variable{
-			ident: p.curr.Literal,
-		}
+		expr = createVariable(p.curr.Literal)
 		p.next()
 	case Boolean:
 		b, err := strconv.ParseBool(p.curr.Literal)
 		if err != nil {
 			return nil, err
 		}
-		expr = boolean{
-			value: b,
-		}
+		expr = createBoolean(b)
 		p.next()
 	default:
 		return nil, fmt.Errorf("unuspported token: %s", p.curr)
