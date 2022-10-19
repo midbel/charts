@@ -13,8 +13,8 @@ import (
 	"strings"
 	"time"
 
+	"github.com/midbel/buddy"
 	"github.com/midbel/charts"
-	"github.com/midbel/oryx"
 	"github.com/midbel/slices"
 	"golang.org/x/sync/errgroup"
 )
@@ -86,7 +86,7 @@ type Config struct {
 
 	Style   Style
 	Env     *environ[any]
-	Scripts *environ[oryx.Expression]
+	Scripts *environ[buddy.Expression]
 }
 
 func Default() Config {
@@ -96,7 +96,7 @@ func Default() Config {
 		Height:     DefaultHeight,
 		TimeFormat: TimeFormat,
 		Style:      GlobalStyle(),
-		Scripts:    emptyEnv[oryx.Expression](),
+		Scripts:    emptyEnv[buddy.Expression](),
 	}
 	cfg.Types.X = TypeNumber
 	cfg.Types.Y = TypeNumber
@@ -366,11 +366,11 @@ func (d Domain) makeTimeAxis(cfg Config, scale charts.Scaler[time.Time]) (charts
 	return axe, nil
 }
 
-func wrapExpr[T any](expr oryx.Expression) func(value T) string {
+func wrapExpr[T any](expr buddy.Expression) func(value T) string {
 	return func(value T) string {
-		env := oryx.EmptyEnv[any]()
+		env := buddy.EmptyEnv[any]()
 		env.Define("value", value)
-		res, err := oryx.Execute(expr, env)
+		res, err := buddy.Execute(expr, env)
 		if err != nil {
 			return fmt.Sprintf("error: %s", err)
 		}
