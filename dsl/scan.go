@@ -39,8 +39,6 @@ func (x *Lexer) Lex() Token {
 		x.lexNumber(&tok)
 	case isOperator(x.char):
 		x.lexOperator(&tok)
-	case isDollar(x.char):
-		x.lexVariable(&tok)
 	case isChar(x.char):
 		x.lexIdent(&tok)
 	case isQuote(x.char):
@@ -75,6 +73,9 @@ func (x *Lexer) lexIdent(tok *Token) {
 	tok.Literal = string(x.input[pos:x.curr])
 	if isKeywordScript(tok.Literal) {
 		tok.Type = Keyword
+	}
+	if tok.Literal == kwTrue || tok.Literal == kwFalse {
+		tok.Type = Boolean
 	}
 }
 

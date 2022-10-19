@@ -38,6 +38,8 @@ func eval(expr Expression, env *environ[any]) (interface{}, error) {
 		return e.str, nil
 	case number:
 		return e.value, nil
+	case boolean:
+		return e.value, nil
 	case variable:
 		return env.Resolve(e.ident)
 	case unary:
@@ -476,6 +478,10 @@ type variable struct {
 	ident string
 }
 
+type boolean struct {
+	value bool
+}
+
 type number struct {
 	value float64
 }
@@ -561,9 +567,9 @@ func Parse(r io.Reader) (Expression, error) {
 		Sub:      p.parsePrefix,
 		Not:      p.parsePrefix,
 		Number:   p.parsePrefix,
+		Boolean:   p.parsePrefix,
 		Literal:  p.parsePrefix,
 		Ident:    p.parsePrefix,
-		Variable: p.parsePrefix,
 		Lparen:   p.parseGroup,
 		Keyword:  p.parseKeyword,
 	}
@@ -878,14 +884,18 @@ func (p *parser) parsePrefix() (Expression, error) {
 			value: n,
 		}
 		p.next()
-	case Variable:
+	case Ident:
 		expr = variable{
 			ident: p.curr.Literal,
 		}
 		p.next()
-	case Ident:
-		expr = call{
-			ident: p.curr.Literal,
+	case Boolean:
+		b, err := strconv.ParseBool(p.curr.Literal)
+		if err != nil {
+			return nil, err
+		}
+		expr = boolean{
+			value: b,
 		}
 		p.next()
 	default:
@@ -894,18 +904,21 @@ func (p *parser) parsePrefix() (Expression, error) {
 	return expr, nil
 }
 
-func (p *parser) parseCall(expr Expression) (Expression, error) {
-	fn, ok := expr.(call)
+func (p *parser) parseCall(left Expression) (Expression, error) {
+	v, ok := left.(variable)
 	if !ok {
 		return nil, fmt.Errorf("syntax error! try to call non function")
 	}
 	p.next()
+	expr := call{
+		ident: v.ident,
+	}
 	for p.curr.Type != Rparen && !p.done() {
 		e, err := p.parse(powLowest)
 		if err != nil {
 			return nil, err
 		}
-		fn.args = append(fn.args, e)
+		expr.args = append(expr.args, e)
 		switch p.curr.Type {
 		case Comma:
 			p.next()
@@ -918,7 +931,7 @@ func (p *parser) parseCall(expr Expression) (Expression, error) {
 		return nil, fmt.Errorf("syntax error! missing closing )")
 	}
 	p.next()
-	return fn, nil
+	return expr, nil
 }
 
 func (p *parser) parseGroup() (Expression, error) {

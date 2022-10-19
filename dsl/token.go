@@ -62,6 +62,7 @@ const (
 	Keyword
 	Literal
 	Ident
+	Boolean
 	Variable
 	Number
 	Command
@@ -134,6 +135,8 @@ func (t Token) String() string {
 		prefix = "comment"
 	case Keyword:
 		prefix = "keyword"
+	case Boolean:
+		prefix = "boolean"
 	case Variable:
 		prefix = "variable"
 	case Ident:
