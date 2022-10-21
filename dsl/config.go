@@ -14,6 +14,7 @@ import (
 	"time"
 
 	"github.com/midbel/buddy"
+	"github.com/midbel/buddy/types"
 	"github.com/midbel/charts"
 	"github.com/midbel/slices"
 	"golang.org/x/sync/errgroup"
@@ -368,17 +369,17 @@ func (d Domain) makeTimeAxis(cfg Config, scale charts.Scaler[time.Time]) (charts
 
 func wrapExpr[T any](expr buddy.Expression) func(value T) string {
 	return func(value T) string {
-		env := buddy.EmptyEnv[any]()
-		env.Define("value", value)
+		p, err := types.CreatePrimitive(value)
+		if err != nil {
+			return ""
+		}
+		env := buddy.EmptyEnv()
+		env.Define("value", p)
 		res, err := buddy.Execute(expr, env)
 		if err != nil {
 			return fmt.Sprintf("error: %s", err)
 		}
-		str, ok := res.(string)
-		if !ok {
-			return ""
-		}
-		return str
+		return res.String()
 	}
 }
 
