@@ -21,8 +21,8 @@ const (
 )
 
 var pad = charts.Padding{
-	Top:    10,
-	Right:  45,
+	Top:    60,
+	Right:  60,
 	Bottom: 60,
 	Left:   60,
 }
@@ -119,7 +119,7 @@ func getSerie(name, color string, skip int) charts.Serie[time.Time, float64] {
 		Color: color,
 		Skip:  skip,
 		Text:  charts.TextAfter,
-		Style: charts.StyleDotted,
+		// Style: charts.StyleDotted,
 	}
 	if skip > 10 {
 		rdr.Point = charts.GetCircle
@@ -133,7 +133,7 @@ func getSerie(name, color string, skip int) charts.Serie[time.Time, float64] {
 func getAxisX(scaler charts.Scaler[time.Time]) charts.Axis[time.Time] {
 	return charts.Axis[time.Time]{
 		Ticks:       7,
-		Rotate:      -45,
+		Rotate:      45,
 		Orientation: charts.OrientBottom,
 		Scaler:      scaler,
 		Format: func(t time.Time) string {
@@ -149,6 +149,7 @@ func getAxisX(scaler charts.Scaler[time.Time]) charts.Axis[time.Time] {
 func getAxisY(scaler charts.Scaler[float64]) charts.Axis[float64] {
 	return charts.Axis[float64]{
 		Ticks:       10,
+		Rotate:      0,
 		Orientation: charts.OrientLeft,
 		Scaler:      scaler,
 		Format: func(f float64) string {

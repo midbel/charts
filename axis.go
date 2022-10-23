@@ -113,14 +113,14 @@ func bandTick(orient Orientation, width, height float64) svg.Rect {
 	var rec svg.Rect
 	rec.Pos = svg.NewPos(0, 0)
 	rec.Dim = svg.NewDim(width, height)
-	switch {
-	case !orient.Vertical() && orient.Reverse():
+	switch orient {
+	case OrientTop:
 		rec.Dim.W, rec.Dim.H = rec.Dim.H, rec.Dim.W
-	case !orient.Vertical() && !orient.Reverse():
+	case OrientBottom:
 		rec.Dim.W, rec.Dim.H = rec.Dim.H, rec.Dim.W
 		rec.Transform.RA = 180
 		rec.Transform.TX = rec.Dim.W
-	case orient.Vertical() && orient.Reverse():
+	case OrientRight:
 		rec.Transform.TX = -rec.Dim.W
 	default:
 	}
@@ -134,14 +134,14 @@ func lineTick(orient Orientation, offset, size float64, stroke svg.Stroke) svg.L
 		pos1 = svg.NewPos(offset, 0)
 		pos2 = svg.NewPos(offset, size)
 	)
-	switch {
-	case orient.Vertical() && !orient.Reverse():
+	switch orient {
+	case OrientLeft:
 		pos2.X, pos2.Y = -pos2.Y, pos2.X
 		pos1.X, pos1.Y = 0, offset
-	case orient.Vertical() && orient.Reverse():
+	case OrientRight:
 		pos2.X, pos2.Y = pos2.Y, pos2.X
 		pos1.X, pos1.Y = 0, offset
-	case !orient.Vertical() && orient.Reverse():
+	case OrientTop:
 		pos2.Y = -pos2.Y
 	default:
 	}
@@ -178,33 +178,65 @@ func tickText(orient Orientation, str string, offset, rotate float64, font svg.F
 	if rotate != 0 {
 		anchor = "end"
 	}
-	switch {
-	case orient.Vertical() && !orient.Reverse():
+	switch orient {
+	case OrientLeft:
 		base = "middle"
 		anchor = "end"
 		x, y = -y, x
-	case orient.Vertical() && orient.Reverse():
+	case OrientRight:
 		base = "middle"
 		anchor = "start"
 		x, y = y, x
-	case !orient.Vertical() && orient.Reverse():
+	case OrientTop:
 		base = "auto"
 		y = -y
 	default:
 	}
-	if rotate != 0 {
-		anchor = "end"
-		if orient.Vertical() && math.Abs(rotate) == 90 {
-			anchor = "middle"
-		}
-	}
 	text := svg.NewText(str)
-	text.Transform.RA = rotate
-	text.Transform.RX = 0
-	text.Transform.RY = 0
 	text.Pos = svg.NewPos(x, y)
 	text.Font = font
 	text.Anchor = anchor
 	text.Baseline = base
+	return rotateText(orient, rotate, text)
+}
+
+func normRotate(rotate float64) float64 {
+	angle := math.Mod(math.Abs(rotate), 90)
+	if angle == 0 {
+		return 90
+	}
+	return angle
+}
+
+func rotateText(orient Orientation, rotate float64, text svg.Text) svg.Text {
+	if rotate == 0 {
+		return text
+	}
+	angle := normRotate(rotate)
+	if orient == OrientLeft || orient == OrientBottom {
+		angle = -angle
+	}
+	ratio := 90 / angle
+	text.Anchor, text.Baseline = "end", "middle"
+	if orient.Vertical() {
+		text.Baseline = "start"
+		if orient == OrientRight {
+			text.Anchor = "start"
+		}
+		text.Pos.Y = -text.Pos.X / ratio
+		if abs := math.Abs(angle); abs == 90 {
+			text.Pos.X = 0
+		} else if abs < 45 {
+			text.Pos.X *= 1.2
+		}
+	} else {
+		text.Pos.X = text.Pos.Y / ratio
+		if abs := math.Abs(angle); abs == 90 {
+			text.Pos.Y = 0
+		} else if abs < 45 {
+			text.Pos.Y *= 1.2
+		}
+	}
+	text.Transform.RA = angle
 	return text
 }
