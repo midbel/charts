@@ -41,19 +41,82 @@ type Renderer[T, U ScalerConstraint] interface {
 }
 
 type PolarRenderer[T ~string, U ~float64] struct {
-	Fill      []string
-	Type      PolarType
-	TicksType LineStyle
-	Stacked   bool
-	Angular   bool
+	Fill       []string
+	Radius     float64
+	Ticks      int
+	TicksStyle LineStyle
+	Type       PolarType
+	Stacked    bool
+	Angular    bool
 }
 
 func (r PolarRenderer[T, U]) Render(serie Serie[T, U]) svg.Element {
-	return nil
+	g := getBaseGroup("", "polar")
+	g.Append(r.drawTicks(serie))
+	return g.AsElement()
 }
 
 func (_ PolarRenderer[T, U]) NeedAxis() bool {
 	return false
+}
+
+func (r PolarRenderer[T, U]) drawTicks(serie Serie[T, U]) svg.Element {
+	var (
+		grp   svg.Group
+		angle = fullcircle / float64(len(serie.Points))
+		step  = r.Radius / float64(r.Ticks)
+		cx    = serie.X.Max() / 2
+		cy    = serie.Y.Max() / 2
+		list  []float64
+	)
+	grp.Transform = svg.Translate(cx, cy)
+	for i := 0; i < len(serie.Points); i++ {
+		ag := angle * float64(i) * deg2rad
+		li := svg.NewLine(svg.NewPos(0, 0), getPosFromAngle(ag, r.Radius))
+		li.Stroke = svg.NewStroke("black", 1)
+		li.Stroke.Opacity = 0.1
+		switch r.TicksStyle {
+		case StyleStraight:
+		case StyleDotted:
+			li.Stroke.DashArray = append(li.Stroke.DashArray, 1, 5)
+		case StyleDashed:
+			li.Stroke.DashArray = append(li.Stroke.DashArray, 10, 5)
+		}
+		list = append(list, ag)
+
+		grp.Append(li.AsElement())
+	}
+	list = append(list, angle*float64(len(serie.Points))*deg2rad)
+	for i := step; i <= r.Radius; i += step {
+		var pat svg.Path
+		pat.Rendering = "geometricPrecision"
+		pat.Stroke = svg.NewStroke("black", 1)
+		pat.Stroke.Opacity = 0.05
+		pat.Fill = svg.NewFill("none")
+		switch r.TicksStyle {
+		case StyleStraight:
+		case StyleDotted:
+			pat.Stroke.DashArray = append(pat.Stroke.DashArray, 1, 5)
+		case StyleDashed:
+			if r.Angular {
+				pat.Stroke.DashArray = append(pat.Stroke.DashArray, 10, 5)
+			}
+		}
+		for j, a := range list {
+			pos := getPosFromAngle(a, i)
+			if j == 0 {
+				pat.AbsMoveTo(pos)
+				continue
+			}
+			if r.Angular {
+				pat.AbsLineTo(pos)
+			} else {
+				pat.AbsArcTo(pos, i, i, 0, true, false)
+			}
+		}
+		grp.Append(pat.AsElement())
+	}
+	return grp.AsElement()
 }
 
 type SunburstRenderer[T ~string, U ~float64] struct {
