@@ -119,6 +119,14 @@ func (r PolarRenderer[T, U]) drawTicks(serie Serie[T, U]) svg.Element {
 	return grp.AsElement()
 }
 
+func (r PolarRenderer[T, U]) drawAngularTicks() svg.Element {
+	return nil
+}
+
+func (r PolarRenderer[T, U]) drawCircularTicks() svg.Element {
+	return nil
+}
+
 type SunburstRenderer[T ~string, U ~float64] struct {
 	Fill        []string
 	InnerRadius float64

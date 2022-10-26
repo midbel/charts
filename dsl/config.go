@@ -88,6 +88,16 @@ type Config struct {
 	Style   Style
 	Env     *environ[any]
 	Scripts *environ[buddy.Expression]
+
+	Cells []Cell
+}
+
+type Cell struct {
+	Row    int
+	Col    int
+	Width  int
+	Height int
+	Config Config
 }
 
 func Default() Config {
@@ -373,7 +383,7 @@ func wrapExpr[T any](expr buddy.Expression) func(value T) string {
 		if err != nil {
 			return ""
 		}
-		env := buddy.EmptyEnv()
+		env := types.EmptyEnv()
 		env.Define("value", p)
 		res, err := buddy.Execute(expr, env)
 		if err != nil {

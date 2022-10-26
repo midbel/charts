@@ -14,6 +14,7 @@ const (
 	kwInclude = "include"
 	kwDefine  = "define"
 	kwDeclare = "declare"
+	kwAt      = "at"
 	// kwTo      = "to"
 	// kwAs      = "as"
 )
@@ -31,6 +32,7 @@ func isKeyword(str string) bool {
 	case kwInclude:
 	case kwDefine:
 	case kwDeclare:
+	case kwAt:
 	}
 	return true
 }

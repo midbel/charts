@@ -1,0 +1,38 @@
+set title "dashboard"
+
+include functions.chart
+
+set xdata string
+set ydata number
+
+at 0,0 (
+	set xdata time
+	set xdomain 2022-01-01,2022-12-31
+	set ydata number
+	set xdomain 0,1000
+
+	set xticks 7
+	set xticks position bottom
+	set xticks label "time"
+
+	set yticks 10
+	set yticks position left
+	set yticks label "values"
+
+	load data/time.csv using 0,1
+)
+
+at 0,1,2,1 (
+	set title "population"
+
+	set xdata string
+	set xdomain data/US.csv using 0
+	set ydata number
+	set ydomain data/US.csv using 1:+9
+)
+
+at 1, 0, 3, 2 include pop.chart
+
+at 3, 0, 3, 2 include stock.chart
+
+render tmp/dashboard.svg

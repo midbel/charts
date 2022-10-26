@@ -52,20 +52,35 @@ func NewDecoder(r io.Reader) *Decoder {
 
 func (d *Decoder) Decode() error {
 	cfg := Default()
-	return d.decode(&cfg, true)
+	return d.decode(&cfg)
 }
 
-func (d *Decoder) decode(cfg *Config, withRender bool) error {
-	for !d.done() {
+func (d *Decoder) decode(cfg *Config) error {
+	accept := func(tok Token) bool {
+		return tok.Type == Keyword && tok.Literal != kwRender
+	}
+	err := d.decodeBody(cfg, accept)
+	if err != nil {
+		return err
+	}
+	if d.curr.Type != Keyword && d.curr.Literal != kwRender {
+		return fmt.Errorf("expected render keyword but got %q", d.curr.Literal)
+	}
+	if err := d.decodeRender(cfg); err != nil {
+		return err
+	}
+	return cfg.Render()
+}
+
+func (d *Decoder) decodeBody(cfg *Config, accept func(Token) bool) error {
+	d.skipEOL()
+	for accept(d.curr) && !d.done() {
 		if d.curr.Type == Comment {
 			d.next()
 			continue
 		}
 		if d.curr.Type != Keyword {
 			return fmt.Errorf("expected keyword but got %q", d.curr.Literal)
-		}
-		if d.curr.Literal == kwRender {
-			break
 		}
 		var err error
 		switch d.curr.Literal {
@@ -77,6 +92,8 @@ func (d *Decoder) decode(cfg *Config, withRender bool) error {
 			err = d.decodeInclude(cfg)
 		case kwDefine:
 			err = d.decodeDefine(cfg)
+		case kwAt:
+			err = d.decodeAt(cfg)
 		case kwDeclare:
 			err = d.decodeDeclare()
 		default:
@@ -85,19 +102,68 @@ func (d *Decoder) decode(cfg *Config, withRender bool) error {
 		if err != nil {
 			return err
 		}
+		d.skipEOL()
 	}
-	if withRender {
-		if d.curr.Type != Keyword && d.curr.Literal != kwRender {
-			return fmt.Errorf("expected keyword but got %q", d.curr.Literal)
+	if accept(d.curr) {
+		return fmt.Errorf("unexpected token %s", d.curr)
+	}
+	return nil
+}
+
+func (d *Decoder) decodeAt(cfg *Config) error {
+	d.next()
+	var (
+		cell Cell
+		err  error
+	)
+	cell.Width = 1
+	cell.Height = 1
+	cell.Config = *cfg
+	cell.Config.Cells = nil
+	if cell.Row, err = d.getInt(); err != nil {
+		return err
+	}
+	if d.curr.Type != Comma {
+		return fmt.Errorf("unexpected token %s", d.curr)
+	}
+	d.next()
+	if cell.Col, err = d.getInt(); err != nil {
+		return err
+	}
+	if d.curr.Type == Comma {
+		d.next()
+		if cell.Width, err = d.getInt(); err != nil {
+			return err
 		}
-		if err := d.decodeRender(cfg); err != nil {
+		if d.curr.Type != Comma {
+			return fmt.Errorf("unexpected token %s", d.curr)
+		}
+		d.next()
+		if cell.Height, err = d.getInt(); err != nil {
 			return err
 		}
 	}
-	if d.curr.Type != EOF {
-		return fmt.Errorf("unexpected token %s", d.curr)
+
+	switch {
+	case d.curr.Type == Keyword && d.curr.Literal == kwInclude:
+		err = d.decodeInclude(&cell.Config)
+	case d.curr.Type == Lparen:
+		d.next()
+		accept := func(tok Token) bool {
+			return tok.Type != Rparen
+		}
+		err = d.decodeBody(&cell.Config, accept)
+		if err == nil {
+			d.next()
+			d.skipEOL()
+		}
+	default:
+		err = fmt.Errorf("unexpected token %s", d.curr)
 	}
-	return cfg.Render()
+	if err == nil {
+		cfg.Cells = append(cfg.Cells, cell)
+	}
+	return err
 }
 
 func (d *Decoder) decodeDefine(cfg *Config) error {
@@ -149,6 +215,9 @@ func (d *Decoder) decodeRender(cfg *Config) error {
 var errDecode = errors.New("decoder error")
 
 func (d *Decoder) decodeInclude(cfg *Config) error {
+	accept := func(tok Token) bool {
+		return tok.Type != EOF
+	}
 	decodeFile := func(file string) error {
 		r, err := os.Open(file)
 		if err != nil {
@@ -156,7 +225,7 @@ func (d *Decoder) decodeInclude(cfg *Config) error {
 		}
 		defer r.Close()
 
-		err = NewDecoder(r).decode(cfg, false)
+		err = NewDecoder(r).decodeBody(cfg, accept)
 		if err != nil {
 			err = fmt.Errorf("%w: %s in %s", errDecode, err, file)
 		}
@@ -235,20 +304,20 @@ func (d *Decoder) decodeSet(cfg *Config) error {
 		cfg.Center.X, err = d.getString()
 	case "xdomain":
 		cfg.Domains.X.Domain, err = d.decodeDomain()
-		// cfg.Domains.X.Domain, err = d.getStringList()
 	case "ydata":
 		cfg.Types.Y, err = d.getType()
 	case "ycenter":
 		cfg.Center.Y, err = d.getString()
 	case "ydomain":
 		cfg.Domains.Y.Domain, err = d.decodeDomain()
-		// cfg.Domains.Y.Domain, err = d.getStringList()
 	case "xticks":
 		return d.decodeTicks(&cfg.Domains.X)
 	case "yticks":
 		return d.decodeTicks(&cfg.Domains.Y)
 	case "style":
 		return d.decodeStyle(&cfg.Style)
+	case "grid":
+		return d.decodeGrid(cfg)
 	case "timefmt":
 		cfg.TimeFormat, err = d.getString()
 	case "delimiter":
@@ -262,6 +331,27 @@ func (d *Decoder) decodeSet(cfg *Config) error {
 		return err
 	}
 	return d.eol()
+}
+
+func (d *Decoder) decodeGrid(cfg *Config) error {
+	d.next()
+	var (
+		cmd = d.curr.Literal
+		err error
+	)
+	switch cmd {
+	case "size":
+	case "title":
+	case "rows":
+	case "cols":
+	case kwWith:
+		err = d.decodeWith(func() error {
+			return d.decodeGrid(cfg)
+		})
+	default:
+		err = fmt.Errorf("%s unsupported/unknown option for ticks", cmd)
+	}
+	return err
 }
 
 func (d *Decoder) decodeDomain() (scalerMaker, error) {
