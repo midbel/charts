@@ -116,6 +116,9 @@ func Default() Config {
 }
 
 func (c Config) Render() error {
+	if len(c.Cells) > 0 {
+		return c.renderDashboard()
+	}
 	var err error
 	switch {
 	case c.Types.X == TypeNumber && c.Types.Y == TypeNumber:
@@ -128,6 +131,10 @@ func (c Config) Render() error {
 		err = fmt.Errorf("unsupported chart type %s/%s", c.Types.X, c.Types.Y)
 	}
 	return err
+}
+
+func (c Config) renderDashboard() error {
+	return nil
 }
 
 func (c Config) renderCategoryChart() error {

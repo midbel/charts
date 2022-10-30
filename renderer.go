@@ -67,64 +67,55 @@ func (r PolarRenderer[T, U]) drawTicks(serie Serie[T, U]) svg.Element {
 		step  = r.Radius / float64(r.Ticks)
 		cx    = serie.X.Max() / 2
 		cy    = serie.Y.Max() / 2
-		list  []float64
+		sk = svg.NewStroke("black", 1)
 	)
+	switch r.TicksStyle {
+	case StyleStraight:
+	case StyleDotted:
+		sk.DashArray = append(sk.DashArray, 1, 5)
+	case StyleDashed:
+		sk.DashArray = append(sk.DashArray, 10, 5)
+	}
 	grp.Transform = svg.Translate(cx, cy)
 	for i := 0; i < len(serie.Points); i++ {
 		ag := angle * float64(i) * deg2rad
 		li := svg.NewLine(svg.NewPos(0, 0), getPosFromAngle(ag, r.Radius))
-		li.Stroke = svg.NewStroke("black", 1)
-		li.Stroke.Opacity = 0.1
-		switch r.TicksStyle {
-		case StyleStraight:
-		case StyleDotted:
-			li.Stroke.DashArray = append(li.Stroke.DashArray, 1, 5)
-		case StyleDashed:
-			li.Stroke.DashArray = append(li.Stroke.DashArray, 10, 5)
-		}
-		list = append(list, ag)
+		li.Stroke = sk
 
 		grp.Append(li.AsElement())
 	}
-	list = append(list, angle*float64(len(serie.Points))*deg2rad)
 	for i := step; i <= r.Radius; i += step {
-		var pat svg.Path
-		pat.Rendering = "geometricPrecision"
-		pat.Stroke = svg.NewStroke("black", 1)
-		pat.Stroke.Opacity = 0.05
-		pat.Fill = svg.NewFill("none")
-		switch r.TicksStyle {
-		case StyleStraight:
-		case StyleDotted:
-			pat.Stroke.DashArray = append(pat.Stroke.DashArray, 1, 5)
-		case StyleDashed:
-			if r.Angular {
-				pat.Stroke.DashArray = append(pat.Stroke.DashArray, 10, 5)
-			}
-		}
-		for j, a := range list {
-			pos := getPosFromAngle(a, i)
-			if j == 0 {
-				pat.AbsMoveTo(pos)
-				continue
-			}
-			if r.Angular {
-				pat.AbsLineTo(pos)
-			} else {
-				pat.AbsArcTo(pos, i, i, 0, true, false)
-			}
-		}
-		grp.Append(pat.AsElement())
+		if r.Angular {
+			c := r.drawAngularTicks(len(serie.Points), i, sk)
+			grp.Append(c)
+		}	else {
+			c := r.drawCircularTicks(float64(i), sk)
+			grp.Append(c)
+		}	
 	}
 	return grp.AsElement()
 }
 
-func (r PolarRenderer[T, U]) drawAngularTicks() svg.Element {
-	return nil
+func (r PolarRenderer[T, U]) drawAngularTicks(n int, radius float64, stroke svg.Stroke) svg.Element {
+	var (
+		pg svg.Polygon
+		ag = fullcircle / float64(n)
+	)
+	pg.Stroke = stroke
+	pg.Fill = svg.NewFill("none")
+	for i := 0; i < n; i++ {
+		a := ag * float64(i) * deg2rad
+		pg.Points = append(pg.Points, getPosFromAngle(a, radius))
+	}
+	return pg.AsElement()
 }
 
-func (r PolarRenderer[T, U]) drawCircularTicks() svg.Element {
-	return nil
+func (r PolarRenderer[T, U]) drawCircularTicks(radius float64, stroke svg.Stroke) svg.Element {
+	var ci svg.Circle
+	ci.Radius = radius
+	ci.Stroke = stroke
+	ci.Fill = svg.NewFill("none")
+	return ci.AsElement()
 }
 
 type SunburstRenderer[T ~string, U ~float64] struct {

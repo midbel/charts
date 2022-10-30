@@ -51,7 +51,7 @@ func getRenderer() charts.Renderer[string, float64] {
 	return charts.PolarRenderer[string, float64]{
 		Ticks:      7,
 		Radius:     260,
-		Angular:    false,
+		Angular:    true,
 		Fill:       charts.Tableau10,
 		TicksStyle: charts.StyleDashed,
 	}
