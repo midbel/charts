@@ -56,6 +56,7 @@ func (r PolarRenderer[T, U]) Render(serie Serie[T, U]) svg.Element {
 		g  = getBaseGroup("", "polar")
 		el svg.Element
 	)
+	g.Transform = svg.Translate(serie.X.Max()/2, serie.Y.Max()/2)
 	g.Append(r.drawTicks(serie))
 	if r.Stacked {
 		el = r.drawStackedArcs(serie)
@@ -78,7 +79,6 @@ func (r PolarRenderer[T, U]) drawStackedArcs(serie Serie[T, U]) svg.Element {
 		scale = serie.Y.replace(NewRange(0, r.Radius))
 		grp   svg.Group
 	)
-	grp.Transform = svg.Translate(serie.X.Max()/2, serie.Y.Max()/2)
 	for i, pt := range serie.Points {
 		var (
 			ori svg.Pos
@@ -123,7 +123,6 @@ func (r PolarRenderer[T, U]) drawArcs(serie Serie[T, U]) svg.Element {
 		scale = serie.Y.replace(NewRange(0, r.Radius))
 		grp   svg.Group
 	)
-	grp.Transform = svg.Translate(serie.X.Max()/2, serie.Y.Max()/2)
 	for i, pt := range serie.Points {
 		var (
 			pat  svg.Path
@@ -152,7 +151,6 @@ func (r PolarRenderer[T, U]) drawArea(serie Serie[T, U]) svg.Element {
 		pg    svg.Polygon
 		grp   svg.Group
 	)
-	grp.Transform = svg.Translate(serie.X.Max()/2, serie.Y.Max()/2)
 	pg.Fill = svg.NewFill("blue")
 	pg.Fill.Opacity = 0.4
 	pg.Stroke = svg.NewStroke("blue", 1.5)
@@ -176,8 +174,6 @@ func (r PolarRenderer[T, U]) drawTicks(serie Serie[T, U]) svg.Element {
 		grp   svg.Group
 		angle = fullcircle / float64(len(serie.Points))
 		step  = r.Radius / float64(r.Ticks)
-		cx    = serie.X.Max() / 2
-		cy    = serie.Y.Max() / 2
 		sk    = svg.NewStroke("black", 1)
 		defs  svg.Defs
 	)
@@ -189,7 +185,6 @@ func (r PolarRenderer[T, U]) drawTicks(serie Serie[T, U]) svg.Element {
 	case StyleDashed:
 		sk.DashArray = append(sk.DashArray, 10, 5)
 	}
-	grp.Transform = svg.Translate(cx, cy)
 	grp.Append(defs.AsElement())
 	for i := 0; i < len(serie.Points); i++ {
 		var (
