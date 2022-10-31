@@ -142,6 +142,8 @@ type Scaler[T ScalerConstraint] interface {
 	Values(int) []T
 	Max() float64
 	Min() float64
+
+	replace(Range) Scaler[T]
 }
 
 type numberScaler struct {
@@ -164,6 +166,11 @@ func (n numberScaler) Space() float64 {
 	return n.Len() / n.Extend()
 }
 
+func (n numberScaler) replace(rg Range) Scaler[float64] {
+	n.Range = rg
+	return n
+}
+
 type timeScaler struct {
 	Range
 	Domain[time.Time]
@@ -182,6 +189,11 @@ func (s timeScaler) Scale(v time.Time) float64 {
 
 func (s timeScaler) Space() float64 {
 	return s.Len() / s.Extend()
+}
+
+func (s timeScaler) replace(rg Range) Scaler[time.Time] {
+	s.Range = rg
+	return s
 }
 
 type stringScaler struct {
@@ -237,4 +249,9 @@ func (s stringScaler) Merge(values []string) Scaler[string] {
 	merge(s.Strings)
 	merge(values)
 	return StringScaler(list, s.Range)
+}
+
+func (s stringScaler) replace(rg Range) Scaler[string] {
+	s.Range = rg
+	return s
 }

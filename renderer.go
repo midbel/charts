@@ -48,16 +48,50 @@ type PolarRenderer[T ~string, U ~float64] struct {
 	Type       PolarType
 	Stacked    bool
 	Angular    bool
+	Point      PointFunc
 }
 
 func (r PolarRenderer[T, U]) Render(serie Serie[T, U]) svg.Element {
-	g := getBaseGroup("", "polar")
+	var (
+		g  = getBaseGroup("", "polar")
+		el svg.Element
+	)
 	g.Append(r.drawTicks(serie))
+	el = r.drawArea(serie)
+	if el != nil {
+		g.Append(el)
+	}
 	return g.AsElement()
 }
 
 func (_ PolarRenderer[T, U]) NeedAxis() bool {
 	return false
+}
+
+func (r PolarRenderer[T, U]) drawArea(serie Serie[T, U]) svg.Element {
+	var (
+		angle = fullcircle / float64(len(serie.Points))
+		scale = serie.Y.replace(NewRange(0, r.Radius))
+		pg    svg.Polygon
+		grp   svg.Group
+	)
+	grp.Transform = svg.Translate(serie.X.Max()/2, serie.Y.Max()/2)
+	pg.Fill = svg.NewFill("blue")
+	pg.Fill.Opacity = 0.4
+	pg.Stroke = svg.NewStroke("blue", 1.5)
+
+	for i, pt := range serie.Points {
+		var (
+			ag  = angle * float64(i) * deg2rad
+			pos = getPosFromAngle(ag, scale.Scale(pt.Y))
+		)
+		if r.Point != nil {
+			grp.Append(r.Point(pos))
+		}
+		pg.Points = append(pg.Points, pos)
+	}
+	grp.Append(pg.AsElement())
+	return grp.AsElement()
 }
 
 func (r PolarRenderer[T, U]) drawTicks(serie Serie[T, U]) svg.Element {
@@ -67,7 +101,7 @@ func (r PolarRenderer[T, U]) drawTicks(serie Serie[T, U]) svg.Element {
 		step  = r.Radius / float64(r.Ticks)
 		cx    = serie.X.Max() / 2
 		cy    = serie.Y.Max() / 2
-		sk = svg.NewStroke("black", 1)
+		sk    = svg.NewStroke("black", 1)
 	)
 	switch r.TicksStyle {
 	case StyleStraight:
@@ -78,9 +112,46 @@ func (r PolarRenderer[T, U]) drawTicks(serie Serie[T, U]) svg.Element {
 	}
 	grp.Transform = svg.Translate(cx, cy)
 	for i := 0; i < len(serie.Points); i++ {
-		ag := angle * float64(i) * deg2rad
-		li := svg.NewLine(svg.NewPos(0, 0), getPosFromAngle(ag, r.Radius))
+		var (
+			ag  = angle * float64(i) * deg2rad
+			pos = getPosFromAngle(ag, r.Radius)
+			li  = svg.NewLine(svg.NewPos(0, 0), pos)
+			txt = svg.NewText(any(serie.Points[i].X).(string))
+		)
 		li.Stroke = sk
+		txt.Font = svg.NewFont(FontSize)
+		txt.Pos = pos
+		switch a := int(angle) * i; {
+		case a >= 345 || a <= 15:
+			txt.Anchor, txt.Baseline = "start", "middle"
+			txt.Pos.X += FontSize
+		case a > 15 && a < 75:
+			txt.Anchor, txt.Baseline = "start", "hanging"
+			txt.Pos.X += FontSize * 0.5
+			txt.Pos.Y += FontSize * 0.5
+		case a >= 75 && a <= 105:
+			txt.Anchor, txt.Baseline = "middle", "hanging"
+			txt.Pos.Y += FontSize
+		case a > 105 && a < 165:
+			txt.Anchor, txt.Baseline = "end", "middle"
+			txt.Pos.X -= FontSize * 0.5
+			txt.Pos.Y += FontSize * 0.5
+		case a >= 165 && a <= 195:
+			txt.Anchor, txt.Baseline = "end", "middle"
+			txt.Pos.X -= FontSize
+		case a > 195 && a < 255:
+			txt.Anchor, txt.Baseline = "end", "middle"
+			txt.Pos.X -= FontSize * 0.5
+			txt.Pos.Y -= FontSize * 0.5
+		case a >= 255 && a <= 285:
+			txt.Anchor, txt.Baseline = "middle", "start"
+			txt.Pos.Y -= FontSize
+		default:
+			txt.Anchor, txt.Baseline = "start", "middle"
+			txt.Pos.X += FontSize * 0.5
+			txt.Pos.Y -= FontSize * 0.5
+		}
+		grp.Append(txt.AsElement())
 
 		grp.Append(li.AsElement())
 	}
@@ -88,10 +159,10 @@ func (r PolarRenderer[T, U]) drawTicks(serie Serie[T, U]) svg.Element {
 		if r.Angular {
 			c := r.drawAngularTicks(len(serie.Points), i, sk)
 			grp.Append(c)
-		}	else {
+		} else {
 			c := r.drawCircularTicks(float64(i), sk)
 			grp.Append(c)
-		}	
+		}
 	}
 	return grp.AsElement()
 }
@@ -810,6 +881,7 @@ const (
 	fullcircle = 360.0
 	halfcircle = 180.0
 	deg2rad    = math.Pi / halfcircle
+	rad2deg    = halfcircle / math.Pi
 )
 
 func getPosFromAngle(angle, radius float64) svg.Pos {
