@@ -87,13 +87,12 @@ func (r PolarRenderer[T, U]) drawStackedArcs(serie Serie[T, U]) svg.Element {
 		)
 		for j, p := range pt.Sub {
 			var (
-				pat   svg.Path
-				color = r.Fill[j%len(r.Fill)]
-				fill  = svg.NewFill(color)
-				y     float64
-				f     float64
-				ag1   = angle * float64(i) * deg2rad
-				ag2   = angle * float64(i+1) * deg2rad
+				pat  svg.Path
+				fill = svg.NewFill(r.Fill[j%len(r.Fill)])
+				y    float64
+				f    float64
+				ag1  = angle * float64(i) * deg2rad
+				ag2  = angle * float64(i+1) * deg2rad
 			)
 			pre = add
 			f = scale.Scale(U(pre))
@@ -101,7 +100,7 @@ func (r PolarRenderer[T, U]) drawStackedArcs(serie Serie[T, U]) svg.Element {
 			y = scale.Scale(U(add))
 			pat.Fill = fill
 			pat.Fill.Opacity = 0.7
-			pat.Stroke = svg.NewStroke(color, 2)
+			pat.Stroke = svg.NewStroke("white", 1)
 
 			pat.AbsMoveTo(ori)
 			pat.AbsLineTo(getPosFromAngle(ag1, y))
@@ -180,6 +179,7 @@ func (r PolarRenderer[T, U]) drawTicks(serie Serie[T, U]) svg.Element {
 		cx    = serie.X.Max() / 2
 		cy    = serie.Y.Max() / 2
 		sk    = svg.NewStroke("black", 1)
+		defs  svg.Defs
 	)
 	sk.Opacity = 0.25
 	switch r.TicksStyle {
@@ -190,47 +190,29 @@ func (r PolarRenderer[T, U]) drawTicks(serie Serie[T, U]) svg.Element {
 		sk.DashArray = append(sk.DashArray, 10, 5)
 	}
 	grp.Transform = svg.Translate(cx, cy)
+	grp.Append(defs.AsElement())
 	for i := 0; i < len(serie.Points); i++ {
 		var (
+			id  = fmt.Sprintf("polar-tick-pat-%03d", i)
 			ag  = angle * float64(i) * deg2rad
 			pos = getPosFromAngle(ag, r.Radius)
 			li  = svg.NewLine(svg.NewPos(0, 0), pos)
-			txt = svg.NewText(any(serie.Points[i].X).(string))
+			txt = svg.NewTextPath(any(serie.Points[i].X).(string), id)
+			pat svg.Path
 		)
-		li.Stroke = sk
+
+		pat.Id = id
+		pat.Stroke = svg.NewStroke("green", 2)
+		pat.AbsMoveTo(pos)
+		pat.AbsArcTo(getPosFromAngle(angle*float64(i+1)*deg2rad, r.Radius), r.Radius, r.Radius, 0, false, true)
+
+		defs.Append(pat.AsElement())
+
 		txt.Font = svg.NewFont(FontSize)
-		txt.Pos = pos
-		switch a := int(angle) * i; {
-		case a >= 345 || a <= 15:
-			txt.Anchor, txt.Baseline = "start", "middle"
-			txt.Pos.X += FontSize
-		case a > 15 && a < 75:
-			txt.Anchor, txt.Baseline = "start", "hanging"
-			txt.Pos.X += FontSize * 0.5
-			txt.Pos.Y += FontSize * 0.5
-		case a >= 75 && a <= 105:
-			txt.Anchor, txt.Baseline = "middle", "hanging"
-			txt.Pos.Y += FontSize
-		case a > 105 && a < 165:
-			txt.Anchor, txt.Baseline = "end", "middle"
-			txt.Pos.X -= FontSize * 0.5
-			txt.Pos.Y += FontSize * 0.5
-		case a >= 165 && a <= 195:
-			txt.Anchor, txt.Baseline = "end", "middle"
-			txt.Pos.X -= FontSize
-		case a > 195 && a < 255:
-			txt.Anchor, txt.Baseline = "end", "middle"
-			txt.Pos.X -= FontSize * 0.5
-			txt.Pos.Y -= FontSize * 0.5
-		case a >= 255 && a <= 285:
-			txt.Anchor, txt.Baseline = "middle", "start"
-			txt.Pos.Y -= FontSize
-		default:
-			txt.Anchor, txt.Baseline = "start", "middle"
-			txt.Pos.X += FontSize * 0.5
-			txt.Pos.Y -= FontSize * 0.5
-		}
+		txt.Shift = svg.NewPos(FontSize*0.5, -FontSize*0.5)
 		grp.Append(txt.AsElement())
+
+		li.Stroke = sk
 		grp.Append(li.AsElement())
 	}
 	for i := step; i <= r.Radius; i += step {
