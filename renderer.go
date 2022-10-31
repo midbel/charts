@@ -48,6 +48,7 @@ type PolarRenderer[T ~string, U ~float64] struct {
 	Type       PolarType
 	Stacked    bool
 	Angular    bool
+	Normalize  bool
 	Point      PointFunc
 }
 
