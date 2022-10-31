@@ -57,7 +57,11 @@ func (r PolarRenderer[T, U]) Render(serie Serie[T, U]) svg.Element {
 		el svg.Element
 	)
 	g.Append(r.drawTicks(serie))
-	el = r.drawArea(serie)
+	if r.Stacked {
+		el = r.drawStackedArcs(serie)
+	} else {
+		el = r.drawArcs(serie)
+	}
 	if el != nil {
 		g.Append(el)
 	}
@@ -66,6 +70,80 @@ func (r PolarRenderer[T, U]) Render(serie Serie[T, U]) svg.Element {
 
 func (_ PolarRenderer[T, U]) NeedAxis() bool {
 	return false
+}
+
+func (r PolarRenderer[T, U]) drawStackedArcs(serie Serie[T, U]) svg.Element {
+	var (
+		angle = fullcircle / float64(len(serie.Points))
+		scale = serie.Y.replace(NewRange(0, r.Radius))
+		grp   svg.Group
+	)
+	grp.Transform = svg.Translate(serie.X.Max()/2, serie.Y.Max()/2)
+	for i, pt := range serie.Points {
+		var (
+			ori svg.Pos
+			add float64
+			pre float64
+		)
+		for j, p := range pt.Sub {
+			var (
+				pat   svg.Path
+				color = r.Fill[j%len(r.Fill)]
+				fill  = svg.NewFill(color)
+				y     float64
+				f     float64
+				ag1   = angle * float64(i) * deg2rad
+				ag2   = angle * float64(i+1) * deg2rad
+			)
+			pre = add
+			f = scale.Scale(U(pre))
+			add += any(p.Y).(float64)
+			y = scale.Scale(U(add))
+			pat.Fill = fill
+			pat.Fill.Opacity = 0.7
+			pat.Stroke = svg.NewStroke(color, 2)
+
+			pat.AbsMoveTo(ori)
+			pat.AbsLineTo(getPosFromAngle(ag1, y))
+			pat.AbsArcTo(getPosFromAngle(ag2, y), y, y, 0, false, true)
+			pat.AbsLineTo(getPosFromAngle(ag2, f))
+			pat.AbsArcTo(ori, f, f, 0, false, false)
+			pat.ClosePath()
+
+			ori = getPosFromAngle(ag1, y)
+
+			grp.Append(pat.AsElement())
+		}
+	}
+	return grp.AsElement()
+}
+
+func (r PolarRenderer[T, U]) drawArcs(serie Serie[T, U]) svg.Element {
+	var (
+		angle = fullcircle / float64(len(serie.Points))
+		scale = serie.Y.replace(NewRange(0, r.Radius))
+		grp   svg.Group
+	)
+	grp.Transform = svg.Translate(serie.X.Max()/2, serie.Y.Max()/2)
+	for i, pt := range serie.Points {
+		var (
+			pat  svg.Path
+			fill = svg.NewFill(r.Fill[i%len(r.Fill)])
+			ag1  = angle * float64(i) * deg2rad
+			ag2  = angle * float64(i+1) * deg2rad
+			y    = scale.Scale(pt.Y)
+		)
+		pat.Fill = fill
+		pat.Fill.Opacity = 0.9
+		pat.Stroke = svg.NewStroke("white", 2)
+		pat.AbsMoveTo(svg.NewPos(0, 0))
+		pat.AbsLineTo(getPosFromAngle(ag1, y))
+		pat.AbsArcTo(getPosFromAngle(ag2, y), y, y, 0, false, true)
+		pat.AbsLineTo(svg.NewPos(0, 0))
+		pat.ClosePath()
+		grp.Append(pat.AsElement())
+	}
+	return grp.AsElement()
 }
 
 func (r PolarRenderer[T, U]) drawArea(serie Serie[T, U]) svg.Element {
@@ -103,6 +181,7 @@ func (r PolarRenderer[T, U]) drawTicks(serie Serie[T, U]) svg.Element {
 		cy    = serie.Y.Max() / 2
 		sk    = svg.NewStroke("black", 1)
 	)
+	sk.Opacity = 0.25
 	switch r.TicksStyle {
 	case StyleStraight:
 	case StyleDotted:
@@ -152,7 +231,6 @@ func (r PolarRenderer[T, U]) drawTicks(serie Serie[T, U]) svg.Element {
 			txt.Pos.Y -= FontSize * 0.5
 		}
 		grp.Append(txt.AsElement())
-
 		grp.Append(li.AsElement())
 	}
 	for i := step; i <= r.Radius; i += step {
