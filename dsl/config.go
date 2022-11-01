@@ -1,6 +1,7 @@
 package dsl
 
 import (
+	"bufio"
 	"encoding/csv"
 	"errors"
 	"fmt"
@@ -16,8 +17,9 @@ import (
 	"github.com/midbel/buddy"
 	"github.com/midbel/buddy/types"
 	"github.com/midbel/charts"
+	"github.com/midbel/charts/layout"
 	"github.com/midbel/slices"
-	"golang.org/x/sync/errgroup"
+	"github.com/midbel/svg"
 )
 
 var (
@@ -53,6 +55,35 @@ const (
 	RenderNormStack  = "stack-normalize"
 	RenderGroup      = "group"
 )
+
+type Renderer interface {
+	layout.Renderer
+	Render(io.Writer)
+}
+
+type chartMaker struct {
+	charts.Drawner
+	series []charts.Data
+}
+
+func chartRenderer(ch charts.Drawner, series []charts.Data) Renderer {
+	return chartMaker{
+		Drawner: ch,
+		series:  series,
+	}
+}
+
+func (c chartMaker) Element() svg.Element {
+	return c.Drawn(c.series...)
+}
+
+func (c chartMaker) Render(w io.Writer) {
+	ws := bufio.NewWriter(w)
+	defer ws.Flush()
+
+	el := c.Element()
+	el.Render(ws)
+}
 
 type Config struct {
 	Title  string
@@ -119,25 +150,85 @@ func (c Config) Render() error {
 	if len(c.Cells) > 0 {
 		return c.renderDashboard()
 	}
-	var err error
-	switch {
-	case c.Types.X == TypeNumber && c.Types.Y == TypeNumber:
-		err = c.renderNumberChart()
-	case c.Types.X == TypeTime && c.Types.Y == TypeNumber:
-		err = c.renderTimeChart()
-	case c.Types.X == TypeString && c.Types.Y == TypeNumber:
-		err = c.renderCategoryChart()
-	default:
-		err = fmt.Errorf("unsupported chart type %s/%s", c.Types.X, c.Types.Y)
+	rdr, err := c.render()
+	if err != nil {
+		return err
 	}
-	return err
-}
-
-func (c Config) renderDashboard() error {
+	w, err := os.Create(c.Path)
+	if err != nil {
+		return err
+	}
+	rdr.Render(w)
 	return nil
 }
 
-func (c Config) renderCategoryChart() error {
+func (c Config) render() (Renderer, error) {
+	var (
+		err error
+		mak Renderer
+	)
+	switch {
+	case c.Types.X == TypeNumber && c.Types.Y == TypeNumber:
+		mak, err = c.makeNumberChart()
+	case c.Types.X == TypeTime && c.Types.Y == TypeNumber:
+		mak, err = c.makeTimeChart()
+	case c.Types.X == TypeString && c.Types.Y == TypeNumber:
+		mak, err = c.makeCategoryChart()
+	default:
+		err = fmt.Errorf("unsupported chart type %s/%s", c.Types.X, c.Types.Y)
+	}
+	return mak, err
+}
+
+func (c Config) renderDashboard() error {
+	var (
+		err  error
+		grid layout.Grid
+	)
+	grid = layout.Grid{
+		Width:  c.Width,
+		Height: c.Height,
+	}
+	grid.Rows, grid.Cols = c.computeGridDimension()
+
+	for _, cs := range c.Cells {
+		cell := layout.Cell{
+			X: cs.Row,
+			Y: cs.Col,
+			W: cs.Width,
+			H: cs.Height,
+		}
+		if cell.Item, err = cs.Config.render(); err != nil {
+			return err
+		}
+		grid.Cells = append(grid.Cells, cell)
+	}
+
+	w, err := os.Create(c.Path)
+	if err != nil {
+		return err
+	}
+	defer w.Close()
+
+	return grid.Render(w)
+}
+
+func (c Config) computeGridDimension() (int, int) {
+	var rows, cols int
+	for _, e := range c.Cells {
+		r := e.Row + e.Height
+		if r > rows {
+			rows = r
+		}
+		c := e.Col + e.Width
+		if c > cols {
+			cols = c
+		}
+	}
+	return rows, cols
+}
+
+func (c Config) makeCategoryChart() (Renderer, error) {
 	var (
 		xrange = c.createRangeX()
 		yrange = c.createRangeY()
@@ -146,22 +237,17 @@ func (c Config) renderCategoryChart() error {
 	)
 	xscale, err := c.Domains.X.makeCategoryScale(xrange)
 	if err != nil {
-		return err
+		return nil, err
 	}
 	yscale, err := c.Domains.Y.makeNumberScale(yrange, true)
 	if err != nil {
-		return err
+		return nil, err
 	}
-	var grp errgroup.Group
 	for i := range c.Files {
-		s, j := c.Files[i], i
-		grp.Go(func() (err error) {
-			series[j], err = s.makeCategorySerie(c.Style, xscale, yscale)
-			return err
-		})
-	}
-	if err := grp.Wait(); err != nil {
-		return err
+		series[i], err = c.Files[i].makeCategorySerie(c.Style, xscale, yscale)
+		if err != nil {
+			return nil, err
+		}
 	}
 	switch c.Domains.X.Position {
 	case "bottom":
@@ -170,7 +256,7 @@ func (c Config) renderCategoryChart() error {
 		chart.Top, err = c.Domains.X.makeCategoryAxis(c, xscale)
 	}
 	if err != nil {
-		return err
+		return nil, err
 	}
 	switch c.Domains.Y.Position {
 	case "left":
@@ -179,12 +265,12 @@ func (c Config) renderCategoryChart() error {
 		chart.Right, err = c.Domains.Y.makeNumberAxis(c, yscale)
 	}
 	if err != nil {
-		return err
+		return nil, err
 	}
-	return renderChart(c.Path, chart, series)
+	return chartRenderer(chart, series), nil
 }
 
-func (c Config) renderTimeChart() error {
+func (c Config) makeTimeChart() (Renderer, error) {
 	var (
 		xrange = c.createRangeX()
 		yrange = c.createRangeY()
@@ -193,22 +279,17 @@ func (c Config) renderTimeChart() error {
 	)
 	xscale, err := c.Domains.X.makeTimeScale(xrange, false)
 	if err != nil {
-		return err
+		return nil, err
 	}
 	yscale, err := c.Domains.Y.makeNumberScale(yrange, true)
 	if err != nil {
-		return err
+		return nil, err
 	}
-	var grp errgroup.Group
 	for i := range c.Files {
-		s, j := c.Files[i], i
-		grp.Go(func() (err error) {
-			series[j], err = s.makeTimeSerie(c.Style, c.TimeFormat, xscale, yscale)
-			return err
-		})
-	}
-	if err := grp.Wait(); err != nil {
-		return err
+		series[i], err = c.Files[i].makeTimeSerie(c.Style, c.TimeFormat, xscale, yscale)
+		if err != nil {
+			return nil, err
+		}
 	}
 	switch c.Domains.X.Position {
 	case "bottom":
@@ -217,7 +298,7 @@ func (c Config) renderTimeChart() error {
 		chart.Top, err = c.Domains.X.makeTimeAxis(c, xscale)
 	}
 	if err != nil {
-		return err
+		return nil, err
 	}
 	switch c.Domains.Y.Position {
 	case "left":
@@ -226,12 +307,12 @@ func (c Config) renderTimeChart() error {
 		chart.Right, err = c.Domains.Y.makeNumberAxis(c, yscale)
 	}
 	if err != nil {
-		return err
+		return nil, err
 	}
-	return renderChart(c.Path, chart, series)
+	return chartRenderer(chart, series), nil
 }
 
-func (c Config) renderNumberChart() error {
+func (c Config) makeNumberChart() (Renderer, error) {
 	var (
 		xrange = c.createRangeX()
 		yrange = c.createRangeY()
@@ -240,25 +321,20 @@ func (c Config) renderNumberChart() error {
 	)
 	xscale, err := c.Domains.X.makeNumberScale(xrange, false)
 	if err != nil {
-		return err
+		return nil, err
 	}
 	yscale, err := c.Domains.Y.makeNumberScale(yrange, true)
 	if err != nil {
-		return err
+		return nil, err
 	}
 	if pt, ok, err := c.getNumberCenter(); ok && err == nil {
 		chart.Center = pt
 	}
-	var grp errgroup.Group
 	for i := range c.Files {
-		s, j := c.Files[i], i
-		grp.Go(func() (err error) {
-			series[j], err = s.makeNumberSerie(c.Style, xscale, yscale)
-			return err
-		})
-	}
-	if err := grp.Wait(); err != nil {
-		return err
+		series[i], err = c.Files[i].makeNumberSerie(c.Style, xscale, yscale)
+		if err != nil {
+			return nil, err
+		}
 	}
 	switch c.Domains.X.Position {
 	case "bottom":
@@ -267,7 +343,7 @@ func (c Config) renderNumberChart() error {
 		chart.Top, err = c.Domains.X.makeNumberAxis(c, xscale)
 	}
 	if err != nil {
-		return err
+		return nil, err
 	}
 	switch c.Domains.Y.Position {
 	case "left":
@@ -276,9 +352,9 @@ func (c Config) renderNumberChart() error {
 		chart.Right, err = c.Domains.Y.makeNumberAxis(c, yscale)
 	}
 	if err != nil {
-		return err
+		return nil, err
 	}
-	return renderChart(c.Path, chart, series)
+	return chartRenderer(chart, series), nil
 }
 
 func (c Config) getNumberCenter() (charts.Point[float64, float64], bool, error) {
@@ -627,10 +703,6 @@ func loadCategoryPoints(f File) ([]charts.Point[string, float64], error) {
 			}
 			pt.Y = total
 		}
-		// pt.Y, err = strconv.ParseFloat(row[f.Y], 64)
-		// if err != nil {
-		// 	return pt, err
-		// }
 		return pt, nil
 	}
 	return loadPoints[string, float64](f.Path, get)
@@ -651,10 +723,6 @@ func loadNumberPoints(f File) ([]charts.Point[float64, float64], error) {
 			return pt, err
 		}
 		pt.Y = slices.Fst(values)
-		// pt.Y, err = strconv.ParseFloat(row[f.Y], 64)
-		// if err != nil {
-		// 	return pt, err
-		// }
 		return pt, nil
 	}
 	return loadPoints[float64, float64](f.Path, get)
@@ -675,10 +743,6 @@ func loadTimePoints(f File, parseTime func(string) (time.Time, error)) ([]charts
 			return pt, err
 		}
 		pt.Y = slices.Fst(values)
-		// pt.Y, err = strconv.ParseFloat(row[f.Y], 64)
-		// if err != nil {
-		// 	return pt, err
-		// }
 		return pt, nil
 	}
 	return loadPoints[time.Time, float64](f.Path, get)

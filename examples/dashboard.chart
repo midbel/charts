@@ -1,38 +1,95 @@
-set title "dashboard"
+set title "stock prices evolution"
+set timefmt %Y-%m-%d
+set size 1366,1366
 
-include functions.chart
-
-set xdata string
+set xdata time
 set ydata number
+set xdomain 2018-09-19,2022-09-30
+set ydomain 0,350
+
+set style with (
+	type line
+	color black
+	ignore-missing true
+	text-position text-after
+)
+
+set xticks with (
+	count 7
+	position bottom
+	label "time (2018-09-19 - 2022-10-01)"
+	format %Y-%m-%d
+	label-ticks true
+	band-ticks true
+	inner-ticks true
+)
+
+set yticks with (
+	count 10
+	position left
+	label "prices ($)"
+	format "%.2f"
+	label-ticks true
+	outer-ticks true
+	inner-ticks true
+)
 
 at 0,0 (
-	set xdata time
-	set xdomain 2022-01-01,2022-12-31
-	set ydata number
-	set xdomain 0,1000
-
-	set xticks 7
-	set xticks position bottom
-	set xticks label "time"
-
-	set yticks 10
-	set yticks position left
-	set yticks label "values"
-
-	load data/time.csv using 0,1
+	set title "google"
+	set padding 60
+	set ydomain 0,170
+	load data/GOOG.csv using 0,1 with (
+		type line
+		color blue
+	)
+)
+at 0,1 (
+	set title "apple"
+	set padding 60
+	set ydomain 0,210
+	load data/AAPL.csv using 0,1 with (
+		type line
+		color blue
+	)
+)
+at 1,0 (
+	set title "twitter"
+	set padding 60
+	set ydomain 0,110
+	load data/TWTR.csv using 0,1 with (
+		type line
+		color blue
+	)
+)
+at 1,1 (
+	set title "microsoft"
+	set padding 60
+	load data/MSFT.csv using 0,1 with (
+		type line
+		color blue
+	)
 )
 
-at 0,1,2,1 (
-	set title "population"
+at 2, 0, 2, 2 (
+	set title "stock prices evolution"
+	set padding 60
+	load data/GOOG.csv using 0,1 with (
+		type line
+		color blue
 
-	set xdata string
-	set xdomain data/US.csv using 0
-	set ydata number
-	set ydomain data/US.csv using 1:+9
+	)
+	load data/MSFT.csv using 0,1 with (
+		type line
+		color red
+	)
+	load data/AAPL.csv using 0,1 with (
+		type line
+		color green
+	)
+	load data/TWTR.csv using 0,1 with (
+		type line
+		color grey
+	)
 )
-
-at 1, 0, 3, 2 include pop.chart
-
-at 3, 0, 3, 2 include stock.chart
 
 render tmp/dashboard.svg

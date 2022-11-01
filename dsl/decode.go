@@ -147,6 +147,9 @@ func (d *Decoder) decodeAt(cfg *Config) error {
 	switch {
 	case d.curr.Type == Keyword && d.curr.Literal == kwInclude:
 		err = d.decodeInclude(&cell.Config)
+		if len(cell.Config.Cells) != 0 {
+			return fmt.Errorf("nested grid not supported")
+		}
 	case d.curr.Type == Lparen:
 		d.next()
 		accept := func(tok Token) bool {

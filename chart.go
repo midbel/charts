@@ -7,6 +7,10 @@ import (
 	"github.com/midbel/svg"
 )
 
+type Drawner interface {
+	Drawn(...Data) svg.Element
+}
+
 type Padding struct {
 	Top    float64
 	Right  float64
@@ -49,7 +53,7 @@ func (c Chart[T, U]) DrawingHeight() float64 {
 	return c.Height - c.Padding.Vertical()
 }
 
-func (c Chart[T, U]) Render(w io.Writer, set ...Data) {
+func (c Chart[T, U]) Drawn(set ...Data) svg.Element {
 	var el svg.SVG
 	el.Dim = svg.NewDim(c.Width, c.Height)
 	el.OmitProlog = true
@@ -66,6 +70,11 @@ func (c Chart[T, U]) Render(w io.Writer, set ...Data) {
 	// if ld := c.drawLegend(set); ld != nil {
 	// 	el.Append(ld)
 	// }
+	return el.AsElement()
+}
+
+func (c Chart[T, U]) Render(w io.Writer, set ...Data) {
+	el := c.Drawn(set...)
 
 	bw := bufio.NewWriter(w)
 	defer bw.Flush()

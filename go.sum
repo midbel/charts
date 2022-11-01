@@ -1,2 +1,2 @@
-golang.org/x/sync v0.0.0-20220929204114-8fcdb60fdcc0 h1:cu5kTvlzcw1Q5S9f5ip1/cpiB4nXvw1XYzFPGgzLUOY=
-golang.org/x/sync v0.0.0-20220929204114-8fcdb60fdcc0/go.mod h1:RxMgew5VJxzue5/jJTE5uejpjVlOe/izrB70Jof72aM=
+github.com/midbel/sax v0.1.1 h1:t/DB3qAKPe2FLkAk4v5pjJLR7vN2+WXpxoiBUJwlZUY=
+github.com/midbel/sax v0.1.1/go.mod h1:J5iUIQnFE4ALuzlpvm79qaUI3aesWi9xwx8UGEtf34M=
