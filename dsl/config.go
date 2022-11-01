@@ -17,7 +17,7 @@ import (
 	"github.com/midbel/buddy"
 	"github.com/midbel/buddy/types"
 	"github.com/midbel/charts"
-	"github.com/midbel/charts/layout"
+	"github.com/midbel/svg/layout"
 	"github.com/midbel/slices"
 	"github.com/midbel/svg"
 )
