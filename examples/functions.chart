@@ -1,12 +1,16 @@
 define by_million {
+	import strings
+	import io
 	value = value / (1000*1000)
-	value ? printf("%.3f", value) : "0"
+	return value ? strings.format("%.3f", value) : "0"
 }
 
 define to_lowercase {
-	lower(value)
+	import strings
+	return strings.lower(value)
 }
 
 define to_uppercase {
-	upper(value)
+	import strings
+	return strings.upper(value)
 }

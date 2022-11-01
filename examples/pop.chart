@@ -16,6 +16,7 @@ set xticks with (
 	position bottom
 	label-ticks true
 	inner-ticks true
+	format to_lowercase
 )
 
 set yticks with (
