@@ -1,2 +1,4 @@
 github.com/midbel/sax v0.1.1 h1:t/DB3qAKPe2FLkAk4v5pjJLR7vN2+WXpxoiBUJwlZUY=
 github.com/midbel/sax v0.1.1/go.mod h1:J5iUIQnFE4ALuzlpvm79qaUI3aesWi9xwx8UGEtf34M=
+github.com/midbel/slices v0.2.0 h1:As28Z5TdTaUFQml9gM/Swy4Icw4qOKYMV/jttvIAPAQ=
+github.com/midbel/slices v0.2.0/go.mod h1:uKstGBCfyQnPPr776jKPo/NMWpiJjYx463lANVMYSgk=
