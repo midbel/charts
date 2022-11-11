@@ -11,7 +11,7 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/midbel/buddy"
+	"github.com/midbel/buddy/parse"
 	"github.com/midbel/slices"
 )
 
@@ -178,7 +178,7 @@ func (d *Decoder) decodeDefine(cfg *Config) error {
 	if d.curr.Type != Expr {
 		return fmt.Errorf("expected expression, got %s", d.curr)
 	}
-	expr, err := buddy.Parse(strings.NewReader(d.curr.Literal))
+	expr, err := parse.New(strings.NewReader(d.curr.Literal)).Parse()
 	if err != nil {
 		return err
 	}

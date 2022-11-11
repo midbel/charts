@@ -2,7 +2,16 @@
 	"folders":
 	[
 		{
-			"path": "."
-		}
-	]
+			"path": ".",
+		},
+		{
+			"path": "/home/nico/Devel/Play/src/midbel/buddy",
+		},
+		{
+			"path": "/home/nico/Devel/Play/src/midbel/slices",
+		},
+		{
+			"path": "/home/nico/Devel/Play/src/midbel/svg"
+		},
+	],
 }

@@ -14,12 +14,13 @@ import (
 	"strings"
 	"time"
 
-	"github.com/midbel/buddy"
+	"github.com/midbel/buddy/ast"
+	"github.com/midbel/buddy/eval"
 	"github.com/midbel/buddy/types"
 	"github.com/midbel/charts"
-	"github.com/midbel/svg/layout"
 	"github.com/midbel/slices"
 	"github.com/midbel/svg"
+	"github.com/midbel/svg/layout"
 )
 
 var (
@@ -118,7 +119,7 @@ type Config struct {
 
 	Style   Style
 	Env     *environ[any]
-	Scripts *environ[buddy.Expression]
+	Scripts *environ[ast.Expression]
 
 	Cells []Cell
 }
@@ -138,7 +139,7 @@ func Default() Config {
 		Height:     DefaultHeight,
 		TimeFormat: TimeFormat,
 		Style:      GlobalStyle(),
-		Scripts:    emptyEnv[buddy.Expression](),
+		Scripts:    emptyEnv[ast.Expression](),
 	}
 	cfg.Types.X = TypeNumber
 	cfg.Types.Y = TypeNumber
@@ -460,7 +461,7 @@ func (d Domain) makeTimeAxis(cfg Config, scale charts.Scaler[time.Time]) (charts
 	return axe, nil
 }
 
-func wrapExpr[T any](expr buddy.Expression) func(value T) string {
+func wrapExpr[T any](expr ast.Expression) func(value T) string {
 	return func(value T) string {
 		p, err := types.CreatePrimitive(value)
 		if err != nil {
@@ -468,7 +469,7 @@ func wrapExpr[T any](expr buddy.Expression) func(value T) string {
 		}
 		env := types.EmptyEnv()
 		env.Define("value", p)
-		res, err := buddy.Execute(expr, env)
+		res, err := eval.Execute(expr, env)
 		if err != nil {
 			return fmt.Sprintf("error: %s", err)
 		}

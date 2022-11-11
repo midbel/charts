@@ -10,5 +10,5 @@ require (
 )
 
 replace github.com/midbel/svg v0.0.1 => ../svg
-
+replace github.com/midbel/slices v0.2.0 => ../slices
 replace github.com/midbel/buddy v0.0.1 => ../buddy
