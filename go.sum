@@ -1,4 +1,4 @@
-github.com/midbel/sax v0.1.1 h1:t/DB3qAKPe2FLkAk4v5pjJLR7vN2+WXpxoiBUJwlZUY=
-github.com/midbel/sax v0.1.1/go.mod h1:J5iUIQnFE4ALuzlpvm79qaUI3aesWi9xwx8UGEtf34M=
-github.com/midbel/slices v0.2.0 h1:As28Z5TdTaUFQml9gM/Swy4Icw4qOKYMV/jttvIAPAQ=
-github.com/midbel/slices v0.2.0/go.mod h1:uKstGBCfyQnPPr776jKPo/NMWpiJjYx463lANVMYSgk=
+github.com/midbel/slices v0.2.1 h1:UHCBsx80w9+mzfaZyd8hlskKhUi6ncxHBOrpAVgL5e4=
+github.com/midbel/slices v0.2.1/go.mod h1:uKstGBCfyQnPPr776jKPo/NMWpiJjYx463lANVMYSgk=
+github.com/midbel/svg v0.1.0 h1:/lEgBhzsCACsotFsgQHtDRfnLIZ2nKgGeT9gAZdC9oQ=
+github.com/midbel/svg v0.1.0/go.mod h1:ueDRRhBKKcbIBX9GIsCQG+fZOrZLKmwV0eu5zu50BL4=
