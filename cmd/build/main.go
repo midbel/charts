@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"os"
 
-	"github.com/midbel/charts/dsl"
+	"github.com/midbel/charts/decode"
 )
 
 func main() {
@@ -18,7 +18,7 @@ func main() {
 	}
 	defer r.Close()
 
-	if err = dsl.NewDecoder(r).Decode(); err != nil {
+	if err = decode.NewDecoder(r).Decode(); err != nil {
 		fmt.Fprintln(os.Stderr, err)
 	}
 }

@@ -1,4 +1,4 @@
-package dsl
+package decode
 
 import (
 	"fmt"

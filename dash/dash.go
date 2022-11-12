@@ -1,4 +1,4 @@
-package dsl
+package dash
 
 import (
 	"bufio"
@@ -118,8 +118,8 @@ type Config struct {
 	Files []File
 
 	Style   Style
-	Env     *environ[any]
-	Scripts *environ[ast.Expression]
+	Env     *Environ[any]
+	Scripts *Environ[ast.Expression]
 
 	Cells []Cell
 }
@@ -139,7 +139,7 @@ func Default() Config {
 		Height:     DefaultHeight,
 		TimeFormat: TimeFormat,
 		Style:      GlobalStyle(),
-		Scripts:    emptyEnv[ast.Expression](),
+		Scripts:    EmptyEnv[ast.Expression](),
 	}
 	cfg.Types.X = TypeNumber
 	cfg.Types.Y = TypeNumber
@@ -389,7 +389,7 @@ type Domain struct {
 	Label      string
 	Ticks      int
 	Format     string
-	Domain     scalerMaker
+	Domain     ScalerMaker
 	Position   string
 	InnerTicks bool
 	OuterTicks bool

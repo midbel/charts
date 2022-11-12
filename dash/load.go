@@ -1,4 +1,4 @@
-package dsl
+package dash
 
 import (
 	"encoding/csv"
@@ -14,7 +14,7 @@ import (
 	"github.com/midbel/slices"
 )
 
-type scalerMaker interface {
+type ScalerMaker interface {
 	makeTimeScale(charts.Range, string, bool) (charts.Scaler[time.Time], error)
 	makeNumberScale(charts.Range, bool) (charts.Scaler[float64], error)
 	makeCategoryScale(charts.Range) (charts.Scaler[string], error)
@@ -26,7 +26,7 @@ type listScaler struct {
 	values []string
 }
 
-func scaleFromList(vs []string) scalerMaker {
+func ScaleFromList(vs []string) ScalerMaker {
 	return listScaler{
 		values: vs,
 	}
@@ -78,13 +78,13 @@ func (s listScaler) makeCategoryScale(rg charts.Range) (charts.Scaler[string], e
 
 type fileScaler struct {
 	path string
-	indexer
+	Indexer
 }
 
-func scaleFromFile(path string, ix indexer) scalerMaker {
+func ScaleFromFile(path string, ix Indexer) ScalerMaker {
 	return fileScaler{
 		path:    path,
-		indexer: ix,
+		Indexer: ix,
 	}
 }
 
@@ -122,7 +122,7 @@ func (s fileScaler) makeTimeScale(rg charts.Range, format string, reverse bool) 
 }
 
 func (s fileScaler) makeNumberScale(rg charts.Range, reverse bool) (charts.Scaler[float64], error) {
-	sel, ok := s.indexer.(Selector)
+	sel, ok := s.Indexer.(Selector)
 	if !ok {
 		return nil, fmt.Errorf("invalid selection string")
 	}

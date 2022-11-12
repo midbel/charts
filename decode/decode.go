@@ -1,4 +1,4 @@
-package dsl
+package decode
 
 import (
 	"bytes"
@@ -13,6 +13,7 @@ import (
 
 	"github.com/midbel/buddy/parse"
 	"github.com/midbel/charts"
+	"github.com/midbel/charts/dash"
 	"github.com/midbel/slices"
 )
 
@@ -21,34 +22,13 @@ var (
 	DefaultShellArgs = "-c"
 )
 
-type OptionError struct {
-	Option  string
-	Section string
-	File    string
-	Position
-}
-
-func (e OptionError) Error() string {
-	return fmt.Sprintf("option %s not recognized in section %s", e.Option, e.Section)
-}
-
-type DecodeError struct {
-	Message string
-	File    string
-	Position
-}
-
-func (e DecodeError) Error() string {
-	return e.Message
-}
-
 type Decoder struct {
 	file  string
 	path  string
 	cwd   string
 	shell string
 
-	env *environ[[]string]
+	env *dash.Environ[[]string]
 
 	scan *Scanner
 	curr Token
@@ -58,7 +38,7 @@ type Decoder struct {
 func NewDecoder(r io.Reader) *Decoder {
 	d := Decoder{
 		cwd:   ".",
-		env:   emptyEnv[[]string](),
+		env:   dash.EmptyEnv[[]string](),
 		shell: DefaultShell,
 		scan:  Scan(r),
 	}
@@ -75,11 +55,11 @@ func NewDecoder(r io.Reader) *Decoder {
 }
 
 func (d *Decoder) Decode() error {
-	cfg := Default()
+	cfg := dash.Default()
 	return d.decode(&cfg)
 }
 
-func (d *Decoder) decode(cfg *Config) error {
+func (d *Decoder) decode(cfg *dash.Config) error {
 	accept := func(tok Token) bool {
 		return tok.Type == Keyword && tok.Literal != kwRender
 	}
@@ -96,7 +76,7 @@ func (d *Decoder) decode(cfg *Config) error {
 	return cfg.Render()
 }
 
-func (d *Decoder) decodeBody(cfg *Config, accept func(Token) bool) error {
+func (d *Decoder) decodeBody(cfg *dash.Config, accept func(Token) bool) error {
 	d.skipEOL()
 	for accept(d.curr) && !d.done() {
 		if d.is(Comment) {
@@ -134,10 +114,10 @@ func (d *Decoder) decodeBody(cfg *Config, accept func(Token) bool) error {
 	return nil
 }
 
-func (d *Decoder) decodeAt(cfg *Config) error {
+func (d *Decoder) decodeAt(cfg *dash.Config) error {
 	d.next()
 	var (
-		cell Cell
+		cell dash.Cell
 		err  error
 	)
 	cell.Width = 1
@@ -169,12 +149,12 @@ func (d *Decoder) decodeAt(cfg *Config) error {
 	}
 
 	switch {
-	case d.curr.Type == Keyword && d.curr.Literal == kwInclude:
+	case d.isKw(kwInclude):
 		err = d.decodeInclude(&cell.Config)
 		if len(cell.Config.Cells) != 0 {
 			return fmt.Errorf("nested grid are not supported")
 		}
-	case d.curr.Type == Lparen:
+	case d.is(Lparen):
 		d.next()
 		accept := func(tok Token) bool {
 			return tok.Type != Rparen
@@ -193,7 +173,7 @@ func (d *Decoder) decodeAt(cfg *Config) error {
 	return err
 }
 
-func (d *Decoder) decodeDefine(cfg *Config) error {
+func (d *Decoder) decodeDefine(cfg *dash.Config) error {
 	d.next()
 	ident, err := d.getString()
 	if err != nil {
@@ -202,7 +182,7 @@ func (d *Decoder) decodeDefine(cfg *Config) error {
 	if err := d.expect(Expr, "expected expression"); err != nil {
 		return err
 	}
-	expr, err := parse.New(strings.NewReader(d.curr.Literal)).Parse()
+	expr, err := parse.Parse(strings.NewReader(d.curr.Literal))
 	if err != nil {
 		return err
 	}
@@ -227,7 +207,7 @@ func (d *Decoder) decodeDeclare() error {
 	return d.eol()
 }
 
-func (d *Decoder) decodeRender(cfg *Config) error {
+func (d *Decoder) decodeRender(cfg *dash.Config) error {
 	d.next()
 	switch d.curr.Type {
 	case Literal:
@@ -239,7 +219,7 @@ func (d *Decoder) decodeRender(cfg *Config) error {
 	return d.eol()
 }
 
-func (d *Decoder) decodeInclude(cfg *Config) error {
+func (d *Decoder) decodeInclude(cfg *dash.Config) error {
 	accept := func(tok Token) bool {
 		return tok.Type != EOF
 	}
@@ -275,7 +255,7 @@ func (d *Decoder) decodeInclude(cfg *Config) error {
 	return d.eol()
 }
 
-func (d *Decoder) decodeSet(cfg *Config) error {
+func (d *Decoder) decodeSet(cfg *dash.Config) error {
 	d.next()
 	var (
 		err error
@@ -331,7 +311,7 @@ func (d *Decoder) decodeSet(cfg *Config) error {
 	case "legend":
 		return d.decodeLegend(cfg)
 	default:
-		err = fmt.Errorf("%s unsupported/unknown option", cmd)
+		err = d.optionError("set")
 	}
 	if err != nil {
 		return err
@@ -339,7 +319,7 @@ func (d *Decoder) decodeSet(cfg *Config) error {
 	return d.eol()
 }
 
-func (d *Decoder) decodeGrid(cfg *Config) error {
+func (d *Decoder) decodeGrid(cfg *dash.Config) error {
 	d.next()
 	var (
 		cmd = d.curr.Literal
@@ -355,18 +335,18 @@ func (d *Decoder) decodeGrid(cfg *Config) error {
 			return d.decodeGrid(cfg)
 		})
 	default:
-		err = fmt.Errorf("%s unsupported/unknown option for ticks", cmd)
+		err = d.optionError("grid")
 	}
 	return err
 }
 
-func (d *Decoder) decodeDomain() (scalerMaker, error) {
-	if d.peek.Type != Keyword {
+func (d *Decoder) decodeDomain() (dash.ScalerMaker, error) {
+	if !d.peekIs(Keyword) {
 		list, err := d.getStringList()
 		if err != nil {
 			return nil, err
 		}
-		return scaleFromList(list), nil
+		return dash.ScaleFromList(list), nil
 	}
 	path, err := d.getString()
 	if err != nil {
@@ -376,7 +356,7 @@ func (d *Decoder) decodeDomain() (scalerMaker, error) {
 		return nil, err
 	}
 	d.next()
-	var idx indexer
+	var idx dash.Indexer
 	switch d.peek.Type {
 	case Sum:
 		var list []int
@@ -393,7 +373,7 @@ func (d *Decoder) decodeDomain() (scalerMaker, error) {
 			}
 			list = append(list, ix)
 		}
-		idx = selectSum(list)
+		idx = dash.SelectSum(list)
 	case RangeSum:
 		fst, err := d.getInt()
 		if err != nil {
@@ -404,20 +384,20 @@ func (d *Decoder) decodeDomain() (scalerMaker, error) {
 		if err != nil {
 			return nil, err
 		}
-		idx = selectSum(expandRange(fst, lst))
+		idx = dash.SelectSum(dash.ExpandRange(fst, lst))
 	case EOL, EOF:
 		x, err := d.getInt()
 		if err != nil {
 			return nil, err
 		}
-		idx = selectSingle(x)
+		idx = dash.SelectSingle(x)
 	default:
 		return nil, d.decodeError("expected ':', ':+' or end of line")
 	}
-	return scaleFromFile(path, idx), nil
+	return dash.ScaleFromFile(path, idx), nil
 }
 
-func (d *Decoder) decodeLegend(cfg *Config) error {
+func (d *Decoder) decodeLegend(cfg *dash.Config) error {
 	var (
 		cmd = d.curr.Literal
 		err error
@@ -444,7 +424,7 @@ func (d *Decoder) decodeLegend(cfg *Config) error {
 	return d.eol()
 }
 
-func (d *Decoder) decodeStyle(style *Style) error {
+func (d *Decoder) decodeStyle(style *dash.Style) error {
 	var (
 		cmd = d.curr.Literal
 		err error
@@ -482,8 +462,8 @@ func (d *Decoder) decodeStyle(style *Style) error {
 	return d.eol()
 }
 
-func (d *Decoder) decodeTicks(dom *Domain) error {
-	if d.peek.Type == EOL || d.peek.Type == EOF {
+func (d *Decoder) decodeTicks(dom *dash.Domain) error {
+	if d.peekIs(EOL) || d.peekIs(EOF) {
 		count, err := d.getInt()
 		if err != nil {
 			return err
@@ -526,18 +506,18 @@ func (d *Decoder) decodeTicks(dom *Domain) error {
 	return d.eol()
 }
 
-func (d *Decoder) decodeLoad(cfg *Config) error {
+func (d *Decoder) decodeLoad(cfg *dash.Config) error {
 	d.next()
 	var (
-		fi  File
+		fi  dash.File
 		err error
 	)
 	if fi.Path, err = d.getString(); err != nil {
 		return err
 	}
-	if d.curr.Type == Keyword && d.curr.Literal == kwLimit {
+	if err := d.expectKw(kwLimit); err == nil {
 		d.next()
-		if d.peek.Type == Comma {
+		if d.peekIs(Comma) {
 			fi.Starts, err = d.getInt()
 			if err != nil {
 				return err
@@ -552,7 +532,7 @@ func (d *Decoder) decodeLoad(cfg *Config) error {
 		return err
 	}
 	d.next()
-	if d.peek.Type == Comma {
+	if d.peekIs(Comma) {
 		if fi.X, err = d.getInt(); err != nil {
 			return err
 		}
@@ -572,7 +552,7 @@ func (d *Decoder) decodeLoad(cfg *Config) error {
 	return err
 }
 
-func (d *Decoder) decodeSelect() (Selector, error) {
+func (d *Decoder) decodeSelect() (dash.Selector, error) {
 	getRange := func() ([]int, error) {
 		fst, err := d.getInt()
 		if err != nil {
@@ -583,7 +563,7 @@ func (d *Decoder) decodeSelect() (Selector, error) {
 		if err != nil {
 			return nil, err
 		}
-		return expandRange(fst, lst), nil
+		return dash.ExpandRange(fst, lst), nil
 	}
 	getList := func(want rune) ([]int, error) {
 		var list []int
@@ -602,7 +582,7 @@ func (d *Decoder) decodeSelect() (Selector, error) {
 		}
 		return list, nil
 	}
-	var xs []Selector
+	var xs []dash.Selector
 	for !d.is(EOL) && !d.is(EOF) && !d.is(Keyword) {
 		switch d.peek.Type {
 		case Comma:
@@ -610,31 +590,31 @@ func (d *Decoder) decodeSelect() (Selector, error) {
 			if err != nil {
 				return nil, err
 			}
-			xs = append(xs, selectMulti(rg))
+			xs = append(xs, dash.SelectMulti(rg))
 		case Sum:
 			rg, err := getList(Sum)
 			if err != nil {
 				return nil, err
 			}
-			xs = append(xs, selectSum(rg))
+			xs = append(xs, dash.SelectSum(rg))
 		case Range:
 			rg, err := getRange()
 			if err != nil {
 				return nil, err
 			}
-			xs = append(xs, selectMulti(rg))
+			xs = append(xs, dash.SelectMulti(rg))
 		case RangeSum:
 			rg, err := getRange()
 			if err != nil {
 				return nil, err
 			}
-			xs = append(xs, selectSum(rg))
+			xs = append(xs, dash.SelectSum(rg))
 		case Keyword, EOL, EOF:
 			i, err := d.getInt()
 			if err != nil {
 				return nil, err
 			}
-			xs = append(xs, selectMulti([]int{i}))
+			xs = append(xs, dash.SelectMulti([]int{i}))
 		default:
 			return nil, d.decodeError("expected ',', ':', ':+', keyword or end of line")
 		}
@@ -649,10 +629,7 @@ func (d *Decoder) decodeSelect() (Selector, error) {
 	if len(xs) == 1 {
 		return slices.Fst(xs), nil
 	}
-	c := combined{
-		selectors: xs,
-	}
-	return c, nil
+	return dash.Combined(xs...), nil
 }
 
 func (d *Decoder) decodeWith(decode func() error) error {
@@ -661,7 +638,7 @@ func (d *Decoder) decodeWith(decode func() error) error {
 	}
 	d.next()
 	d.skipEOL()
-	for d.curr.Type != Rparen && !d.done() {
+	for !d.is(Rparen) && !d.done() {
 		if err := decode(); err != nil {
 			return err
 		}
@@ -675,6 +652,14 @@ func (d *Decoder) decodeWith(decode func() error) error {
 
 func (d *Decoder) is(kind rune) bool {
 	return d.curr.Type == kind
+}
+
+func (d *Decoder) peekIs(kind rune) bool {
+	return d.peek.Type == kind
+}
+
+func (d *Decoder) isKw(kw string) bool {
+	return d.is(Keyword) && d.curr.Literal == kw
 }
 
 func (d *Decoder) expectKw(kw string) error {
@@ -740,7 +725,7 @@ func (d *Decoder) getLineStyle() (string, error) {
 		return str, err
 	}
 	switch str {
-	case StyleStraight, StyleDotted, StyleDashed:
+	case dash.StyleStraight, dash.StyleDotted, dash.StyleDashed:
 		return str, nil
 	default:
 		return "", fmt.Errorf("%s: unknown line style provided", str)
@@ -753,8 +738,8 @@ func (d *Decoder) getRenderType() (string, error) {
 		return str, err
 	}
 	switch str {
-	case RenderLine, RenderStep, RenderStepAfter, RenderStepBefore:
-	case RenderBar, RenderPie, RenderStack, RenderNormStack, RenderGroup:
+	case dash.RenderLine, dash.RenderStep, dash.RenderStepAfter, dash.RenderStepBefore:
+	case dash.RenderBar, dash.RenderPie, dash.RenderStack, dash.RenderNormStack, dash.RenderGroup:
 	default:
 		return "", fmt.Errorf("%s: unknown type provided", str)
 	}
@@ -767,7 +752,7 @@ func (d *Decoder) getType() (string, error) {
 		return str, err
 	}
 	switch str {
-	case TypeNumber, TypeTime, TypeString:
+	case dash.TypeNumber, dash.TypeTime, dash.TypeString:
 		return str, nil
 	default:
 		return "", fmt.Errorf("%s: unknown type provided", str)

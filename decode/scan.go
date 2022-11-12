@@ -1,4 +1,4 @@
-package dsl
+package decode
 
 import (
 	"bytes"
@@ -249,7 +249,7 @@ const (
 	hash            = '#'
 	dollar          = '$'
 	dot             = '.'
-	dash            = '-'
+	minus           = '-'
 	squote          = '\''
 	dquote          = '"'
 	underscore      = '_'
@@ -272,7 +272,7 @@ func isChar(r rune) bool {
 }
 
 func isLetter(r rune) bool {
-	return isChar(r) || r == dash || r == underscore
+	return isChar(r) || r == minus || r == underscore
 }
 
 func isAlpha(r rune) bool {

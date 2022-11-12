@@ -1,20 +1,20 @@
-package dsl
+package dash
 
 import (
 	"fmt"
 )
 
-type environ[T any] struct {
+type Environ[T any] struct {
 	values map[string]T
 }
 
-func emptyEnv[T any]() *environ[T] {
-	return &environ[T]{
+func EmptyEnv[T any]() *Environ[T] {
+	return &Environ[T]{
 		values: make(map[string]T),
 	}
 }
 
-func (e *environ[T]) Resolve(name string) (T, error) {
+func (e *Environ[T]) Resolve(name string) (T, error) {
 	var zero T
 	v, ok := e.values[name]
 	if !ok {
@@ -23,6 +23,6 @@ func (e *environ[T]) Resolve(name string) (T, error) {
 	return v, nil
 }
 
-func (e *environ[T]) Define(name string, values T) {
+func (e *Environ[T]) Define(name string, values T) {
 	e.values[name] = values
 }

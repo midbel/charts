@@ -1,4 +1,4 @@
-package dsl
+package dash
 
 import (
 	"errors"
@@ -7,23 +7,29 @@ import (
 
 var ErrIndex = errors.New("invalid index")
 
-type indexer interface {
+type Indexer interface {
 	columns() []int
 }
 
 type Selector interface {
 	Select([]string) ([]float64, error)
-	indexer
+	Indexer
 }
 
 type combined struct {
 	selectors []Selector
 }
 
+func Combined(xs ...Selector) Selector {
+	return combined{
+		selectors: xs,
+	}
+}
+
 func (c combined) columns() []int {
 	var list []int
 	for _, s := range c.selectors {
-		x, ok := s.(indexer)
+		x, ok := s.(Indexer)
 		if !ok {
 			continue
 		}
@@ -48,7 +54,7 @@ type summer struct {
 	index []int
 }
 
-func selectSum(list []int) Selector {
+func SelectSum(list []int) Selector {
 	return summer{
 		index: list,
 	}
@@ -77,11 +83,11 @@ type multi struct {
 	index []int
 }
 
-func selectSingle(i int) Selector {
-	return selectMulti([]int{i})
+func SelectSingle(i int) Selector {
+	return SelectMulti([]int{i})
 }
 
-func selectMulti(list []int) Selector {
+func SelectMulti(list []int) Selector {
 	return multi{
 		index: list,
 	}
@@ -106,7 +112,7 @@ func (m multi) Select(row []string) ([]float64, error) {
 	return list, nil
 }
 
-func expandRange(fst, lst int) []int {
+func ExpandRange(fst, lst int) []int {
 	var list []int
 	for i := fst; i <= lst; i++ {
 		list = append(list, i)

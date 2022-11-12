@@ -1,4 +1,4 @@
-package dsl
+package dash
 
 import (
 	"fmt"
@@ -26,6 +26,8 @@ func makeParseTime(format string) (func(string) (time.Time, error), error) {
 		return time.Parse(format, str)
 	}, nil
 }
+
+const percent = '%'
 
 var specifiers = map[rune]string{
 	'D': "01/02/06", // month/day/year
