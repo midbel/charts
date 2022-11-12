@@ -12,6 +12,7 @@ import (
 	"strings"
 
 	"github.com/midbel/buddy/parse"
+	"github.com/midbel/charts"
 	"github.com/midbel/slices"
 )
 
@@ -19,6 +20,27 @@ var (
 	DefaultShell     = "sh"
 	DefaultShellArgs = "-c"
 )
+
+type OptionError struct {
+	Option  string
+	Section string
+	File    string
+	Position
+}
+
+func (e OptionError) Error() string {
+	return fmt.Sprintf("option %s not recognized in section %s", e.Option, e.Section)
+}
+
+type DecodeError struct {
+	Message string
+	File    string
+	Position
+}
+
+func (e DecodeError) Error() string {
+	return e.Message
+}
 
 type Decoder struct {
 	file  string
@@ -65,8 +87,8 @@ func (d *Decoder) decode(cfg *Config) error {
 	if err != nil {
 		return err
 	}
-	if d.curr.Type != Keyword && d.curr.Literal != kwRender {
-		return fmt.Errorf("expected render keyword but got %q", d.curr.Literal)
+	if err := d.expectKw(kwRender); err != nil {
+		return err
 	}
 	if err := d.decodeRender(cfg); err != nil {
 		return err
@@ -99,7 +121,7 @@ func (d *Decoder) decodeBody(cfg *Config, accept func(Token) bool) error {
 		case kwDeclare:
 			err = d.decodeDeclare()
 		default:
-			err = fmt.Errorf("unexpected keyword %s", d.curr.Literal)
+			err = d.decodeError(fmt.Sprintf("unexpected keyword %q", d.curr.Literal))
 		}
 		if err != nil {
 			return err
@@ -107,7 +129,7 @@ func (d *Decoder) decodeBody(cfg *Config, accept func(Token) bool) error {
 		d.skipEOL()
 	}
 	if accept(d.curr) {
-		return fmt.Errorf("unexpected token %s", d.curr)
+		return d.decodeError("file can not be decoded")
 	}
 	return nil
 }
@@ -150,7 +172,7 @@ func (d *Decoder) decodeAt(cfg *Config) error {
 	case d.curr.Type == Keyword && d.curr.Literal == kwInclude:
 		err = d.decodeInclude(&cell.Config)
 		if len(cell.Config.Cells) != 0 {
-			return fmt.Errorf("nested grid not supported")
+			return fmt.Errorf("nested grid are not supported")
 		}
 	case d.curr.Type == Lparen:
 		d.next()
@@ -163,7 +185,7 @@ func (d *Decoder) decodeAt(cfg *Config) error {
 			d.skipEOL()
 		}
 	default:
-		err = fmt.Errorf("unexpected token %s", d.curr)
+		err = d.decodeError("expected 'include' or '('")
 	}
 	if err == nil {
 		cfg.Cells = append(cfg.Cells, cell)
@@ -177,8 +199,8 @@ func (d *Decoder) decodeDefine(cfg *Config) error {
 	if err != nil {
 		return err
 	}
-	if !d.is(Expr) {
-		return fmt.Errorf("expected expression, got %s", d.curr)
+	if err := d.expect(Expr, "expected expression"); err != nil {
+		return err
 	}
 	expr, err := parse.New(strings.NewReader(d.curr.Literal)).Parse()
 	if err != nil {
@@ -212,12 +234,10 @@ func (d *Decoder) decodeRender(cfg *Config) error {
 		cfg.Path, _ = d.getString()
 	case EOL, EOF:
 	default:
-		return fmt.Errorf("unexpected token %s", d.curr)
+		return d.decodeError("literal or end of line expected")
 	}
 	return d.eol()
 }
-
-var errDecode = errors.New("decoder error")
 
 func (d *Decoder) decodeInclude(cfg *Config) error {
 	accept := func(tok Token) bool {
@@ -232,7 +252,7 @@ func (d *Decoder) decodeInclude(cfg *Config) error {
 
 		err = NewDecoder(r).decodeBody(cfg, accept)
 		if err != nil {
-			err = fmt.Errorf("%w: %s in %s", errDecode, err, file)
+			return err
 		}
 		return err
 	}
@@ -242,9 +262,10 @@ func (d *Decoder) decodeInclude(cfg *Config) error {
 		filepath.Join(d.cwd, d.curr.Literal),
 	}
 	d.next()
+	var derr DecodeError
 	for _, file := range list {
 		err := decodeFile(file)
-		if errors.Is(err, errDecode) {
+		if errors.As(err, &derr) {
 			return err
 		}
 		if err == nil {
@@ -282,27 +303,7 @@ func (d *Decoder) decodeSet(cfg *Config) error {
 		if err != nil {
 			return err
 		}
-		switch len(list) {
-		case 1:
-			cfg.Pad.Top = list[0]
-			cfg.Pad.Right = list[0]
-			cfg.Pad.Bottom = list[0]
-			cfg.Pad.Left = list[0]
-		case 2:
-			cfg.Pad.Top, cfg.Pad.Bottom = list[0], list[0]
-			cfg.Pad.Right, cfg.Pad.Left = list[1], list[1]
-		case 3:
-			cfg.Pad.Top = list[0]
-			cfg.Pad.Bottom = list[2]
-			cfg.Pad.Right, cfg.Pad.Left = list[1], list[1]
-		case 4:
-			cfg.Pad.Top = list[0]
-			cfg.Pad.Right = list[1]
-			cfg.Pad.Bottom = list[2]
-			cfg.Pad.Left = list[3]
-		default:
-			err = fmt.Errorf("invalid number values given for padding")
-		}
+		cfg.Pad, err = charts.PaddingFromList(list)
 	case "xdata":
 		cfg.Types.X, err = d.getType()
 	case "xcenter":
@@ -371,8 +372,8 @@ func (d *Decoder) decodeDomain() (scalerMaker, error) {
 	if err != nil {
 		return nil, err
 	}
-	if d.curr.Type != Keyword && d.curr.Literal != kwUsing {
-		return nil, fmt.Errorf("missing using")
+	if err := d.expectKw(kwUsing); err != nil {
+		return nil, err
 	}
 	d.next()
 	var idx indexer
@@ -411,7 +412,7 @@ func (d *Decoder) decodeDomain() (scalerMaker, error) {
 		}
 		idx = selectSingle(x)
 	default:
-		return nil, fmt.Errorf("unexpected token %s", d.peek)
+		return nil, d.decodeError("expected ':', ':+' or end of line")
 	}
 	return scaleFromFile(path, idx), nil
 }
@@ -435,7 +436,7 @@ func (d *Decoder) decodeLegend(cfg *Config) error {
 			return d.decodeLegend(cfg)
 		})
 	default:
-		err = fmt.Errorf("%s unsupported/unknown option for legend", d.curr.Literal)
+		err = d.optionError("legend")
 	}
 	if err != nil {
 		return err
@@ -473,7 +474,7 @@ func (d *Decoder) decodeStyle(style *Style) error {
 			return d.decodeStyle(style)
 		})
 	default:
-		err = fmt.Errorf("%s unsupported/unknown option for style", d.curr.Literal)
+		err = d.optionError("style")
 	}
 	if err != nil {
 		return err
@@ -517,7 +518,7 @@ func (d *Decoder) decodeTicks(dom *Domain) error {
 			return d.decodeTicks(dom)
 		})
 	default:
-		err = fmt.Errorf("%s unsupported/unknown option for ticks", cmd)
+		err = d.optionError("ticks")
 	}
 	if err != nil {
 		return err
@@ -547,8 +548,8 @@ func (d *Decoder) decodeLoad(cfg *Config) error {
 			return err
 		}
 	}
-	if d.curr.Type != Keyword && d.curr.Literal != kwUsing {
-		return fmt.Errorf("unexpected token %s", d.curr)
+	if err := d.expectKw(kwUsing); err != nil {
+		return err
 	}
 	d.next()
 	if d.peek.Type == Comma {
@@ -560,7 +561,7 @@ func (d *Decoder) decodeLoad(cfg *Config) error {
 	if fi.Y, err = d.decodeSelect(); err != nil {
 		return err
 	}
-	if d.curr.Type == Keyword && d.curr.Literal == kwWith {
+	if err := d.expectKw(kwWith); err == nil {
 		err = d.decodeStyle(&fi.Style)
 	} else {
 		err = d.eol()
@@ -602,7 +603,7 @@ func (d *Decoder) decodeSelect() (Selector, error) {
 		return list, nil
 	}
 	var xs []Selector
-	for d.curr.Type != EOL && d.curr.Type != EOF && d.curr.Type != Keyword {
+	for !d.is(EOL) && !d.is(EOF) && !d.is(Keyword) {
 		switch d.peek.Type {
 		case Comma:
 			rg, err := getList(Comma)
@@ -635,14 +636,14 @@ func (d *Decoder) decodeSelect() (Selector, error) {
 			}
 			xs = append(xs, selectMulti([]int{i}))
 		default:
-			return nil, fmt.Errorf("unexpected token %s", d.curr)
+			return nil, d.decodeError("expected ',', ':', ':+', keyword or end of line")
 		}
 		switch d.curr.Type {
 		case Comma:
 			d.next()
 		case EOL, EOF, Keyword:
 		default:
-			return nil, fmt.Errorf("oups: unexpected token %s", d.curr)
+			return nil, d.decodeError("expected ',', keyword or end of line")
 		}
 	}
 	if len(xs) == 1 {
@@ -676,11 +677,21 @@ func (d *Decoder) is(kind rune) bool {
 	return d.curr.Type == kind
 }
 
+func (d *Decoder) expectKw(kw string) error {
+	if err := d.expect(Keyword, "expected keyword"); err != nil {
+		return err
+	}
+	if d.curr.Literal != kw {
+		return d.decodeError(fmt.Sprintf("%q expected, got %s", kw, d.curr.Literal))
+	}
+	return nil
+}
+
 func (d *Decoder) expect(kind rune, msg string) error {
 	if d.is(kind) {
 		return nil
 	}
-	return fmt.Errorf("%s: %s", filepath.Base(d.file), msg)
+	return d.decodeError(msg)
 }
 
 func (d *Decoder) next() {
@@ -693,11 +704,28 @@ func (d *Decoder) done() bool {
 }
 
 func (d *Decoder) eol() error {
-	if d.curr.Type != EOL && d.curr.Type != EOF {
-		return fmt.Errorf("expected end of line, got %s", d.curr)
+	if !d.is(EOL) && !d.is(EOF) {
+		return d.decodeError("expected end of line or end of file")
 	}
 	d.next()
 	return nil
+}
+
+func (d *Decoder) optionError(item string) error {
+	return OptionError{
+		Position: d.curr.Position,
+		File:     d.file,
+		Option:   d.curr.Literal,
+		Section:  item,
+	}
+}
+
+func (d *Decoder) decodeError(msg string) error {
+	return DecodeError{
+		Position: d.curr.Position,
+		File:     d.file,
+		Message:  msg,
+	}
 }
 
 func (d *Decoder) skipEOL() {
