@@ -21,6 +21,7 @@ var (
 )
 
 type Decoder struct {
+	file  string
 	path  string
 	cwd   string
 	shell string
@@ -40,7 +41,8 @@ func NewDecoder(r io.Reader) *Decoder {
 		scan:  Scan(r),
 	}
 	if r, ok := r.(interface{ Name() string }); ok {
-		d.path = filepath.Dir(r.Name())
+		d.file = r.Name()
+		d.path = filepath.Dir(d.file)
 	}
 	if cwd, err := os.Getwd(); err == nil {
 		d.cwd = cwd
@@ -75,12 +77,12 @@ func (d *Decoder) decode(cfg *Config) error {
 func (d *Decoder) decodeBody(cfg *Config, accept func(Token) bool) error {
 	d.skipEOL()
 	for accept(d.curr) && !d.done() {
-		if d.curr.Type == Comment {
+		if d.is(Comment) {
 			d.next()
 			continue
 		}
-		if d.curr.Type != Keyword {
-			return fmt.Errorf("expected keyword but got %q", d.curr.Literal)
+		if err := d.expect(Keyword, "keyword expected"); err != nil {
+			return err
 		}
 		var err error
 		switch d.curr.Literal {
@@ -123,20 +125,20 @@ func (d *Decoder) decodeAt(cfg *Config) error {
 	if cell.Row, err = d.getInt(); err != nil {
 		return err
 	}
-	if d.curr.Type != Comma {
-		return fmt.Errorf("unexpected token %s", d.curr)
+	if err := d.expect(Comma, "expected ','"); err != nil {
+		return err
 	}
 	d.next()
 	if cell.Col, err = d.getInt(); err != nil {
 		return err
 	}
-	if d.curr.Type == Comma {
+	if d.is(Comma) {
 		d.next()
 		if cell.Width, err = d.getInt(); err != nil {
 			return err
 		}
-		if d.curr.Type != Comma {
-			return fmt.Errorf("unexpected token %s", d.curr)
+		if err := d.expect(Comma, "expected ','"); err != nil {
+			return err
 		}
 		d.next()
 		if cell.Height, err = d.getInt(); err != nil {
@@ -175,7 +177,7 @@ func (d *Decoder) decodeDefine(cfg *Config) error {
 	if err != nil {
 		return err
 	}
-	if d.curr.Type != Expr {
+	if !d.is(Expr) {
 		return fmt.Errorf("expected expression, got %s", d.curr)
 	}
 	expr, err := parse.New(strings.NewReader(d.curr.Literal)).Parse()
@@ -189,8 +191,8 @@ func (d *Decoder) decodeDefine(cfg *Config) error {
 
 func (d *Decoder) decodeDeclare() error {
 	d.next()
-	if d.curr.Type != Literal {
-		return fmt.Errorf("unexpected token %s", d.curr)
+	if err := d.expect(Literal, "literal expected"); err != nil {
+		return err
 	}
 	ident := d.curr.Literal
 	d.next()
@@ -653,8 +655,8 @@ func (d *Decoder) decodeSelect() (Selector, error) {
 }
 
 func (d *Decoder) decodeWith(decode func() error) error {
-	if d.curr.Type != Lparen {
-		return fmt.Errorf("unexpected token %s", d.curr)
+	if err := d.expect(Lparen, "expected '('"); err != nil {
+		return err
 	}
 	d.next()
 	d.skipEOL()
@@ -663,11 +665,22 @@ func (d *Decoder) decodeWith(decode func() error) error {
 			return err
 		}
 	}
-	if d.curr.Type != Rparen {
-		return fmt.Errorf("unexpected token %s", d.curr)
+	if err := d.expect(Rparen, "expected ')'"); err != nil {
+		return err
 	}
 	d.next()
 	return nil
+}
+
+func (d *Decoder) is(kind rune) bool {
+	return d.curr.Type == kind
+}
+
+func (d *Decoder) expect(kind rune, msg string) error {
+	if d.is(kind) {
+		return nil
+	}
+	return fmt.Errorf("%s: %s", filepath.Base(d.file), msg)
 }
 
 func (d *Decoder) next() {
