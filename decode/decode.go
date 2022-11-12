@@ -783,7 +783,7 @@ func (d *Decoder) getString() (string, error) {
 		}
 		str = strings.TrimSpace(out.String())
 	default:
-		return "", fmt.Errorf("expected literal, got %s", d.curr)
+		return "", d.decodeError("expected literal, variable or command")
 	}
 	defer d.next()
 	return str, nil
@@ -815,7 +815,7 @@ func (d *Decoder) getFloat() (float64, error) {
 
 func (d *Decoder) getStringList() ([]string, error) {
 	var list []string
-	for d.curr.Type != EOL && d.curr.Type != EOF {
+	for !d.is(EOL) && !d.is(EOF) {
 		str, err := d.getString()
 		if err != nil {
 			return nil, err
@@ -823,13 +823,13 @@ func (d *Decoder) getStringList() ([]string, error) {
 		list = append(list, str)
 		switch d.curr.Type {
 		case Comma:
-			if d.peek.Type == EOL || d.peek.Type == EOF {
-				return nil, fmt.Errorf("unexpected token %s", d.curr)
+			if d.peekIs(EOL) || d.peekIs(EOF) {
+				return nil, d.decodeError("end of line not expected after ',")
 			}
 			d.next()
 		case EOF, EOL:
 		default:
-			return nil, fmt.Errorf("unexpected token %s", d.curr)
+			return nil, d.decodeError("expected ',' or end of line")
 		}
 	}
 	return list, nil
@@ -837,7 +837,7 @@ func (d *Decoder) getStringList() ([]string, error) {
 
 func (d *Decoder) getFloatList() ([]float64, error) {
 	var list []float64
-	for d.curr.Type != EOL && d.curr.Type != EOF {
+	for !d.is(EOL) && !d.is(EOF) {
 		f, err := d.getFloat()
 		if err != nil {
 			return nil, err
@@ -845,13 +845,13 @@ func (d *Decoder) getFloatList() ([]float64, error) {
 		list = append(list, f)
 		switch d.curr.Type {
 		case Comma:
-			if d.peek.Type == EOL || d.peek.Type == EOF {
-				return nil, fmt.Errorf("unexpected token %s", d.curr)
+			if d.peekIs(EOL) || d.peekIs(EOF) {
+				return nil, d.decodeError("end of line not expected after ',")
 			}
 			d.next()
 		case EOF, EOL:
 		default:
-			return nil, fmt.Errorf("unexpected token %s", d.curr)
+			return nil, d.decodeError("expected ',' or end of line")
 		}
 	}
 	return list, nil
