@@ -2,6 +2,7 @@ package dash
 
 import (
 	"fmt"
+	"errors"
 	"time"
 
 	"github.com/midbel/buddy/ast"
@@ -9,6 +10,8 @@ import (
 	"github.com/midbel/buddy/types"
 	"github.com/midbel/charts"
 )
+
+var errDomain = errors.New("domain not set")
 
 type Domain struct {
 	Label      string
@@ -24,21 +27,21 @@ type Domain struct {
 
 func (d Domain) makeCategoryScale(rg charts.Range) (charts.Scaler[string], error) {
 	if d.Domain == nil {
-		return nil, fmt.Errorf("domain not set")
+		return nil, errDomain
 	}
 	return d.Domain.makeCategoryScale(rg)
 }
 
 func (d Domain) makeNumberScale(rg charts.Range, reverse bool) (charts.Scaler[float64], error) {
 	if d.Domain == nil {
-		return nil, fmt.Errorf("domain not set")
+		return nil, errDomain
 	}
 	return d.Domain.makeNumberScale(rg, reverse)
 }
 
 func (d Domain) makeTimeScale(rg charts.Range, reverse bool) (charts.Scaler[time.Time], error) {
 	if d.Domain == nil {
-		return nil, fmt.Errorf("domain not set")
+		return nil, errDomain
 	}
 	return d.Domain.makeTimeScale(rg, d.Format, reverse)
 }
@@ -86,6 +89,18 @@ func (d Domain) makeTimeAxis(cfg Config, scale charts.Scaler[time.Time]) (charts
 	return axe, nil
 }
 
+func createAxis[T charts.ScalerConstraint](d Domain, scale charts.Scaler[T]) charts.Axis[T] {
+	return charts.Axis[T]{
+		Label:          d.Label,
+		Ticks:          d.Ticks,
+		Scaler:         scale,
+		WithInnerTicks: d.InnerTicks,
+		WithOuterTicks: d.OuterTicks,
+		WithLabelTicks: d.LabelTicks,
+		WithBands:      d.BandTicks,
+	}
+}
+
 func wrapExpr[T any](expr ast.Expression) func(value T) string {
 	return func(value T) string {
 		p, err := types.CreatePrimitive(value)
@@ -96,7 +111,7 @@ func wrapExpr[T any](expr ast.Expression) func(value T) string {
 		env.Define("value", p)
 		res, err := eval.Execute(expr, env)
 		if err != nil {
-			return fmt.Sprintf("error: %s", err)
+			return ""
 		}
 		return res.String()
 	}

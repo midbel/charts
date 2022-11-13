@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"io"
 	"os"
-	"strconv"
 	"time"
 
 	"github.com/midbel/buddy/ast"
@@ -30,22 +29,10 @@ const (
 )
 
 const (
-	StyleStraight = "straight"
-	StyleDotted   = "dotted"
-	StyleDashed   = "dashed"
-)
-
-const (
-	RenderLine       = "line"
-	RenderStep       = "step"
-	RenderStepAfter  = "step-after"
-	RenderStepBefore = "step-before"
-	RenderPie        = "pie"
-	RenderBar        = "bar"
-	RenderSun        = "sun"
-	RenderStack      = "stack"
-	RenderNormStack  = "stack-normalize"
-	RenderGroup      = "group"
+	PosTop = "top"
+	PosRight = "right"
+	PosBottom = "bottom"
+	PosLeft = "left"
 )
 
 type Renderer interface {
@@ -218,18 +205,18 @@ func (c Config) makeCategoryChart() (Renderer, error) {
 		}
 	}
 	switch c.Domains.X.Position {
-	case "bottom":
+	case PosBottom:
 		chart.Bottom, err = c.Domains.X.makeCategoryAxis(c, xscale)
-	case "top":
+	case PosTop:
 		chart.Top, err = c.Domains.X.makeCategoryAxis(c, xscale)
 	}
 	if err != nil {
 		return nil, err
 	}
 	switch c.Domains.Y.Position {
-	case "left":
+	case PosLeft:
 		chart.Left, err = c.Domains.Y.makeNumberAxis(c, yscale)
-	case "right":
+	case PosRight:
 		chart.Right, err = c.Domains.Y.makeNumberAxis(c, yscale)
 	}
 	if err != nil {
@@ -260,18 +247,18 @@ func (c Config) makeTimeChart() (Renderer, error) {
 		}
 	}
 	switch c.Domains.X.Position {
-	case "bottom":
+	case PosBottom:
 		chart.Bottom, err = c.Domains.X.makeTimeAxis(c, xscale)
-	case "top":
+	case PosTop:
 		chart.Top, err = c.Domains.X.makeTimeAxis(c, xscale)
 	}
 	if err != nil {
 		return nil, err
 	}
 	switch c.Domains.Y.Position {
-	case "left":
+	case PosLeft:
 		chart.Left, err = c.Domains.Y.makeNumberAxis(c, yscale)
-	case "right":
+	case PosRight:
 		chart.Right, err = c.Domains.Y.makeNumberAxis(c, yscale)
 	}
 	if err != nil {
@@ -295,9 +282,6 @@ func (c Config) makeNumberChart() (Renderer, error) {
 	if err != nil {
 		return nil, err
 	}
-	if pt, ok, err := c.getNumberCenter(); ok && err == nil {
-		chart.Center = pt
-	}
 	for i := range c.Files {
 		series[i], err = c.Files[i].makeNumberSerie(c.Style, xscale, yscale)
 		if err != nil {
@@ -305,43 +289,24 @@ func (c Config) makeNumberChart() (Renderer, error) {
 		}
 	}
 	switch c.Domains.X.Position {
-	case "bottom":
+	case PosBottom:
 		chart.Bottom, err = c.Domains.X.makeNumberAxis(c, xscale)
-	case "top":
+	case PosTop:
 		chart.Top, err = c.Domains.X.makeNumberAxis(c, xscale)
 	}
 	if err != nil {
 		return nil, err
 	}
 	switch c.Domains.Y.Position {
-	case "left":
+	case PosLeft:
 		chart.Left, err = c.Domains.Y.makeNumberAxis(c, yscale)
-	case "right":
+	case PosRight:
 		chart.Right, err = c.Domains.Y.makeNumberAxis(c, yscale)
 	}
 	if err != nil {
 		return nil, err
 	}
 	return chartRenderer(chart, series), nil
-}
-
-func (c Config) getNumberCenter() (charts.Point[float64, float64], bool, error) {
-	var (
-		pt  charts.Point[float64, float64]
-		err error
-	)
-	if c.Center.X == "" || c.Center.Y == "" {
-		return pt, false, err
-	}
-	pt.X, err = strconv.ParseFloat(c.Center.X, 64)
-	if err != nil {
-		return pt, false, err
-	}
-	pt.Y, err = strconv.ParseFloat(c.Center.Y, 64)
-	if err != nil {
-		return pt, false, err
-	}
-	return pt, true, nil
 }
 
 func (c Config) createRangeX() charts.Range {
@@ -363,92 +328,6 @@ func renderChart[T, U charts.ScalerConstraint](file string, chart charts.Chart[T
 	defer w.Close()
 	chart.Render(w, series...)
 	return nil
-}
-
-func createCategoryRenderer(style Style) (charts.Renderer[string, float64], error) {
-	var rdr charts.Renderer[string, float64]
-	switch style.Type {
-	case RenderBar:
-		rdr = charts.BarRenderer[string, float64]{
-			Fill:  charts.Tableau10,
-			Width: style.Width,
-		}
-	case RenderPie:
-		rdr = charts.PieRenderer[string, float64]{
-			Fill:        charts.Tableau10,
-			InnerRadius: style.InnerRadius,
-			OuterRadius: style.OuterRadius,
-		}
-	case RenderSun:
-		rdr = charts.SunburstRenderer[string, float64]{
-			Fill:        charts.Tableau10,
-			InnerRadius: style.InnerRadius,
-			OuterRadius: style.OuterRadius,
-		}
-	case RenderStack, RenderNormStack:
-		rdr = charts.StackedRenderer[string, float64]{
-			Fill:      charts.Tableau10,
-			Width:     style.Width,
-			Normalize: style.Type == RenderNormStack,
-		}
-	case RenderGroup:
-	default:
-		return nil, fmt.Errorf("%s: can not use for number chart", style.Type)
-	}
-	return rdr, nil
-}
-
-func createRenderer[T, U charts.ScalerConstraint](style Style) (charts.Renderer[T, U], error) {
-	var rdr charts.Renderer[T, U]
-	switch style.Type {
-	case RenderLine:
-		rdr = charts.LinearRenderer[T, U]{
-			Color:         style.Stroke,
-			IgnoreMissing: style.IgnoreMissing,
-			Text:          style.getTextPosition(),
-			Point:         style.getPointFunc(),
-			Style:         style.getLineStyle(),
-		}
-	case RenderStep:
-		rdr = charts.StepRenderer[T, U]{
-			Color:         style.Stroke,
-			IgnoreMissing: style.IgnoreMissing,
-			Text:          style.getTextPosition(),
-			Point:         style.getPointFunc(),
-			Style:         style.getLineStyle(),
-		}
-	case RenderStepAfter:
-		rdr = charts.StepAfterRenderer[T, U]{
-			Color:         style.Stroke,
-			IgnoreMissing: style.IgnoreMissing,
-			Text:          style.getTextPosition(),
-			Point:         style.getPointFunc(),
-			Style:         style.getLineStyle(),
-		}
-	case RenderStepBefore:
-		rdr = charts.StepBeforeRenderer[T, U]{
-			Color:         style.Stroke,
-			IgnoreMissing: style.IgnoreMissing,
-			Text:          style.getTextPosition(),
-			Point:         style.getPointFunc(),
-			Style:         style.getLineStyle(),
-		}
-	default:
-		return nil, fmt.Errorf("%s: can not use for number chart", style.Type)
-	}
-	return rdr, nil
-}
-
-func createAxis[T charts.ScalerConstraint](d Domain, scale charts.Scaler[T]) charts.Axis[T] {
-	return charts.Axis[T]{
-		Label:          d.Label,
-		Ticks:          d.Ticks,
-		Scaler:         scale,
-		WithInnerTicks: d.InnerTicks,
-		WithOuterTicks: d.OuterTicks,
-		WithLabelTicks: d.LabelTicks,
-		WithBands:      d.BandTicks,
-	}
 }
 
 func createChart[T, U charts.ScalerConstraint](cfg Config) charts.Chart[T, U] {

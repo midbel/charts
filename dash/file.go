@@ -100,9 +100,9 @@ func (f File) makeCategorySerie(g Style, x charts.Scaler[string], y charts.Scale
 	return ser, nil
 }
 
-type PointFunc[T, U charts.ScalerConstraint] func([]string) (charts.Point[T, U], error)
+type pointFunc[T, U charts.ScalerConstraint] func([]string) (charts.Point[T, U], error)
 
-func loadPoints[T, U charts.ScalerConstraint](file string, get PointFunc[T, U]) ([]charts.Point[T, U], error) {
+func loadPoints[T, U charts.ScalerConstraint](file string, get pointFunc[T, U]) ([]charts.Point[T, U], error) {
 	r, err := readFrom(file)
 	if err != nil {
 		return nil, err

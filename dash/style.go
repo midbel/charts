@@ -1,9 +1,29 @@
 package dash
 
 import (
+	"fmt"
 	"time"
 
 	"github.com/midbel/charts"
+)
+
+const (
+	StyleStraight = "straight"
+	StyleDotted   = "dotted"
+	StyleDashed   = "dashed"
+)
+
+const (
+	RenderLine       = "line"
+	RenderStep       = "step"
+	RenderStepAfter  = "step-after"
+	RenderStepBefore = "step-before"
+	RenderPie        = "pie"
+	RenderBar        = "bar"
+	RenderSun        = "sun"
+	RenderStack      = "stack"
+	RenderNormStack  = "stack-normalize"
+	RenderGroup      = "group"
 )
 
 type Style struct {
@@ -95,4 +115,78 @@ func (s Style) merge(g Style) Style {
 		s.TextPosition = g.TextPosition
 	}
 	return s
+}
+
+func createCategoryRenderer(style Style) (charts.Renderer[string, float64], error) {
+	var rdr charts.Renderer[string, float64]
+	switch style.Type {
+	case RenderBar:
+		rdr = charts.BarRenderer[string, float64]{
+			Fill:  charts.Tableau10,
+			Width: style.Width,
+		}
+	case RenderPie:
+		rdr = charts.PieRenderer[string, float64]{
+			Fill:        charts.Tableau10,
+			InnerRadius: style.InnerRadius,
+			OuterRadius: style.OuterRadius,
+		}
+	case RenderSun:
+		rdr = charts.SunburstRenderer[string, float64]{
+			Fill:        charts.Tableau10,
+			InnerRadius: style.InnerRadius,
+			OuterRadius: style.OuterRadius,
+		}
+	case RenderStack, RenderNormStack:
+		rdr = charts.StackedRenderer[string, float64]{
+			Fill:      charts.Tableau10,
+			Width:     style.Width,
+			Normalize: style.Type == RenderNormStack,
+		}
+	case RenderGroup:
+	default:
+		return nil, fmt.Errorf("%s: can not use for number chart", style.Type)
+	}
+	return rdr, nil
+}
+
+func createRenderer[T, U charts.ScalerConstraint](style Style) (charts.Renderer[T, U], error) {
+	var rdr charts.Renderer[T, U]
+	switch style.Type {
+	case RenderLine:
+		rdr = charts.LinearRenderer[T, U]{
+			Color:         style.Stroke,
+			IgnoreMissing: style.IgnoreMissing,
+			Text:          style.getTextPosition(),
+			Point:         style.getPointFunc(),
+			Style:         style.getLineStyle(),
+		}
+	case RenderStep:
+		rdr = charts.StepRenderer[T, U]{
+			Color:         style.Stroke,
+			IgnoreMissing: style.IgnoreMissing,
+			Text:          style.getTextPosition(),
+			Point:         style.getPointFunc(),
+			Style:         style.getLineStyle(),
+		}
+	case RenderStepAfter:
+		rdr = charts.StepAfterRenderer[T, U]{
+			Color:         style.Stroke,
+			IgnoreMissing: style.IgnoreMissing,
+			Text:          style.getTextPosition(),
+			Point:         style.getPointFunc(),
+			Style:         style.getLineStyle(),
+		}
+	case RenderStepBefore:
+		rdr = charts.StepBeforeRenderer[T, U]{
+			Color:         style.Stroke,
+			IgnoreMissing: style.IgnoreMissing,
+			Text:          style.getTextPosition(),
+			Point:         style.getPointFunc(),
+			Style:         style.getLineStyle(),
+		}
+	default:
+		return nil, fmt.Errorf("%s: can be not used for number/time chart", style.Type)
+	}
+	return rdr, nil
 }
