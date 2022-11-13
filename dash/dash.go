@@ -17,7 +17,7 @@ var (
 	DefaultWidth  = 800.0
 	DefaultHeight = 600.0
 
-	TimeFormat   = "%y-%m-%d"
+	TimeFormat   = "%Y-%m-%d"
 	DefaultPath  = "out.svg"
 	DefaultDelim = ","
 )
