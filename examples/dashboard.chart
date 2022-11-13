@@ -34,62 +34,55 @@ set yticks with (
 	inner-ticks true
 )
 
+load data/GOOG.csv using 0,1 with (
+	type line
+	color blue
+)
+load data/MSFT.csv using 0,1 with (
+	type line
+	color red
+)
+load data/AAPL.csv using 0,1 with (
+	type line
+	color green
+)
+load data/TWTR.csv using 0,1 with (
+	type line
+	color grey
+)
+
 at 0,0 (
 	set title "google"
 	set padding 60
 	set ydomain 0,170
-	load data/GOOG.csv using 0,1 with (
-		type line
-		color blue
-	)
+	use GOOG
 )
 at 0,1 (
 	set title "apple"
 	set padding 60
 	set ydomain 0,210
-	load data/AAPL.csv using 0,1 with (
-		type line
-		color blue
-	)
+	use AAPL
 )
 at 1,0 (
 	set title "twitter"
 	set padding 60
 	set ydomain 0,110
-	load data/TWTR.csv using 0,1 with (
-		type line
-		color blue
-	)
+	use TWTR
 )
 at 1,1 (
 	set title "microsoft"
 	set padding 60
-	load data/MSFT.csv using 0,1 with (
-		type line
-		color blue
-	)
+	use MSFT
 )
 
 at 2, 0, 2, 2 (
 	set title "stock prices evolution"
 	set padding 60
-	load data/GOOG.csv using 0,1 with (
-		type line
-		color blue
 
-	)
-	load data/MSFT.csv using 0,1 with (
-		type line
-		color red
-	)
-	load data/AAPL.csv using 0,1 with (
-		type line
-		color green
-	)
-	load data/TWTR.csv using 0,1 with (
-		type line
-		color grey
-	)
+	use TWTR
+	use AAPL
+	use MSFT
+	use GOOG
 )
 
 render tmp/dashboard.svg

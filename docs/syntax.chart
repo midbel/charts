@@ -35,7 +35,7 @@ set grid with (
 )
 
 at x,y[,w,h] include <path>
-at x,y[,w,h] (...)
+at x,y[,w,h] ()
 
 set padding number[,number[,number[,number]]]
 set size    number,number

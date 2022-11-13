@@ -20,11 +20,13 @@ func main() {
 
 	cfg, err := decode.NewDecoder(r).Decode()
 	if err != nil {
-		fmt.Fprintln(os.Stderr, "fail to decode input file: %s", err)
+		fmt.Fprintf(os.Stderr, "fail to decode input file: %s", err)
+		fmt.Fprintln(os.Stderr)
 		os.Exit(2)
 	}
 	if err = cfg.Render(); err != nil {
-		fmt.Fprintln(os.Stderr, "fail to render chart from input file: %s", err)
+		fmt.Fprintf(os.Stderr, "fail to render chart from input file: %s", err)
+		fmt.Fprintln(os.Stderr)
 		os.Exit(1)
 	}
 }

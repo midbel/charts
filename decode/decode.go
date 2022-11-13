@@ -28,7 +28,8 @@ type Decoder struct {
 	cwd   string
 	shell string
 
-	env *dash.Environ[[]string]
+	env   *dash.Environ[[]string]
+	files *dash.Environ[dash.File]
 
 	scan *Scanner
 	curr Token
@@ -39,6 +40,7 @@ func NewDecoder(r io.Reader) *Decoder {
 	d := Decoder{
 		cwd:   ".",
 		env:   dash.EmptyEnv[[]string](),
+		files: dash.EmptyEnv[dash.File](),
 		shell: DefaultShell,
 		scan:  Scan(r),
 	}
@@ -112,6 +114,8 @@ func (d *Decoder) decodeBody(cfg *dash.Config, accept func(Token) bool) error {
 			err = d.decodeAt(cfg)
 		case kwDeclare:
 			err = d.decodeDeclare()
+		case kwUse:
+			err = d.decodeUse(cfg)
 		default:
 			err = d.decodeError(fmt.Sprintf("unexpected keyword %q", d.curr.Literal))
 		}
@@ -123,6 +127,26 @@ func (d *Decoder) decodeBody(cfg *dash.Config, accept func(Token) bool) error {
 	if accept(d.curr) {
 		return d.decodeError("file can not be decoded")
 	}
+	return nil
+}
+
+func (d *Decoder) decodeUse(cfg *dash.Config) error {
+	d.next()
+	if err := d.expect(Literal, "literal expected"); err != nil {
+		return err
+	}
+	fi, err := d.files.Resolve(d.curr.Literal)
+	if err != nil {
+		return fmt.Errorf("%s: file not registered", d.curr.Literal)
+	}
+	d.next()
+	if err := d.expectKw(kwWith); err == nil {
+		err = d.decodeStyle(&fi.Style)
+		if err != nil {
+			return err
+		}
+	}
+	cfg.Files = append(cfg.Files, fi)
 	return nil
 }
 
@@ -156,12 +180,11 @@ func (d *Decoder) decodeAt(cfg *dash.Config) error {
 		}
 	}
 
+	d.wrap()
+	defer d.unwrap()
 	switch {
 	case d.isKw(kwInclude):
 		err = d.decodeInclude(&cell.Config)
-		if len(cell.Config.Cells) != 0 {
-			return fmt.Errorf("nested grid are not supported")
-		}
 	case d.is(Lparen):
 		d.next()
 		accept := func(tok Token) bool {
@@ -539,6 +562,7 @@ func (d *Decoder) decodeLoad(cfg *dash.Config) error {
 		err = d.eol()
 	}
 	if err == nil {
+		d.files.Define(fi.Name(), fi)
 		cfg.Files = append(cfg.Files, fi)
 	}
 	return err
@@ -640,6 +664,16 @@ func (d *Decoder) decodeWith(decode func() error) error {
 	}
 	d.next()
 	return nil
+}
+
+func (d *Decoder) wrap() {
+	d.env = d.env.Wrap()
+	d.files = d.files.Wrap()
+}
+
+func (d *Decoder) unwrap() {
+	d.env = d.env.Unwrap()
+	d.files = d.files.Unwrap()
 }
 
 func (d *Decoder) is(kind rune) bool {

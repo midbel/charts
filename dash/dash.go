@@ -59,6 +59,7 @@ func MakeCell(c Config) Cell {
 		Height: 1,
 		Config: c,
 	}
+	empty.Config.Files = nil
 	empty.Config.Cells = nil
 	return empty
 }
