@@ -16,7 +16,6 @@ set xticks with (
 	position bottom
 	label-ticks true
 	inner-ticks true
-	format to_lowercase
 )
 
 set yticks with (
@@ -33,4 +32,4 @@ load $file using 0,1:+9 with (
 	width 0.8
 )
 
-render tmp/bar.svg
+render tmp/pop.svg

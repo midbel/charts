@@ -20,7 +20,7 @@ type ScalerMaker interface {
 	makeCategoryScale(charts.Range) (charts.Scaler[string], error)
 }
 
-var ErrDomain = errors.New("not enough values given for domain")
+var errValues = errors.New("not enough values given for domain")
 
 type listScaler struct {
 	values []string
@@ -34,7 +34,7 @@ func ScaleFromList(vs []string) ScalerMaker {
 
 func (s listScaler) makeTimeScale(rg charts.Range, format string, reverse bool) (charts.Scaler[time.Time], error) {
 	if len(s.values) < 2 {
-		return nil, ErrDomain
+		return nil, errValues
 	}
 	parseTime, err := makeParseTime(format)
 	if err != nil {
@@ -56,7 +56,7 @@ func (s listScaler) makeTimeScale(rg charts.Range, format string, reverse bool) 
 
 func (s listScaler) makeNumberScale(rg charts.Range, reverse bool) (charts.Scaler[float64], error) {
 	if len(s.values) < 2 {
-		return nil, ErrDomain
+		return nil, errValues
 	}
 	fst, err := strconv.ParseFloat(slices.Fst(s.values), 64)
 	if err != nil {
@@ -104,7 +104,7 @@ func (s fileScaler) makeTimeScale(rg charts.Range, format string, reverse bool) 
 	)
 	err = s.readFile(func(row []string) error {
 		if ix < 0 || ix >= len(row) {
-			return fmt.Errorf("invalid index")
+			return ErrIndex
 		}
 		when, err := parseTime(row[ix])
 		if err != nil {

@@ -29,10 +29,10 @@ const (
 )
 
 const (
-	PosTop = "top"
-	PosRight = "right"
+	PosTop    = "top"
+	PosRight  = "right"
 	PosBottom = "bottom"
-	PosLeft = "left"
+	PosLeft   = "left"
 )
 
 type Renderer interface {
@@ -40,42 +40,26 @@ type Renderer interface {
 	Render(io.Writer)
 }
 
-type Config struct {
-	Title  string
-	Path   string
-	Width  float64
-	Height float64
-	Pad    struct {
-		Top    float64
-		Right  float64
-		Bottom float64
-		Left   float64
-	}
-	Delimiter  string
-	TimeFormat string
-	Types      struct {
-		X string
-		Y string
-	}
-	Domains struct {
-		X Domain
-		Y Domain
-	}
-	Center struct {
-		X string
-		Y string
-	}
-	Legend struct {
-		Title    string
-		Position []string
-	}
-	Files []File
+type Legend struct {
+	Title    string
+	Position []string
+}
 
-	Style   Style
-	Env     *Environ[any]
-	Scripts *Environ[ast.Expression]
+type Input struct {
+	Type string
+	Domain
+}
 
-	Cells []Cell
+func (i Input) isNumber() bool {
+	return i.Type == TypeNumber
+}
+
+func (i Input) isTime() bool {
+	return i.Type == TypeTime
+}
+
+func (i Input) isString() bool {
+	return i.Type == TypeString
 }
 
 type Cell struct {
@@ -84,6 +68,40 @@ type Cell struct {
 	Width  int
 	Height int
 	Config Config
+}
+
+func MakeCell(c Config) Cell {
+	empty := Cell{
+		Width:  1,
+		Height: 1,
+		Config: c,
+	}
+	empty.Config.Cells = nil
+	return empty
+}
+
+type Config struct {
+	Title string
+	Legend
+
+	Path string
+
+	Width  float64
+	Height float64
+	Pad    charts.Padding
+
+	Delimiter  string
+	TimeFormat string
+
+	X     Input
+	Y     Input
+	Files []File
+
+	Style   Style
+	Env     *Environ[any]
+	Scripts *Environ[ast.Expression]
+
+	Cells []Cell
 }
 
 func Default() Config {
@@ -95,8 +113,8 @@ func Default() Config {
 		Style:      GlobalStyle(),
 		Scripts:    EmptyEnv[ast.Expression](),
 	}
-	cfg.Types.X = TypeNumber
-	cfg.Types.Y = TypeNumber
+	cfg.X.Type = TypeNumber
+	cfg.Y.Type = TypeNumber
 
 	return cfg
 }
@@ -109,9 +127,14 @@ func (c Config) Render() error {
 	if err != nil {
 		return err
 	}
-	w, err := os.Create(c.Path)
-	if err != nil {
-		return err
+	var w io.Writer = os.Stdout
+	if c.Path != "" {
+		f, err := os.Create(c.Path)
+		if err != nil {
+			return err
+		}
+		defer f.Close()
+		w = f
 	}
 	rdr.Render(w)
 	return nil
@@ -123,14 +146,14 @@ func (c Config) render() (Renderer, error) {
 		mak Renderer
 	)
 	switch {
-	case c.Types.X == TypeNumber && c.Types.Y == TypeNumber:
+	case c.X.isNumber() && c.Y.isNumber():
 		mak, err = c.makeNumberChart()
-	case c.Types.X == TypeTime && c.Types.Y == TypeNumber:
+	case c.X.isTime() && c.Y.isNumber():
 		mak, err = c.makeTimeChart()
-	case c.Types.X == TypeString && c.Types.Y == TypeNumber:
+	case c.X.isString() && c.Y.isNumber():
 		mak, err = c.makeCategoryChart()
 	default:
-		err = fmt.Errorf("unsupported chart type %s/%s", c.Types.X, c.Types.Y)
+		err = fmt.Errorf("unsupported chart type %s/%s", c.X.Type, c.Y.Type)
 	}
 	return mak, err
 }
@@ -190,11 +213,11 @@ func (c Config) makeCategoryChart() (Renderer, error) {
 		chart  = createChart[string, float64](c)
 		series = make([]charts.Data, len(c.Files))
 	)
-	xscale, err := c.Domains.X.makeCategoryScale(xrange)
+	xscale, err := c.X.makeCategoryScale(xrange)
 	if err != nil {
 		return nil, err
 	}
-	yscale, err := c.Domains.Y.makeNumberScale(yrange, true)
+	yscale, err := c.Y.makeNumberScale(yrange, true)
 	if err != nil {
 		return nil, err
 	}
@@ -204,20 +227,20 @@ func (c Config) makeCategoryChart() (Renderer, error) {
 			return nil, err
 		}
 	}
-	switch c.Domains.X.Position {
+	switch c.X.Position {
 	case PosBottom:
-		chart.Bottom, err = c.Domains.X.makeCategoryAxis(c, xscale)
+		chart.Bottom, err = c.X.makeCategoryAxis(c, xscale)
 	case PosTop:
-		chart.Top, err = c.Domains.X.makeCategoryAxis(c, xscale)
+		chart.Top, err = c.X.makeCategoryAxis(c, xscale)
 	}
 	if err != nil {
 		return nil, err
 	}
-	switch c.Domains.Y.Position {
+	switch c.Y.Position {
 	case PosLeft:
-		chart.Left, err = c.Domains.Y.makeNumberAxis(c, yscale)
+		chart.Left, err = c.Y.makeNumberAxis(c, yscale)
 	case PosRight:
-		chart.Right, err = c.Domains.Y.makeNumberAxis(c, yscale)
+		chart.Right, err = c.Y.makeNumberAxis(c, yscale)
 	}
 	if err != nil {
 		return nil, err
@@ -232,11 +255,11 @@ func (c Config) makeTimeChart() (Renderer, error) {
 		chart  = createChart[time.Time, float64](c)
 		series = make([]charts.Data, len(c.Files))
 	)
-	xscale, err := c.Domains.X.makeTimeScale(xrange, false)
+	xscale, err := c.X.makeTimeScale(xrange, false)
 	if err != nil {
 		return nil, err
 	}
-	yscale, err := c.Domains.Y.makeNumberScale(yrange, true)
+	yscale, err := c.Y.makeNumberScale(yrange, true)
 	if err != nil {
 		return nil, err
 	}
@@ -246,20 +269,20 @@ func (c Config) makeTimeChart() (Renderer, error) {
 			return nil, err
 		}
 	}
-	switch c.Domains.X.Position {
+	switch c.X.Position {
 	case PosBottom:
-		chart.Bottom, err = c.Domains.X.makeTimeAxis(c, xscale)
+		chart.Bottom, err = c.X.makeTimeAxis(c, xscale)
 	case PosTop:
-		chart.Top, err = c.Domains.X.makeTimeAxis(c, xscale)
+		chart.Top, err = c.X.makeTimeAxis(c, xscale)
 	}
 	if err != nil {
 		return nil, err
 	}
-	switch c.Domains.Y.Position {
+	switch c.Y.Position {
 	case PosLeft:
-		chart.Left, err = c.Domains.Y.makeNumberAxis(c, yscale)
+		chart.Left, err = c.Y.makeNumberAxis(c, yscale)
 	case PosRight:
-		chart.Right, err = c.Domains.Y.makeNumberAxis(c, yscale)
+		chart.Right, err = c.Y.makeNumberAxis(c, yscale)
 	}
 	if err != nil {
 		return nil, err
@@ -274,11 +297,11 @@ func (c Config) makeNumberChart() (Renderer, error) {
 		chart  = createChart[float64, float64](c)
 		series = make([]charts.Data, len(c.Files))
 	)
-	xscale, err := c.Domains.X.makeNumberScale(xrange, false)
+	xscale, err := c.X.makeNumberScale(xrange, false)
 	if err != nil {
 		return nil, err
 	}
-	yscale, err := c.Domains.Y.makeNumberScale(yrange, true)
+	yscale, err := c.Y.makeNumberScale(yrange, true)
 	if err != nil {
 		return nil, err
 	}
@@ -288,20 +311,20 @@ func (c Config) makeNumberChart() (Renderer, error) {
 			return nil, err
 		}
 	}
-	switch c.Domains.X.Position {
+	switch c.X.Position {
 	case PosBottom:
-		chart.Bottom, err = c.Domains.X.makeNumberAxis(c, xscale)
+		chart.Bottom, err = c.X.makeNumberAxis(c, xscale)
 	case PosTop:
-		chart.Top, err = c.Domains.X.makeNumberAxis(c, xscale)
+		chart.Top, err = c.X.makeNumberAxis(c, xscale)
 	}
 	if err != nil {
 		return nil, err
 	}
-	switch c.Domains.Y.Position {
+	switch c.Y.Position {
 	case PosLeft:
-		chart.Left, err = c.Domains.Y.makeNumberAxis(c, yscale)
+		chart.Left, err = c.Y.makeNumberAxis(c, yscale)
 	case PosRight:
-		chart.Right, err = c.Domains.Y.makeNumberAxis(c, yscale)
+		chart.Right, err = c.Y.makeNumberAxis(c, yscale)
 	}
 	if err != nil {
 		return nil, err

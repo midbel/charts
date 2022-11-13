@@ -1,8 +1,8 @@
 package dash
 
 import (
-	"fmt"
 	"errors"
+	"fmt"
 	"time"
 
 	"github.com/midbel/buddy/ast"
@@ -17,7 +17,7 @@ type Domain struct {
 	Label      string
 	Ticks      int
 	Format     string
-	Domain     ScalerMaker
+	Scaler     ScalerMaker
 	Position   string
 	InnerTicks bool
 	OuterTicks bool
@@ -26,24 +26,24 @@ type Domain struct {
 }
 
 func (d Domain) makeCategoryScale(rg charts.Range) (charts.Scaler[string], error) {
-	if d.Domain == nil {
+	if d.Scaler == nil {
 		return nil, errDomain
 	}
-	return d.Domain.makeCategoryScale(rg)
+	return d.Scaler.makeCategoryScale(rg)
 }
 
 func (d Domain) makeNumberScale(rg charts.Range, reverse bool) (charts.Scaler[float64], error) {
-	if d.Domain == nil {
+	if d.Scaler == nil {
 		return nil, errDomain
 	}
-	return d.Domain.makeNumberScale(rg, reverse)
+	return d.Scaler.makeNumberScale(rg, reverse)
 }
 
 func (d Domain) makeTimeScale(rg charts.Range, reverse bool) (charts.Scaler[time.Time], error) {
-	if d.Domain == nil {
+	if d.Scaler == nil {
 		return nil, errDomain
 	}
-	return d.Domain.makeTimeScale(rg, d.Format, reverse)
+	return d.Scaler.makeTimeScale(rg, d.Format, reverse)
 }
 
 func (d Domain) makeCategoryAxis(cfg Config, scale charts.Scaler[string]) (charts.Axis[string], error) {
@@ -113,6 +113,7 @@ func wrapExpr[T any](expr ast.Expression) func(value T) string {
 		if err != nil {
 			return ""
 		}
+		fmt.Printf("%T - %s\n", res, res)
 		return res.String()
 	}
 }

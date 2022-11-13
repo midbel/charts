@@ -54,9 +54,9 @@ func NewDecoder(r io.Reader) *Decoder {
 	return &d
 }
 
-func (d *Decoder) Decode() error {
+func (d *Decoder) Decode() (*dash.Config, error) {
 	cfg := dash.Default()
-	return d.decode(&cfg)
+	return &cfg, d.decode(&cfg)
 }
 
 func (d *Decoder) decode(cfg *dash.Config) error {
@@ -73,7 +73,19 @@ func (d *Decoder) decode(cfg *dash.Config) error {
 	if err := d.decodeRender(cfg); err != nil {
 		return err
 	}
-	return cfg.Render()
+	return nil
+}
+
+func (d *Decoder) decodeRender(cfg *dash.Config) error {
+	d.next()
+	switch d.curr.Type {
+	case Literal:
+		cfg.Path, _ = d.getString()
+	case EOL, EOF:
+	default:
+		return d.decodeError("literal or end of line expected")
+	}
+	return d.eol()
 }
 
 func (d *Decoder) decodeBody(cfg *dash.Config, accept func(Token) bool) error {
@@ -117,13 +129,9 @@ func (d *Decoder) decodeBody(cfg *dash.Config, accept func(Token) bool) error {
 func (d *Decoder) decodeAt(cfg *dash.Config) error {
 	d.next()
 	var (
-		cell dash.Cell
+		cell = dash.MakeCell(*cfg)
 		err  error
 	)
-	cell.Width = 1
-	cell.Height = 1
-	cell.Config = *cfg
-	cell.Config.Cells = nil
 	if cell.Row, err = d.getInt(); err != nil {
 		return err
 	}
@@ -207,18 +215,6 @@ func (d *Decoder) decodeDeclare() error {
 	return d.eol()
 }
 
-func (d *Decoder) decodeRender(cfg *dash.Config) error {
-	d.next()
-	switch d.curr.Type {
-	case Literal:
-		cfg.Path, _ = d.getString()
-	case EOL, EOF:
-	default:
-		return d.decodeError("literal or end of line expected")
-	}
-	return d.eol()
-}
-
 func (d *Decoder) decodeInclude(cfg *dash.Config) error {
 	accept := func(tok Token) bool {
 		return tok.Type != EOF
@@ -285,21 +281,17 @@ func (d *Decoder) decodeSet(cfg *dash.Config) error {
 		}
 		cfg.Pad, err = charts.PaddingFromList(list)
 	case "xdata":
-		cfg.Types.X, err = d.getType()
-	case "xcenter":
-		cfg.Center.X, err = d.getString()
+		cfg.X.Type, err = d.getType()
 	case "xdomain":
-		cfg.Domains.X.Domain, err = d.decodeDomain()
+		cfg.X.Domain.Scaler, err = d.decodeScaler()
 	case "ydata":
-		cfg.Types.Y, err = d.getType()
-	case "ycenter":
-		cfg.Center.Y, err = d.getString()
+		cfg.Y.Type, err = d.getType()
 	case "ydomain":
-		cfg.Domains.Y.Domain, err = d.decodeDomain()
+		cfg.Y.Domain.Scaler, err = d.decodeScaler()
 	case "xticks":
-		return d.decodeTicks(&cfg.Domains.X)
+		return d.decodeTicks(&cfg.X.Domain)
 	case "yticks":
-		return d.decodeTicks(&cfg.Domains.Y)
+		return d.decodeTicks(&cfg.Y.Domain)
 	case "style":
 		return d.decodeStyle(&cfg.Style)
 	case "grid":
@@ -340,7 +332,7 @@ func (d *Decoder) decodeGrid(cfg *dash.Config) error {
 	return err
 }
 
-func (d *Decoder) decodeDomain() (dash.ScalerMaker, error) {
+func (d *Decoder) decodeScaler() (dash.ScalerMaker, error) {
 	if !d.peekIs(Keyword) {
 		list, err := d.getStringList()
 		if err != nil {
