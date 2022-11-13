@@ -17,14 +17,18 @@ import (
 	"github.com/midbel/slices"
 )
 
+type Limit struct {
+	Beg int
+	End int
+}
+
 type File struct {
 	Path       string
 	Ident      string
 	X          int
 	Y          Selector
 	TimeFormat string
-	Starts     int
-	Ends       int
+	Limit
 	Style
 }
 
