@@ -283,11 +283,11 @@ func (d *Decoder) decodeSet(cfg *dash.Config) error {
 	case "xdata":
 		cfg.X.Type, err = d.getType()
 	case "xdomain":
-		cfg.X.Domain.Scaler, err = d.decodeScaler()
+		cfg.X.Scaler, err = d.decodeScaler()
 	case "ydata":
 		cfg.Y.Type, err = d.getType()
 	case "ydomain":
-		cfg.Y.Domain.Scaler, err = d.decodeScaler()
+		cfg.Y.Scaler, err = d.decodeScaler()
 	case "xticks":
 		return d.decodeTicks(&cfg.X.Domain)
 	case "yticks":

@@ -11,39 +11,56 @@ import (
 	"github.com/midbel/charts"
 )
 
-var errDomain = errors.New("domain not set")
+var errScaler = errors.New("scale not set")
+
+type Input struct {
+	Type   string
+	Scaler ScalerMaker
+	Domain
+}
+
+func (i Input) isNumber() bool {
+	return i.Type == TypeNumber
+}
+
+func (i Input) isTime() bool {
+	return i.Type == TypeTime
+}
+
+func (i Input) isString() bool {
+	return i.Type == TypeString
+}
+
+func (i Input) makeCategoryScale(rg charts.Range) (charts.Scaler[string], error) {
+	if i.Scaler == nil {
+		return nil, errScaler
+	}
+	return i.Scaler.makeCategoryScale(rg)
+}
+
+func (i Input) makeNumberScale(rg charts.Range, reverse bool) (charts.Scaler[float64], error) {
+	if i.Scaler == nil {
+		return nil, errScaler
+	}
+	return i.Scaler.makeNumberScale(rg, reverse)
+}
+
+func (i Input) makeTimeScale(rg charts.Range, format string, reverse bool) (charts.Scaler[time.Time], error) {
+	if i.Scaler == nil {
+		return nil, errScaler
+	}
+	return i.Scaler.makeTimeScale(rg, format, reverse)
+}
 
 type Domain struct {
 	Label      string
 	Ticks      int
 	Format     string
-	Scaler     ScalerMaker
 	Position   string
 	InnerTicks bool
 	OuterTicks bool
 	LabelTicks bool
 	BandTicks  bool
-}
-
-func (d Domain) makeCategoryScale(rg charts.Range) (charts.Scaler[string], error) {
-	if d.Scaler == nil {
-		return nil, errDomain
-	}
-	return d.Scaler.makeCategoryScale(rg)
-}
-
-func (d Domain) makeNumberScale(rg charts.Range, reverse bool) (charts.Scaler[float64], error) {
-	if d.Scaler == nil {
-		return nil, errDomain
-	}
-	return d.Scaler.makeNumberScale(rg, reverse)
-}
-
-func (d Domain) makeTimeScale(rg charts.Range, reverse bool) (charts.Scaler[time.Time], error) {
-	if d.Scaler == nil {
-		return nil, errDomain
-	}
-	return d.Scaler.makeTimeScale(rg, d.Format, reverse)
 }
 
 func (d Domain) makeCategoryAxis(cfg Config, scale charts.Scaler[string]) (charts.Axis[string], error) {

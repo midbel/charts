@@ -45,23 +45,6 @@ type Legend struct {
 	Position []string
 }
 
-type Input struct {
-	Type string
-	Domain
-}
-
-func (i Input) isNumber() bool {
-	return i.Type == TypeNumber
-}
-
-func (i Input) isTime() bool {
-	return i.Type == TypeTime
-}
-
-func (i Input) isString() bool {
-	return i.Type == TypeString
-}
-
 type Cell struct {
 	Row    int
 	Col    int
@@ -255,7 +238,7 @@ func (c Config) makeTimeChart() (Renderer, error) {
 		chart  = createChart[time.Time, float64](c)
 		series = make([]charts.Data, len(c.Files))
 	)
-	xscale, err := c.X.makeTimeScale(xrange, false)
+	xscale, err := c.X.makeTimeScale(xrange, TimeFormat, false)
 	if err != nil {
 		return nil, err
 	}
