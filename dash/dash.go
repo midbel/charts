@@ -2,9 +2,11 @@ package dash
 
 import (
 	"bufio"
+	"embed"
 	"fmt"
 	"io"
 	"os"
+	"path/filepath"
 	"time"
 
 	"github.com/midbel/buddy/ast"
@@ -12,6 +14,11 @@ import (
 	"github.com/midbel/svg"
 	"github.com/midbel/svg/layout"
 )
+
+//go:embed themes/*css
+var themes embed.FS
+
+const themedir = "themes"
 
 var (
 	DefaultWidth  = 800.0
@@ -88,6 +95,8 @@ type Config struct {
 	Scripts *Environ[ast.Expression]
 
 	Cells []Cell
+
+	Theme string
 }
 
 func Default() Config {
@@ -354,6 +363,13 @@ func createChart[T, U charts.ScalerConstraint](cfg Config) charts.Chart[T, U] {
 			Bottom: cfg.Pad.Bottom,
 			Left:   cfg.Pad.Left,
 		},
+	}
+	if dat, err := themes.ReadFile(filepath.Join(themedir, cfg.Theme) + ".css"); err == nil {
+		ch.Theme = string(dat)
+	} else if dat, err = os.ReadFile(cfg.Theme); err == nil {
+		ch.Theme = string(dat)
+	} else {
+		ch.Theme = cfg.Theme
 	}
 	ch.Legend.Title = cfg.Legend.Title
 	for _, p := range cfg.Legend.Position {

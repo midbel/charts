@@ -1,0 +1,11 @@
+svg {
+	background: black;
+}
+
+g#axis text {
+	fill: orange;
+}
+
+g#axis line {
+	stroke: orange;
+}

@@ -1,8 +1,10 @@
-set size 1366, 600
+set size 800, 600
 set padding 40,60,60,80
 set title "stock prices evolution"
 
 set timefmt %Y-%m-%d
+
+set theme black-orange
 
 set xdata time
 set ydata number

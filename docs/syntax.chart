@@ -25,6 +25,7 @@ column selectors:
 - list of columns/selectors: y0,...,y9
 
 set title string
+set theme string
 
 set legend with (
 	title    string

@@ -70,6 +70,7 @@ type Chart[T, U ScalerConstraint] struct {
 		Orient Orientation
 	}
 	Center Point[T, U]
+	Theme  string
 }
 
 func (c Chart[T, U]) DrawingWidth() float64 {
@@ -84,6 +85,13 @@ func (c Chart[T, U]) Drawn(set ...Data) svg.Element {
 	var el svg.SVG
 	el.Dim = svg.NewDim(c.Width, c.Height)
 	el.OmitProlog = true
+	if c.Theme != "" {
+		s := svg.Style{
+			Content: c.Theme,
+			Type:    "text/css",
+		}
+		el.Append(s.AsElement())
+	}
 
 	if txt := c.drawTitle(); txt != nil {
 		el.Append(txt)

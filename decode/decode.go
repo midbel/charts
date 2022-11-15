@@ -334,6 +334,8 @@ func (d *Decoder) decodeSet(cfg *dash.Config) error {
 		cfg.Delimiter, err = d.getString()
 	case "legend":
 		return d.decodeLegend(cfg)
+	case "theme":
+		cfg.Theme, err = d.getString()
 	default:
 		err = d.optionError("set")
 	}
