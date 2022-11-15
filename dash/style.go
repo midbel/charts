@@ -145,6 +145,10 @@ func createCategoryRenderer(style Style) (charts.Renderer[string, float64], erro
 			Normalize: style.Type == RenderNormStack,
 		}
 	case RenderGroup:
+		rdr = charts.GroupRenderer[string, float64]{
+			Width: style.Width,
+			Fill:  charts.Tableau10,
+		}
 	default:
 		return nil, fmt.Errorf("%s: can not use for number chart", style.Type)
 	}
