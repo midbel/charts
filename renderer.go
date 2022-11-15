@@ -37,7 +37,6 @@ const currentColour = "currentColour"
 
 type Renderer[T, U ScalerConstraint] interface {
 	Render(Serie[T, U]) svg.Element
-	NeedAxis() bool
 }
 
 type PolarRenderer[T ~string, U ~float64] struct {
@@ -68,10 +67,6 @@ func (r PolarRenderer[T, U]) Render(serie Serie[T, U]) svg.Element {
 		g.Append(el)
 	}
 	return g.AsElement()
-}
-
-func (_ PolarRenderer[T, U]) NeedAxis() bool {
-	return false
 }
 
 func (r PolarRenderer[T, U]) drawStackedArcs(serie Serie[T, U]) svg.Element {
@@ -279,10 +274,6 @@ func (r SunburstRenderer[T, U]) Render(serie Serie[T, U]) svg.Element {
 	return grp.AsElement()
 }
 
-func (_ SunburstRenderer[T, U]) NeedAxis() bool {
-	return false
-}
-
 func (r SunburstRenderer[T, U]) drawPoints(grp *svg.Group, fill svg.Fill, pt Point[T, U], offset, frac, level, height float64) {
 	var (
 		value    = any(pt.Y).(float64) * frac
@@ -384,10 +375,6 @@ func (r PieRenderer[T, U]) Render(serie Serie[T, U]) svg.Element {
 	return grp.AsElement()
 }
 
-func (_ PieRenderer[T, U]) NeedAxis() bool {
-	return false
-}
-
 func (r PieRenderer[T, U]) getPos4(rad float64) svg.Pos {
 	return getPosFromAngle(rad, r.difference())
 }
@@ -444,10 +431,6 @@ func (r GroupRenderer[T, U]) Render(serie Serie[T, U]) svg.Element {
 	return grp.AsElement()
 }
 
-func (_ GroupRenderer[T, U]) NeedAxis() bool {
-	return true
-}
-
 type StackedRenderer[T ~string, U ~float64] struct {
 	Fill      []string
 	Width     float64
@@ -500,10 +483,6 @@ func (r StackedRenderer[T, U]) Render(serie Serie[T, U]) svg.Element {
 	return grp.AsElement()
 }
 
-func (_ StackedRenderer[T, U]) NeedAxis() bool {
-	return true
-}
-
 type BarRenderer[T ~string, U ~float64] struct {
 	Fill  []string
 	Width float64
@@ -522,10 +501,6 @@ func (r BarRenderer[T, U]) Render(serie Serie[T, U]) svg.Element {
 		grp.Append(el)
 	}
 	return grp.AsElement()
-}
-
-func (_ BarRenderer[T, U]) NeedAxis() bool {
-	return true
 }
 
 type PointRenderer[T, U ScalerConstraint] struct {
@@ -548,10 +523,6 @@ func (r PointRenderer[T, U]) Render(serie Serie[T, U]) svg.Element {
 		grp.Append(el)
 	}
 	return grp.AsElement()
-}
-
-func (_ PointRenderer[T, U]) NeedAxis() bool {
-	return true
 }
 
 type CubicRenderer[T, U ScalerConstraint] struct {
@@ -600,10 +571,6 @@ func (r CubicRenderer[T, U]) Render(serie Serie[T, U]) svg.Element {
 	}
 	grp.Append(pat.AsElement())
 	return grp.AsElement()
-}
-
-func (_ CubicRenderer[T, U]) NeedAxis() bool {
-	return true
 }
 
 type LinearRenderer[T, U ScalerConstraint] struct {
@@ -666,10 +633,6 @@ func (r LinearRenderer[T, U]) Render(serie Serie[T, U]) svg.Element {
 	}
 	grp.Append(pat.AsElement())
 	return grp.AsElement()
-}
-
-func (_ LinearRenderer[T, U]) NeedAxis() bool {
-	return true
 }
 
 type StepRenderer[T, U ScalerConstraint] struct {
@@ -739,10 +702,6 @@ func (r StepRenderer[T, U]) Render(serie Serie[T, U]) svg.Element {
 	}
 	grp.Append(pat.AsElement())
 	return grp.AsElement()
-}
-
-func (_ StepRenderer[T, U]) NeedAxis() bool {
-	return true
 }
 
 type StepAfterRenderer[T, U ScalerConstraint] struct {
@@ -820,10 +779,6 @@ func (r StepAfterRenderer[T, U]) Render(serie Serie[T, U]) svg.Element {
 	return grp.AsElement()
 }
 
-func (_ StepAfterRenderer[T, U]) NeedAxis() bool {
-	return true
-}
-
 type StepBeforeRenderer[T, U ScalerConstraint] struct {
 	Color         string
 	Fill          bool
@@ -897,10 +852,6 @@ func (r StepBeforeRenderer[T, U]) Render(serie Serie[T, U]) svg.Element {
 	}
 	grp.Append(pat.AsElement())
 	return grp.AsElement()
-}
-
-func (_ StepBeforeRenderer[T, U]) NeedAxis() bool {
-	return true
 }
 
 func getLineText(str string, x, y float64, before bool) svg.Text {
