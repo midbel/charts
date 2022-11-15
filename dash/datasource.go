@@ -19,8 +19,8 @@ import (
 
 type DataSource interface {
 	TimeSerie(Style, string, charts.Scaler[time.Time], charts.Scaler[float64]) (charts.Data, error)
-	NumberSerie(Style, string, charts.Scaler[float64], charts.Scaler[float64]) (charts.Data, error)
-	CategorySerie(Style, string, charts.Scaler[string], charts.Scaler[float64]) (charts.Data, error)
+	NumberSerie(Style, charts.Scaler[float64], charts.Scaler[float64]) (charts.Data, error)
+	CategorySerie(Style, charts.Scaler[string], charts.Scaler[float64]) (charts.Data, error)
 }
 
 type Data struct {

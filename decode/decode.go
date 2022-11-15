@@ -142,7 +142,7 @@ func (d *Decoder) decodeUse(cfg *dash.Config) error {
 			return err
 		}
 	}
-	cfg.Files = append(cfg.Files, fi)
+	cfg.Inputs = append(cfg.Inputs, fi)
 	return nil
 }
 
@@ -553,7 +553,7 @@ func (d *Decoder) decodeLoad(cfg *dash.Config) error {
 	}
 	if err == nil {
 		d.files.Define(fi.Name(), fi)
-		cfg.Files = append(cfg.Files, fi)
+		cfg.Inputs = append(cfg.Inputs, fi)
 	}
 	return err
 }
