@@ -130,7 +130,6 @@ func wrapExpr[T any](expr ast.Expression) func(value T) string {
 		if err != nil {
 			return ""
 		}
-		fmt.Printf("%T - %s\n", res, res)
 		return res.String()
 	}
 }

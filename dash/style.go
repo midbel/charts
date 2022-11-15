@@ -24,6 +24,7 @@ const (
 	RenderStack      = "stack"
 	RenderNormStack  = "stack-normalize"
 	RenderGroup      = "group"
+	RenderPolar      = "polar"
 )
 
 type Style struct {
