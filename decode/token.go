@@ -45,6 +45,7 @@ const (
 	Literal
 	Variable
 	Command
+	Data
 	Comment
 	Comma
 	Lparen
@@ -93,6 +94,8 @@ func (t Token) String() string {
 		prefix = "variable"
 	case Command:
 		prefix = "command"
+	case Data:
+		prefix = "data"
 	case Comma:
 		return "<comma>"
 	case EOL:

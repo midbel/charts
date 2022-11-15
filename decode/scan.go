@@ -41,6 +41,10 @@ func (s *Scanner) Scan() Token {
 		return tok
 	}
 	switch {
+	case isHeredoc(s.char, s.peek()):
+		s.scanHeredoc(&tok)
+	case isComment(s.char):
+		s.scanComment(&tok)
 	case isDollar(s.char):
 		s.scanCommand(&tok)
 	case isQuote(s.char):
@@ -55,6 +59,50 @@ func (s *Scanner) Scan() Token {
 		s.scanLiteral(&tok)
 	}
 	return tok
+}
+
+func (s *Scanner) scanComment(tok *Token) {
+	s.read()
+	s.skipBlank()
+	s.read()
+	pos := s.curr
+	for !isNL(s.char) && !s.done() {
+		s.read()
+	}
+	tok.Literal = string(s.input[pos:s.curr])
+	tok.Type = Comment
+}
+
+func (s *Scanner) scanHeredoc(tok *Token) {
+	s.read()
+	s.read()
+	var (
+		prefix string
+		beg    = s.curr
+		end    int
+	)
+	for !isNL(s.char) {
+		s.read()
+	}
+	prefix = string(s.input[beg:s.curr])
+	beg = s.curr + utf8.RuneLen(s.char)
+	for !s.done() {
+		s.read()
+		var (
+			line string
+			tmp  = s.curr
+		)
+		for !isNL(s.char) && !s.done() {
+			s.read()
+		}
+		line = string(s.input[tmp:s.curr])
+		if line == prefix {
+			break
+		}
+		end = s.curr
+	}
+	tok.Type = Data
+	tok.Literal = string(s.input[beg:end])
 }
 
 func (s *Scanner) scanScript(tok *Token) {
@@ -253,7 +301,16 @@ const (
 	squote          = '\''
 	dquote          = '"'
 	underscore      = '_'
+	langle          = '<'
 )
+
+func isHeredoc(r, p rune) bool {
+	return r == langle && r == p
+}
+
+func isComment(r rune) bool {
+	return r == hash
+}
 
 func isDollar(r rune) bool {
 	return r == dollar
