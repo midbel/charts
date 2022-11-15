@@ -167,8 +167,9 @@ func (n numberScaler) Space() float64 {
 }
 
 func (n numberScaler) replace(rg Range) Scaler[float64] {
-	n.Range = rg
-	return n
+	x := n
+	x.Range = rg
+	return x
 }
 
 type timeScaler struct {
@@ -192,8 +193,9 @@ func (s timeScaler) Space() float64 {
 }
 
 func (s timeScaler) replace(rg Range) Scaler[time.Time] {
-	s.Range = rg
-	return s
+	x := s
+	x.Range = rg
+	return x
 }
 
 type stringScaler struct {
@@ -251,7 +253,21 @@ func (s stringScaler) Merge(values []string) Scaler[string] {
 	return StringScaler(list, s.Range)
 }
 
+func (s stringScaler) reset(values []string) Scaler[string] {
+	x := s
+	x.Strings = make([]string, 0, len(values))
+	x.Strings = append(x.Strings, values...)
+	return x
+}
+
 func (s stringScaler) replace(rg Range) Scaler[string] {
-	s.Range = rg
-	return s
+	x := s
+	x.Range = rg
+	x.Strings = make([]string, len(s.Strings))
+	copy(x.Strings, s.Strings)
+	return x
+}
+
+type scalerReset[T ScalerConstraint] interface {
+	reset([]T) Scaler[T]
 }

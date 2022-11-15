@@ -414,7 +414,34 @@ type GroupRenderer[T ~string, U float64] struct {
 }
 
 func (r GroupRenderer[T, U]) Render(serie Serie[T, U]) svg.Element {
-	return nil
+	if r.Width <= 0 {
+		r.Width = 1
+	}
+	if len(r.Fill) == 0 {
+		r.Fill = Tableau10
+	}
+	var (
+		grp = getBaseGroup("", "bar")
+		sub = serie.X.replace(NewRange(0, serie.X.Space()))
+	)
+	for _, pt := range serie.Points {
+		g := getBaseGroup("", "group", "bar-group")
+		g.Transform = svg.Translate(serie.X.Scale(pt.X), 0)
+
+		if r, ok := sub.(scalerReset[T]); ok {
+			var dat []T
+			for _, s := range pt.Sub {
+				dat = append(dat, s.X)
+			}
+			sub = r.reset(dat)
+		}
+		for i, s := range pt.Sub {
+			el := getRect(s, sub, serie.Y, r.Width, r.Fill[i%len(r.Fill)])
+			g.Append(el)
+		}
+		grp.Append(g.AsElement())
+	}
+	return grp.AsElement()
 }
 
 func (_ GroupRenderer[T, U]) NeedAxis() bool {
@@ -491,17 +518,8 @@ func (r BarRenderer[T, U]) Render(serie Serie[T, U]) svg.Element {
 	}
 	grp := getBaseGroup("", "bar")
 	for i, pt := range serie.Points {
-		var (
-			width  = serie.X.Space() * r.Width
-			offset = (serie.X.Space() - width) / 2
-			pos    = svg.NewPos(serie.X.Scale(pt.X)+offset, serie.Y.Scale(pt.Y))
-			dim    = svg.NewDim(width, serie.Y.Max()-pos.Y)
-		)
-		var el svg.Rect
-		el.Pos = pos
-		el.Dim = dim
-		el.Fill = svg.NewFill(r.Fill[i%len(r.Fill)])
-		grp.Append(el.AsElement())
+		el := getRect(pt, serie.X, serie.Y, r.Width, r.Fill[i%len(r.Fill)])
+		grp.Append(el)
 	}
 	return grp.AsElement()
 }
@@ -931,6 +949,20 @@ func getBaseGroup(color string, class ...string) svg.Group {
 	}
 	g.Class = class
 	return g
+}
+
+func getRect[T, U ScalerConstraint](pt Point[T, U], x Scaler[T], y Scaler[U], ratio float64, fill string) svg.Element {
+	var (
+		width  = x.Space() * ratio
+		offset = (x.Space() - width) / 2
+		pos    = svg.NewPos(x.Scale(pt.X)+offset, y.Scale(pt.Y))
+		dim    = svg.NewDim(width, y.Max()-pos.Y)
+	)
+	var el svg.Rect
+	el.Pos = pos
+	el.Dim = dim
+	el.Fill = svg.NewFill(fill)
+	return el.AsElement()
 }
 
 const (
