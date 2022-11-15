@@ -225,7 +225,9 @@ func (d *Decoder) decodeDeclare() error {
 	}
 	ident := d.curr.Literal
 	d.next()
-
+	if d.is(Data) {
+		return d.eol()
+	}
 	values, err := d.getStringList()
 	if err != nil {
 		return err

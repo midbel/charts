@@ -22,6 +22,11 @@ type Limit struct {
 	End int
 }
 
+type Data struct {
+	Ident   string
+	Content string
+}
+
 type File struct {
 	Path       string
 	Ident      string
