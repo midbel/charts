@@ -149,6 +149,12 @@ func createCategoryRenderer(style Style) (charts.Renderer[string, float64], erro
 			Width: style.Width,
 			Fill:  charts.Tableau10,
 		}
+	case RenderPolar:
+		rdr = charts.PolarRenderer[string, float64]{
+			Fill:       charts.Tableau10,
+			Ticks:      10,
+			TicksStyle: charts.StyleStraight,
+		}
 	default:
 		return nil, fmt.Errorf("%s: can not use for number chart", style.Type)
 	}
