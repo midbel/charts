@@ -221,7 +221,7 @@ func (c Config) categoryChart() (Renderer, error) {
 		return nil, err
 	}
 	for i := range c.Files {
-		series[i], err = c.Files[i].makeCategorySerie(c.Style, xscale, yscale)
+		series[i], err = c.Files[i].CategorySerie(c.Style, xscale, yscale)
 		if err != nil {
 			return nil, err
 		}
@@ -263,7 +263,7 @@ func (c Config) timeChart() (Renderer, error) {
 		return nil, err
 	}
 	for i := range c.Files {
-		series[i], err = c.Files[i].makeTimeSerie(c.Style, c.TimeFormat, xscale, yscale)
+		series[i], err = c.Files[i].TimeSerie(c.Style, c.TimeFormat, xscale, yscale)
 		if err != nil {
 			return nil, err
 		}
@@ -305,7 +305,7 @@ func (c Config) numberChart() (Renderer, error) {
 		return nil, err
 	}
 	for i := range c.Files {
-		series[i], err = c.Files[i].makeNumberSerie(c.Style, xscale, yscale)
+		series[i], err = c.Files[i].NumberSerie(c.Style, xscale, yscale)
 		if err != nil {
 			return nil, err
 		}

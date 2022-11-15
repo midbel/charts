@@ -27,7 +27,7 @@ set yticks with (
 	format by_million
 )
 
-load $file using 0,1:+9 with (
+load $file limit 10 using 0,1:+9 with (
 	type bar
 	width 0.8
 )

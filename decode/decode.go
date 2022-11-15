@@ -523,12 +523,12 @@ func (d *Decoder) decodeLoad(cfg *dash.Config) error {
 	if err := d.expectKw(kwLimit); err == nil {
 		d.next()
 		if d.peekIs(Comma) {
-			fi.Beg, err = d.getInt()
+			fi.Offset, err = d.getInt()
 			if err != nil {
 				return err
 			}
 		}
-		fi.End, err = d.getInt()
+		fi.Count, err = d.getInt()
 		if err != nil {
 			return err
 		}
