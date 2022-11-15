@@ -83,7 +83,7 @@ func (d *Decoder) decodeRender(cfg *dash.Config) error {
 	switch d.curr.Type {
 	case Literal:
 		cfg.Path, _ = d.getString()
-	case EOL, EOF:
+	case EOL, EOF, Comment:
 	default:
 		return d.decodeError("literal or end of line expected")
 	}
@@ -93,10 +93,6 @@ func (d *Decoder) decodeRender(cfg *dash.Config) error {
 func (d *Decoder) decodeBody(cfg *dash.Config, accept func(Token) bool) error {
 	d.skipEOL()
 	for accept(d.curr) && !d.done() {
-		if d.is(Comment) {
-			d.next()
-			continue
-		}
 		if err := d.expect(Keyword, "keyword expected"); err != nil {
 			return err
 		}
@@ -117,7 +113,7 @@ func (d *Decoder) decodeBody(cfg *dash.Config, accept func(Token) bool) error {
 		case kwUse:
 			err = d.decodeUse(cfg)
 		default:
-			err = d.decodeError(fmt.Sprintf("unexpected keyword %q", d.curr.Literal))
+			err = d.decodeError(fmt.Sprintf("unexpected %q keyword", d.curr.Literal))
 		}
 		if err != nil {
 			return err
@@ -679,7 +675,7 @@ func (d *Decoder) isKw(kw string) bool {
 }
 
 func (d *Decoder) expectKw(kw string) error {
-	if err := d.expect(Keyword, "expected keyword"); err != nil {
+	if err := d.expect(Keyword, fmt.Sprintf("expected %q keyword", kw)); err != nil {
 		return err
 	}
 	if d.curr.Literal != kw {
@@ -705,7 +701,7 @@ func (d *Decoder) done() bool {
 }
 
 func (d *Decoder) eol() error {
-	if !d.is(EOL) && !d.is(EOF) {
+	if !d.is(EOL) && !d.is(EOF) && !d.is(Comment) {
 		return d.decodeError("expected end of line or end of file")
 	}
 	d.next()
@@ -730,7 +726,7 @@ func (d *Decoder) decodeError(msg string) error {
 }
 
 func (d *Decoder) skipEOL() {
-	for d.curr.Type == EOL {
+	for d.is(EOL) || d.is(Comment) {
 		d.next()
 	}
 }

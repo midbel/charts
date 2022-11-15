@@ -12,7 +12,7 @@ type OptionError struct {
 }
 
 func (e OptionError) Error() string {
-	return fmt.Sprintf("option %s not recognized in section %s", e.Option, e.Section)
+	return fmt.Sprintf("%s[%s]: option %s not recognized in section %s", e.File, e.Position, e.Option, e.Section)
 }
 
 type DecodeError struct {
@@ -22,5 +22,5 @@ type DecodeError struct {
 }
 
 func (e DecodeError) Error() string {
-	return e.Message
+	return fmt.Sprintf("%s[%s]: %s", e.File, e.Position, e.Message)
 }
