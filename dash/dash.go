@@ -197,11 +197,11 @@ func (c Config) makeCategoryChart() (Renderer, error) {
 		chart  = createChart[string, float64](c)
 		series = make([]charts.Data, len(c.Files))
 	)
-	xscale, err := c.X.makeCategoryScale(xrange)
+	xscale, err := c.X.CategoryScale(xrange)
 	if err != nil {
 		return nil, err
 	}
-	yscale, err := c.Y.makeNumberScale(yrange, true)
+	yscale, err := c.Y.NumberScale(yrange, true)
 	if err != nil {
 		return nil, err
 	}
@@ -213,18 +213,18 @@ func (c Config) makeCategoryChart() (Renderer, error) {
 	}
 	switch c.X.Position {
 	case PosBottom:
-		chart.Bottom, err = c.X.makeCategoryAxis(c, xscale)
+		chart.Bottom, err = c.X.GetCategoryAxis(c, xscale)
 	case PosTop:
-		chart.Top, err = c.X.makeCategoryAxis(c, xscale)
+		chart.Top, err = c.X.GetCategoryAxis(c, xscale)
 	}
 	if err != nil {
 		return nil, err
 	}
 	switch c.Y.Position {
 	case PosLeft:
-		chart.Left, err = c.Y.makeNumberAxis(c, yscale)
+		chart.Left, err = c.Y.GetNumberAxis(c, yscale)
 	case PosRight:
-		chart.Right, err = c.Y.makeNumberAxis(c, yscale)
+		chart.Right, err = c.Y.GetNumberAxis(c, yscale)
 	}
 	if err != nil {
 		return nil, err
@@ -239,11 +239,11 @@ func (c Config) makeTimeChart() (Renderer, error) {
 		chart  = createChart[time.Time, float64](c)
 		series = make([]charts.Data, len(c.Files))
 	)
-	xscale, err := c.X.makeTimeScale(xrange, TimeFormat, false)
+	xscale, err := c.X.TimeScale(xrange, TimeFormat, false)
 	if err != nil {
 		return nil, err
 	}
-	yscale, err := c.Y.makeNumberScale(yrange, true)
+	yscale, err := c.Y.NumberScale(yrange, true)
 	if err != nil {
 		return nil, err
 	}
@@ -255,18 +255,18 @@ func (c Config) makeTimeChart() (Renderer, error) {
 	}
 	switch c.X.Position {
 	case PosBottom:
-		chart.Bottom, err = c.X.makeTimeAxis(c, xscale)
+		chart.Bottom, err = c.X.GetTimeAxis(c, xscale)
 	case PosTop:
-		chart.Top, err = c.X.makeTimeAxis(c, xscale)
+		chart.Top, err = c.X.GetTimeAxis(c, xscale)
 	}
 	if err != nil {
 		return nil, err
 	}
 	switch c.Y.Position {
 	case PosLeft:
-		chart.Left, err = c.Y.makeNumberAxis(c, yscale)
+		chart.Left, err = c.Y.GetNumberAxis(c, yscale)
 	case PosRight:
-		chart.Right, err = c.Y.makeNumberAxis(c, yscale)
+		chart.Right, err = c.Y.GetNumberAxis(c, yscale)
 	}
 	if err != nil {
 		return nil, err
@@ -281,11 +281,11 @@ func (c Config) makeNumberChart() (Renderer, error) {
 		chart  = createChart[float64, float64](c)
 		series = make([]charts.Data, len(c.Files))
 	)
-	xscale, err := c.X.makeNumberScale(xrange, false)
+	xscale, err := c.X.NumberScale(xrange, false)
 	if err != nil {
 		return nil, err
 	}
-	yscale, err := c.Y.makeNumberScale(yrange, true)
+	yscale, err := c.Y.NumberScale(yrange, true)
 	if err != nil {
 		return nil, err
 	}
@@ -297,18 +297,18 @@ func (c Config) makeNumberChart() (Renderer, error) {
 	}
 	switch c.X.Position {
 	case PosBottom:
-		chart.Bottom, err = c.X.makeNumberAxis(c, xscale)
+		chart.Bottom, err = c.X.GetNumberAxis(c, xscale)
 	case PosTop:
-		chart.Top, err = c.X.makeNumberAxis(c, xscale)
+		chart.Top, err = c.X.GetNumberAxis(c, xscale)
 	}
 	if err != nil {
 		return nil, err
 	}
 	switch c.Y.Position {
 	case PosLeft:
-		chart.Left, err = c.Y.makeNumberAxis(c, yscale)
+		chart.Left, err = c.Y.GetNumberAxis(c, yscale)
 	case PosRight:
-		chart.Right, err = c.Y.makeNumberAxis(c, yscale)
+		chart.Right, err = c.Y.GetNumberAxis(c, yscale)
 	}
 	if err != nil {
 		return nil, err

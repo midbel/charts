@@ -15,9 +15,9 @@ import (
 )
 
 type ScalerMaker interface {
-	makeTimeScale(charts.Range, string, bool) (charts.Scaler[time.Time], error)
-	makeNumberScale(charts.Range, bool) (charts.Scaler[float64], error)
-	makeCategoryScale(charts.Range) (charts.Scaler[string], error)
+	TimeScale(charts.Range, string, bool) (charts.Scaler[time.Time], error)
+	NumberScale(charts.Range, bool) (charts.Scaler[float64], error)
+	CategoryScale(charts.Range) (charts.Scaler[string], error)
 }
 
 var errValues = errors.New("not enough values given for domain")
@@ -32,7 +32,7 @@ func ScaleFromList(vs []string) ScalerMaker {
 	}
 }
 
-func (s listScaler) makeTimeScale(rg charts.Range, format string, reverse bool) (charts.Scaler[time.Time], error) {
+func (s listScaler) TimeScale(rg charts.Range, format string, reverse bool) (charts.Scaler[time.Time], error) {
 	if len(s.values) < 2 {
 		return nil, errValues
 	}
@@ -54,7 +54,7 @@ func (s listScaler) makeTimeScale(rg charts.Range, format string, reverse bool) 
 	return charts.TimeScaler(charts.TimeDomain(fst, lst), rg), nil
 }
 
-func (s listScaler) makeNumberScale(rg charts.Range, reverse bool) (charts.Scaler[float64], error) {
+func (s listScaler) NumberScale(rg charts.Range, reverse bool) (charts.Scaler[float64], error) {
 	if len(s.values) < 2 {
 		return nil, errValues
 	}
@@ -72,7 +72,7 @@ func (s listScaler) makeNumberScale(rg charts.Range, reverse bool) (charts.Scale
 	return charts.NumberScaler(charts.NumberDomain(fst, lst), rg), nil
 }
 
-func (s listScaler) makeCategoryScale(rg charts.Range) (charts.Scaler[string], error) {
+func (s listScaler) CategoryScale(rg charts.Range) (charts.Scaler[string], error) {
 	return nil, nil
 }
 
@@ -88,7 +88,7 @@ func ScaleFromFile(path string, ix Indexer) ScalerMaker {
 	}
 }
 
-func (s fileScaler) makeTimeScale(rg charts.Range, format string, reverse bool) (charts.Scaler[time.Time], error) {
+func (s fileScaler) TimeScale(rg charts.Range, format string, reverse bool) (charts.Scaler[time.Time], error) {
 	parseTime, err := makeParseTime(format)
 	if err != nil {
 		return nil, err
@@ -121,7 +121,7 @@ func (s fileScaler) makeTimeScale(rg charts.Range, format string, reverse bool) 
 	return charts.TimeScaler(charts.TimeDomain(fd, td), rg), err
 }
 
-func (s fileScaler) makeNumberScale(rg charts.Range, reverse bool) (charts.Scaler[float64], error) {
+func (s fileScaler) NumberScale(rg charts.Range, reverse bool) (charts.Scaler[float64], error) {
 	sel, ok := s.Indexer.(Selector)
 	if !ok {
 		return nil, fmt.Errorf("invalid selection string")
@@ -148,7 +148,7 @@ func (s fileScaler) makeNumberScale(rg charts.Range, reverse bool) (charts.Scale
 	return charts.NumberScaler(charts.NumberDomain(min, max), rg), err
 }
 
-func (s fileScaler) makeCategoryScale(rg charts.Range) (charts.Scaler[string], error) {
+func (s fileScaler) CategoryScale(rg charts.Range) (charts.Scaler[string], error) {
 	cols := s.columns()
 	if len(cols) != 1 {
 		return nil, fmt.Errorf("invalid number of column given")

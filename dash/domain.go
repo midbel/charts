@@ -31,25 +31,25 @@ func (i Input) isString() bool {
 	return i.Type == TypeString
 }
 
-func (i Input) makeCategoryScale(rg charts.Range) (charts.Scaler[string], error) {
+func (i Input) CategoryScale(rg charts.Range) (charts.Scaler[string], error) {
 	if i.Scaler == nil {
 		return nil, errScaler
 	}
-	return i.Scaler.makeCategoryScale(rg)
+	return i.Scaler.CategoryScale(rg)
 }
 
-func (i Input) makeNumberScale(rg charts.Range, reverse bool) (charts.Scaler[float64], error) {
+func (i Input) NumberScale(rg charts.Range, reverse bool) (charts.Scaler[float64], error) {
 	if i.Scaler == nil {
 		return nil, errScaler
 	}
-	return i.Scaler.makeNumberScale(rg, reverse)
+	return i.Scaler.NumberScale(rg, reverse)
 }
 
-func (i Input) makeTimeScale(rg charts.Range, format string, reverse bool) (charts.Scaler[time.Time], error) {
+func (i Input) TimeScale(rg charts.Range, format string, reverse bool) (charts.Scaler[time.Time], error) {
 	if i.Scaler == nil {
 		return nil, errScaler
 	}
-	return i.Scaler.makeTimeScale(rg, format, reverse)
+	return i.Scaler.TimeScale(rg, format, reverse)
 }
 
 type Domain struct {
@@ -63,7 +63,7 @@ type Domain struct {
 	BandTicks  bool
 }
 
-func (d Domain) makeCategoryAxis(cfg Config, scale charts.Scaler[string]) (charts.Axis[string], error) {
+func (d Domain) GetCategoryAxis(cfg Config, scale charts.Scaler[string]) (charts.Axis[string], error) {
 	var (
 		axe    = createAxis[string](d, scale)
 		format func(string) string
@@ -79,7 +79,7 @@ func (d Domain) makeCategoryAxis(cfg Config, scale charts.Scaler[string]) (chart
 	return axe, nil
 }
 
-func (d Domain) makeNumberAxis(cfg Config, scale charts.Scaler[float64]) (charts.Axis[float64], error) {
+func (d Domain) GetNumberAxis(cfg Config, scale charts.Scaler[float64]) (charts.Axis[float64], error) {
 	var (
 		axe    = createAxis[float64](d, scale)
 		format func(float64) string
@@ -96,7 +96,7 @@ func (d Domain) makeNumberAxis(cfg Config, scale charts.Scaler[float64]) (charts
 	return axe, nil
 }
 
-func (d Domain) makeTimeAxis(cfg Config, scale charts.Scaler[time.Time]) (charts.Axis[time.Time], error) {
+func (d Domain) GetTimeAxis(cfg Config, scale charts.Scaler[time.Time]) (charts.Axis[time.Time], error) {
 	formatTime, err := makeTimeFormat(d.Format)
 	if err != nil {
 		return charts.Axis[time.Time]{}, err

@@ -1,4 +1,4 @@
-declare ident value
+declare <ident> <value>
 
 define function {...}
 
@@ -35,7 +35,10 @@ set grid with (
 )
 
 at x,y[,w,h] include <path>
-at x,y[,w,h] ()
+at x,y[,w,h] (
+	use <ident> with(...)
+	...
+)
 
 set padding number[,number[,number[,number]]]
 set size    number,number
