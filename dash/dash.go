@@ -72,6 +72,8 @@ type Config struct {
 
 	Width  float64
 	Height float64
+	Rows   int
+	Cols   int
 	Pad    charts.Padding
 
 	Delimiter  string
@@ -126,20 +128,20 @@ func (c Config) Render() error {
 
 func (c Config) render() (Renderer, error) {
 	var (
-		err error
-		mak Renderer
+		err   error
+		maker Renderer
 	)
 	switch {
 	case c.X.isNumber() && c.Y.isNumber():
-		mak, err = c.makeNumberChart()
+		maker, err = c.numberChart()
 	case c.X.isTime() && c.Y.isNumber():
-		mak, err = c.makeTimeChart()
+		maker, err = c.timeChart()
 	case c.X.isString() && c.Y.isNumber():
-		mak, err = c.makeCategoryChart()
+		maker, err = c.categoryChart()
 	default:
 		err = fmt.Errorf("unsupported chart type %s/%s", c.X.Type, c.Y.Type)
 	}
-	return mak, err
+	return maker, err
 }
 
 func (c Config) renderDashboard() error {
@@ -150,8 +152,12 @@ func (c Config) renderDashboard() error {
 	grid = layout.Grid{
 		Width:  c.Width,
 		Height: c.Height,
+		Rows:   c.Rows,
+		Cols:   c.Cols,
 	}
-	grid.Rows, grid.Cols = c.computeGridDimension()
+	if c.Rows == 0 && c.Cols == 0 {
+		grid.Rows, grid.Cols = c.computeGridDimension()
+	}
 
 	for _, cs := range c.Cells {
 		cell := layout.Cell{
@@ -190,7 +196,7 @@ func (c Config) computeGridDimension() (int, int) {
 	return rows, cols
 }
 
-func (c Config) makeCategoryChart() (Renderer, error) {
+func (c Config) categoryChart() (Renderer, error) {
 	var (
 		xrange = c.createRangeX()
 		yrange = c.createRangeY()
@@ -232,7 +238,7 @@ func (c Config) makeCategoryChart() (Renderer, error) {
 	return chartRenderer(chart, series), nil
 }
 
-func (c Config) makeTimeChart() (Renderer, error) {
+func (c Config) timeChart() (Renderer, error) {
 	var (
 		xrange = c.createRangeX()
 		yrange = c.createRangeY()
@@ -274,7 +280,7 @@ func (c Config) makeTimeChart() (Renderer, error) {
 	return chartRenderer(chart, series), nil
 }
 
-func (c Config) makeNumberChart() (Renderer, error) {
+func (c Config) numberChart() (Renderer, error) {
 	var (
 		xrange = c.createRangeX()
 		yrange = c.createRangeY()

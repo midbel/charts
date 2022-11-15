@@ -295,7 +295,20 @@ func (d *Decoder) decodeSet(cfg *dash.Config) error {
 		case 2:
 			cfg.Width, cfg.Height = list[0], list[1]
 		default:
-			err = fmt.Errorf("invalid number values given for size")
+			err = fmt.Errorf("invalid number of values given for chart size")
+		}
+	case "grid":
+		list, err := d.getIntList()
+		if err != nil {
+			return err
+		}
+		switch len(list) {
+		case 1:
+			cfg.Rows, cfg.Cols = list[0], list[0]
+		case 2:
+			cfg.Rows, cfg.Cols = list[0], list[1]
+		default:
+			err = fmt.Errorf("invalid number of values given for grid dimension")
 		}
 	case "padding":
 		list, err := d.getFloatList()
@@ -317,8 +330,6 @@ func (d *Decoder) decodeSet(cfg *dash.Config) error {
 		return d.decodeTicks(&cfg.Y.Domain)
 	case "style":
 		return d.decodeStyle(&cfg.Style)
-	case "grid":
-		return d.decodeGrid(cfg)
 	case "timefmt":
 		cfg.TimeFormat, err = d.getString()
 	case "delimiter":
@@ -332,27 +343,6 @@ func (d *Decoder) decodeSet(cfg *dash.Config) error {
 		return err
 	}
 	return d.eol()
-}
-
-func (d *Decoder) decodeGrid(cfg *dash.Config) error {
-	d.next()
-	var (
-		cmd = d.curr.Literal
-		err error
-	)
-	switch cmd {
-	case "size":
-	case "title":
-	case "rows":
-	case "cols":
-	case kwWith:
-		err = d.decodeWith(func() error {
-			return d.decodeGrid(cfg)
-		})
-	default:
-		err = d.optionError("grid")
-	}
-	return err
 }
 
 func (d *Decoder) decodeScaler() (dash.ScalerMaker, error) {
@@ -847,15 +837,23 @@ func (d *Decoder) getStringList() ([]string, error) {
 			return nil, err
 		}
 		list = append(list, str)
-		switch d.curr.Type {
-		case Comma:
-			if d.peekIs(EOL) || d.peekIs(EOF) {
-				return nil, d.decodeError("end of line not expected after ',")
-			}
-			d.next()
-		case EOF, EOL:
-		default:
-			return nil, d.decodeError("expected ',' or end of line")
+		if err := d.nextListItem(); err != nil {
+			return nil, err
+		}
+	}
+	return list, nil
+}
+
+func (d *Decoder) getIntList() ([]int, error) {
+	var list []int
+	for !d.is(EOL) && !d.is(EOF) {
+		i, err := d.getInt()
+		if err != nil {
+			return nil, err
+		}
+		list = append(list, i)
+		if err := d.nextListItem(); err != nil {
+			return nil, err
 		}
 	}
 	return list, nil
@@ -869,16 +867,23 @@ func (d *Decoder) getFloatList() ([]float64, error) {
 			return nil, err
 		}
 		list = append(list, f)
-		switch d.curr.Type {
-		case Comma:
-			if d.peekIs(EOL) || d.peekIs(EOF) {
-				return nil, d.decodeError("end of line not expected after ',")
-			}
-			d.next()
-		case EOF, EOL:
-		default:
-			return nil, d.decodeError("expected ',' or end of line")
+		if err := d.nextListItem(); err != nil {
+			return nil, err
 		}
 	}
 	return list, nil
+}
+
+func (d *Decoder) nextListItem() error {
+	switch d.curr.Type {
+	case Comma:
+		if d.peekIs(EOL) || d.peekIs(EOF) {
+			return d.decodeError("end of line not expected after ',")
+		}
+		d.next()
+	case EOF, EOL:
+	default:
+		return d.decodeError("expected ',' or end of line")
+	}
+	return nil
 }

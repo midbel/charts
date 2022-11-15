@@ -27,12 +27,7 @@ set legend with (
 	position x,y
 )
 
-set grid with (
-	cols  number
-	rows  number
-	size  number,number
-	title string
-)
+set grid [number,]number
 
 at x,y[,w,h] include <path>
 at x,y[,w,h] (
