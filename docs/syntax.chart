@@ -4,6 +4,10 @@ define function {...}
 
 include <path>
 
+declare data <<EOD
+...
+EOD
+
 load <location> [limit [begin,]end] using [x,]y with (...)
 
 location
@@ -24,10 +28,10 @@ set title string
 
 set legend with (
 	title    string
-	position x,y
+	position x[,y]
 )
 
-set grid [number,]number
+set grid [rows,]cols
 
 at x,y[,w,h] include <path>
 at x,y[,w,h] (
