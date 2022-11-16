@@ -248,14 +248,14 @@ func rotateText(orient Orientation, rotate float64, text svg.Text) svg.Text {
 }
 
 func defaultLabelFormat[T ScalerConstraint](v T) string {
-			switch v := any(v).(type) {
-			case float64:
-				return strconv.FormatFloat(v, 'f', 3, 64)
-			case string:
-				return v
-			case time.Time:
-				return v.Format("2006-01-02")
-			default:
-				return fmt.Sprintf("%v", v)
-			}
-		}
+	switch v := any(v).(type) {
+	case float64:
+		return strconv.FormatFloat(v, 'f', 3, 64)
+	case string:
+		return v
+	case time.Time:
+		return v.Format("2006-01-02")
+	default:
+		return fmt.Sprintf("%v", v)
+	}
+}
