@@ -34,7 +34,7 @@ func (d Data) TimeSerie(g Style, timefmt string, x charts.Scaler[time.Time], y c
 	if err != nil {
 		return nil, err
 	}
-	get, err := getTimePointFunc(0, SelectSingle(1), timefmt)
+	get, err := getTimeFunc(0, SelectSingle(1), timefmt)
 	if err != nil {
 		return nil, err
 	}
@@ -53,7 +53,7 @@ func (d Data) NumberSerie(g Style, x charts.Scaler[float64], y charts.Scaler[flo
 	if err != nil {
 		return nil, err
 	}
-	get := getNumberPointFunc(0, SelectSingle(1))
+	get := getNumberFunc(0, SelectSingle(1))
 	points, err := loadPointsFromReader(strings.NewReader(d.Content), get)
 	if err != nil {
 		return nil, err
@@ -69,7 +69,7 @@ func (d Data) CategorySerie(g Style, x charts.Scaler[string], y charts.Scaler[fl
 	if err != nil {
 		return nil, err
 	}
-	get := getCategoryPointFunc(0, SelectSingle(1))
+	get := getCategoryFunc(0, SelectSingle(1))
 	points, err := loadPointsFromReader(strings.NewReader(d.Content), get)
 	if err != nil {
 		return nil, err
@@ -147,17 +147,17 @@ func (f File) CategorySerie(g Style, x charts.Scaler[string], y charts.Scaler[fl
 }
 
 func loadCategoryPoints(f File) ([]charts.Point[string, float64], error) {
-	get := getCategoryPointFunc(f.X, f.Y)
+	get := getCategoryFunc(f.X, f.Y)
 	return loadPoints[string, float64](f.Path, f.Limit, get)
 }
 
 func loadNumberPoints(f File) ([]charts.Point[float64, float64], error) {
-	get := getNumberPointFunc(f.X, f.Y)
+	get := getNumberFunc(f.X, f.Y)
 	return loadPoints[float64, float64](f.Path, f.Limit, get)
 }
 
 func loadTimePoints(f File, timefmt string) ([]charts.Point[time.Time, float64], error) {
-	get, err := getTimePointFunc(f.X, f.Y, timefmt)
+	get, err := getTimeFunc(f.X, f.Y, timefmt)
 	if err != nil {
 		return nil, err
 	}
@@ -190,9 +190,9 @@ func readFrom(location string) (io.ReadCloser, error) {
 	}
 }
 
-type pointFunc[T, U charts.ScalerConstraint] func([]string) (charts.Point[T, U], error)
+type getFunc[T, U charts.ScalerConstraint] func([]string) (charts.Point[T, U], error)
 
-func loadPoints[T, U charts.ScalerConstraint](file string, lim Limit, get pointFunc[T, U]) ([]charts.Point[T, U], error) {
+func loadPoints[T, U charts.ScalerConstraint](file string, lim Limit, get getFunc[T, U]) ([]charts.Point[T, U], error) {
 	r, err := readFrom(file)
 	if err != nil {
 		return nil, err
@@ -217,7 +217,7 @@ func loadPoints[T, U charts.ScalerConstraint](file string, lim Limit, get pointF
 	return list, nil
 }
 
-func loadPointsFromReader[T, U charts.ScalerConstraint](r io.Reader, get pointFunc[T, U]) ([]charts.Point[T, U], error) {
+func loadPointsFromReader[T, U charts.ScalerConstraint](r io.Reader, get getFunc[T, U]) ([]charts.Point[T, U], error) {
 	var (
 		rs   = csv.NewReader(r)
 		list []charts.Point[T, U]
@@ -240,7 +240,7 @@ func loadPointsFromReader[T, U charts.ScalerConstraint](r io.Reader, get pointFu
 	return list, nil
 }
 
-func getCategoryPointFunc(x int, y Selector) pointFunc[string, float64] {
+func getCategoryFunc(x int, y Selector) getFunc[string, float64] {
 	get := func(row []string) (charts.Point[string, float64], error) {
 		var (
 			pt  charts.Point[string, float64]
@@ -267,7 +267,7 @@ func getCategoryPointFunc(x int, y Selector) pointFunc[string, float64] {
 	return get
 }
 
-func getTimePointFunc(x int, y Selector, timefmt string) (pointFunc[time.Time, float64], error) {
+func getTimeFunc(x int, y Selector, timefmt string) (getFunc[time.Time, float64], error) {
 	parseTime, err := makeParseTime(timefmt)
 	if err != nil {
 		return nil, err
@@ -290,7 +290,7 @@ func getTimePointFunc(x int, y Selector, timefmt string) (pointFunc[time.Time, f
 	return get, nil
 }
 
-func getNumberPointFunc(x int, y Selector) pointFunc[float64, float64] {
+func getNumberFunc(x int, y Selector) getFunc[float64, float64] {
 	get := func(row []string) (charts.Point[float64, float64], error) {
 		var (
 			pt  charts.Point[float64, float64]

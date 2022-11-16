@@ -1,7 +1,10 @@
 package charts
 
 import (
+	"fmt"
 	"math"
+	"strconv"
+	"time"
 
 	"github.com/midbel/svg"
 )
@@ -61,6 +64,9 @@ func (a Axis[T]) Render(length, size, left, top float64) svg.Element {
 	}
 	if len(data) == 0 {
 		data = a.Scaler.Values(a.Ticks)
+	}
+	if a.Format == nil {
+		a.Format = defaultLabelFormat[T]
 	}
 
 	for i, t := range data {
@@ -240,3 +246,16 @@ func rotateText(orient Orientation, rotate float64, text svg.Text) svg.Text {
 	text.Transform.RA = angle
 	return text
 }
+
+func defaultLabelFormat[T ScalerConstraint](v T) string {
+			switch v := any(v).(type) {
+			case float64:
+				return strconv.FormatFloat(v, 'f', 3, 64)
+			case string:
+				return v
+			case time.Time:
+				return v.Format("2006-01-02")
+			default:
+				return fmt.Sprintf("%v", v)
+			}
+		}
