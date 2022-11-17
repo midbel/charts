@@ -9,6 +9,7 @@ import (
 
 const (
 	StyleStraight = "straight"
+	StyleSolid    = "solid"
 	StyleDotted   = "dotted"
 	StyleDashed   = "dashed"
 )
@@ -26,6 +27,26 @@ const (
 	RenderGroup      = "group"
 	RenderPolar      = "polar"
 )
+
+// type Style = charts.Style
+
+type NumberStyle struct {
+	TextPosition  string
+	LineType      string
+	IgnoreMissing bool
+	Color         string
+}
+
+type CategoryStyle struct {
+	Fill  []string
+	Width float64
+}
+
+type CircularStyle struct {
+	Fill        []string
+	InnerRadius float64
+	OuterRadius float64
+}
 
 type Style struct {
 	Type          string

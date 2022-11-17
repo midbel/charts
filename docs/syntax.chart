@@ -52,9 +52,11 @@ set style with(
 	line-width   number
 	line-opacity number
 	line-type    straight|solid|dashed|dotted
-	text-size    number
-	text-color   string
-	text-family  string[,...]
+	font-size    number
+	font-color   string
+	font-family  string[,...]
+	font-bold    boolean
+	font-italic  boolean
 )
 
 at x,y[,w,h] include <path>

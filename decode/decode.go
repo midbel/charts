@@ -88,6 +88,13 @@ func (d *Decoder) decode(cfg *dash.Config) error {
 
 func (d *Decoder) decodeRender(cfg *dash.Config) error {
 	d.next()
+	if err := d.expectKw(kwTo); err == nil {
+		d.next()
+		cfg.Path, err = d.getString()
+		if err != nil {
+			return err
+		}
+	}
 	switch d.curr.Type {
 	case Literal:
 		cfg.Path, _ = d.getString()
@@ -145,10 +152,7 @@ func (d *Decoder) decodeUse(cfg *dash.Config) error {
 	}
 	d.next()
 	if err := d.expectKw(kwWith); err == nil {
-		err = d.decodeStyle(&fi.Style)
-		if err != nil {
-			return err
-		}
+
 	}
 	cfg.Inputs = append(cfg.Inputs, fi)
 	return nil
@@ -344,8 +348,106 @@ func (d *Decoder) decodeSet(cfg *dash.Config) error {
 		return d.decodeLegend(cfg)
 	case "theme":
 		cfg.Theme, err = d.getString()
+	case dash.RenderLine:
+		err = d.decodeNumberStyle(&cfg.Linear)
+	case dash.RenderStep:
+		err = d.decodeNumberStyle(&cfg.Step)
+	case dash.RenderStepAfter:
+		err = d.decodeNumberStyle(&cfg.StepAfter)
+	case dash.RenderStepBefore:
+		err = d.decodeNumberStyle(&cfg.StepBefore)
+	case dash.RenderPie:
+		err = d.decodeCircularStyle(&cfg.Pie)
+	case dash.RenderSun:
+		err = d.decodeCircularStyle(&cfg.Sun)
+	case dash.RenderBar:
+		err = d.decodeCategoryStyle(&cfg.Bar)
+	case dash.RenderStack:
+		err = d.decodeCategoryStyle(&cfg.Stack)
+	case dash.RenderNormStack:
+		err = d.decodeCategoryStyle(&cfg.NormStack)
+	case dash.RenderGroup:
+		err = d.decodeCategoryStyle(&cfg.Group)
 	default:
 		err = d.optionError("set")
+	}
+	if err != nil {
+		return err
+	}
+	return d.eol()
+}
+
+func (d *Decoder) decodeNumberStyle(style *dash.NumberStyle) error {
+	var (
+		cmd = d.curr.Literal
+		err error
+	)
+	d.next()
+	switch cmd {
+	case "text-position":
+		style.TextPosition, err = d.getString()
+	case "line-type":
+		style.LineType, err = d.getString()
+	case "ignore-missing":
+		style.IgnoreMissing, err = d.getBool()
+	case "color":
+		style.Color, err = d.getString()
+	case kwWith:
+		err = d.decodeWith(func() error {
+			return d.decodeNumberStyle(style)
+		})
+	default:
+		err = d.optionError("number-style")
+	}
+	if err != nil {
+		return err
+	}
+	return d.eol()
+}
+
+func (d *Decoder) decodeCategoryStyle(style *dash.CategoryStyle) error {
+	var (
+		cmd = d.curr.Literal
+		err error
+	)
+	d.next()
+	switch cmd {
+	case "fill":
+		style.Fill, err = d.getStringList()
+	case "width":
+		style.Width, err = d.getFloat()
+	case kwWith:
+		err = d.decodeWith(func() error {
+			return d.decodeCategoryStyle(style)
+		})
+	default:
+		return d.optionError("category-style")
+	}
+	if err != nil {
+		return err
+	}
+	return d.eol()
+}
+
+func (d *Decoder) decodeCircularStyle(style *dash.CircularStyle) error {
+	var (
+		cmd = d.curr.Literal
+		err error
+	)
+	d.next()
+	switch cmd {
+	case "fill":
+		style.Fill, err = d.getStringList()
+	case "inner-radius":
+		style.InnerRadius, err = d.getFloat()
+	case "outer-radius":
+		style.OuterRadius, err = d.getFloat()
+	case kwWith:
+		err = d.decodeWith(func() error {
+			return d.decodeCircularStyle(style)
+		})
+	default:
+		return d.optionError("circular-style")
 	}
 	if err != nil {
 		return err
@@ -444,24 +546,18 @@ func (d *Decoder) decodeStyle(style *dash.Style) error {
 	)
 	d.next()
 	switch cmd {
-	case "type":
-		style.Type, err = d.getRenderType()
-	case "color":
-		style.Stroke, err = d.getString()
-	case "fill":
-		style.Fill, err = d.getBool()
-	case "ignore-missing":
-		style.IgnoreMissing, err = d.getBool()
-	case "text-position":
-		style.TextPosition, err = d.getString()
-	case "inner-radius":
-		style.InnerRadius, err = d.getFloat()
-	case "outer-radius":
-		style.OuterRadius, err = d.getFloat()
-	case "line-style":
-		style.LineStyle, err = d.getLineStyle()
-	case "width":
-		style.Width, err = d.getFloat()
+	case "fill-color":
+	case "fill-opacity":
+	case "fill-style":
+	case "line-color":
+	case "line-width":
+	case "line-opacity":
+	case "line-type":
+	case "font-size":
+	case "font-color":
+	case "font-family":
+	case "font-bold":
+	case "font-italic":
 	case kwWith:
 		err = d.decodeWith(func() error {
 			return d.decodeStyle(style)
@@ -851,6 +947,9 @@ func (d *Decoder) decodeWith(decode func() error) error {
 	d.next()
 	d.skipEOL()
 	for !d.is(Rparen) && !d.done() {
+		if err := d.expectKw(kwWith); err == nil {
+			return d.decodeError("nested 'with' is not allowed")
+		}
 		if err := decode(); err != nil {
 			return err
 		}
@@ -938,19 +1037,6 @@ func (d *Decoder) decodeError(msg string) error {
 func (d *Decoder) skipEOL() {
 	for d.is(EOL) || d.is(Comment) {
 		d.next()
-	}
-}
-
-func (d *Decoder) getLineStyle() (string, error) {
-	str, err := d.getString()
-	if err != nil {
-		return str, err
-	}
-	switch str {
-	case dash.StyleStraight, dash.StyleDotted, dash.StyleDashed:
-		return str, nil
-	default:
-		return "", fmt.Errorf("%s: unknown line style provided", str)
 	}
 }
 

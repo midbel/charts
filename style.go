@@ -30,6 +30,7 @@ type Style struct {
 
 	FillOpacity float64
 	FillList    []string
+	FillStyle   string
 
 	FontSize     float64
 	FontColor    string

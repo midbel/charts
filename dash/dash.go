@@ -97,6 +97,19 @@ type Config struct {
 	Cells []Cell
 
 	Theme string
+
+	Linear     NumberStyle
+	Step       NumberStyle
+	StepBefore NumberStyle
+	StepAfter  NumberStyle
+
+	Pie CircularStyle
+	Sun CircularStyle
+
+	Bar       CategoryStyle
+	Group     CategoryStyle
+	Stack     CategoryStyle
+	NormStack CategoryStyle
 }
 
 func Default() Config {
