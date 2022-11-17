@@ -54,11 +54,10 @@ func main() {
 	)
 	flag.Parse()
 
-
 	var (
-		err  error
-		rdr  Renderer
-		get  dataFunc
+		err error
+		rdr Renderer
+		get dataFunc
 	)
 	switch {
 	case *xdata == "number" && *ydata == "number":
@@ -176,14 +175,14 @@ func categoryRenderer[T ~string, U ~float64](kind string, radius float64) (chart
 	case "group":
 	case "stack":
 	case "pie":
-		rdr = charts.PieRenderer[T,U]{
-			InnerRadius: radius/2,
-			OuterRadius: radius/2,
+		rdr = charts.PieRenderer[T, U]{
+			InnerRadius: radius / 2,
+			OuterRadius: radius / 2,
 		}
 	case "donut":
-		rdr = charts.PieRenderer[T,U]{
-			InnerRadius: radius/4,
-			OuterRadius: radius/2,
+		rdr = charts.PieRenderer[T, U]{
+			InnerRadius: radius / 4,
+			OuterRadius: radius / 2,
 		}
 	case "sun", "sunburst":
 	case "polar":
