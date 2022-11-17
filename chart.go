@@ -98,7 +98,6 @@ func (c Chart[T, U]) Drawn(set ...Data) svg.Element {
 	el.Append(c.drawAxis())
 	for _, s := range set {
 		ar := c.getArea(s)
-		ar.Append(s.Render())
 		el.Append(ar.AsElement())
 	}
 	// if ld := c.drawLegend(set); ld != nil {
@@ -126,6 +125,8 @@ func (c Chart[T, U]) getArea(serie Data) svg.Group {
 	}
 	g.Clip = "clip-chart"
 	g.Transform = svg.Translate(c.Padding.Left, c.Padding.Top)
+
+	g.Append(serie.Render())
 	return g
 }
 
@@ -137,9 +138,9 @@ func (c Chart[T, U]) getDefs() svg.Element {
 
 func (c Chart[T, U]) getClip() svg.Element {
 	var (
-		w = c.Width - c.Padding.Horizontal()
-		h = c.Height - c.Padding.Vertical()
-		rec svg.Rect
+		w    = c.Width - c.Padding.Horizontal()
+		h    = c.Height - c.Padding.Vertical()
+		rec  svg.Rect
 		clip svg.ClipPath
 	)
 	rec.Dim = svg.NewDim(w, h)
@@ -154,6 +155,7 @@ func (c Chart[T, U]) drawTitle() svg.Element {
 	}
 	txt := svg.NewText(c.Title)
 	txt.Font = svg.NewFont(FontSize * 1.2)
+	txt.Class = append(txt.Class, "chart-title")
 	txt.Anchor = "middle"
 	txt.Baseline = "auto"
 	txt.Pos.X = c.Width / 2

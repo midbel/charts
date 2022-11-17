@@ -5,8 +5,8 @@ import (
 	"time"
 
 	"github.com/midbel/slices"
-	"github.com/midbel/svg"
 	"github.com/midbel/slug"
+	"github.com/midbel/svg"
 )
 
 type Data interface {

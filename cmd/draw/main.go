@@ -436,6 +436,6 @@ func createChart[T, U scalerConstraint](title, theme string, width, height float
 		Width:   width,
 		Height:  height,
 		Padding: defaultPad,
-		Theme: style,
+		Theme:   style,
 	}
 }

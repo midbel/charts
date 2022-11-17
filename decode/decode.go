@@ -29,7 +29,7 @@ type Decoder struct {
 	shell string
 
 	env   *dash.Environ[[]string]
-	files *dash.Environ[dash.File]
+	files *dash.Environ[dash.LocalFile]
 
 	scan *Scanner
 	curr Token
@@ -40,7 +40,7 @@ func NewDecoder(r io.Reader) *Decoder {
 	d := Decoder{
 		cwd:   ".",
 		env:   dash.EmptyEnv[[]string](),
-		files: dash.EmptyEnv[dash.File](),
+		files: dash.EmptyEnv[dash.LocalFile](),
 		shell: DefaultShell,
 		scan:  Scan(r),
 	}
@@ -514,7 +514,7 @@ func (d *Decoder) decodeTicks(dom *dash.Domain) error {
 func (d *Decoder) decodeLoad(cfg *dash.Config) error {
 	d.next()
 	var (
-		fi  dash.File
+		fi  dash.LocalFile
 		err error
 	)
 	if fi.Path, err = d.getString(); err != nil {

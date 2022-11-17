@@ -21,7 +21,7 @@ type Style struct {
 		Opacity float64
 		List    []string
 	}
-	Text struct {
+	Font struct {
 		Size     float64
 		Color    string
 		Families []string

@@ -13,6 +13,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/midbel/buddy/ast"
 	"github.com/midbel/charts"
 	"github.com/midbel/slices"
 )
@@ -23,13 +24,53 @@ type DataSource interface {
 	CategorySerie(Style, charts.Scaler[string], charts.Scaler[float64]) (charts.Data, error)
 }
 
-type Data struct {
+type Exec struct {
+	Ident string
+	Expr  ast.Expression
+}
+
+func (e Exec) TimeSerie(Style, string, charts.Scaler[time.Time], charts.Scaler[float64]) (charts.Data, error) {
+	return nil, nil
+}
+
+func (e Exec) NumberSerie(Style, charts.Scaler[float64], charts.Scaler[float64]) (charts.Data, error) {
+	return nil, nil
+}
+
+func (e Exec) CategorySerie(Style, charts.Scaler[string], charts.Scaler[float64]) (charts.Data, error) {
+	return nil, nil
+}
+
+type HttpFile struct {
+	Url   string
+	Ident string
+
+	Method   string
+	Body     string
+	Username string
+	Password string
+	Headers  http.Header
+}
+
+func (f HttpFile) TimeSerie(Style, string, charts.Scaler[time.Time], charts.Scaler[float64]) (charts.Data, error) {
+	return nil, nil
+}
+
+func (f HttpFile) NumberSerie(Style, charts.Scaler[float64], charts.Scaler[float64]) (charts.Data, error) {
+	return nil, nil
+}
+
+func (f HttpFile) CategorySerie(Style, charts.Scaler[string], charts.Scaler[float64]) (charts.Data, error) {
+	return nil, nil
+}
+
+type LocalData struct {
 	Ident   string
 	Content string
 	Style
 }
 
-func (d Data) TimeSerie(g Style, timefmt string, x charts.Scaler[time.Time], y charts.Scaler[float64]) (charts.Data, error) {
+func (d LocalData) TimeSerie(g Style, timefmt string, x charts.Scaler[time.Time], y charts.Scaler[float64]) (charts.Data, error) {
 	rdr, err := d.makeTimeRenderer(g)
 	if err != nil {
 		return nil, err
@@ -48,7 +89,7 @@ func (d Data) TimeSerie(g Style, timefmt string, x charts.Scaler[time.Time], y c
 	return ser, err
 }
 
-func (d Data) NumberSerie(g Style, x charts.Scaler[float64], y charts.Scaler[float64]) (charts.Data, error) {
+func (d LocalData) NumberSerie(g Style, x charts.Scaler[float64], y charts.Scaler[float64]) (charts.Data, error) {
 	rdr, err := d.makeNumberRenderer(g)
 	if err != nil {
 		return nil, err
@@ -64,7 +105,7 @@ func (d Data) NumberSerie(g Style, x charts.Scaler[float64], y charts.Scaler[flo
 	return ser, nil
 }
 
-func (d Data) CategorySerie(g Style, x charts.Scaler[string], y charts.Scaler[float64]) (charts.Data, error) {
+func (d LocalData) CategorySerie(g Style, x charts.Scaler[string], y charts.Scaler[float64]) (charts.Data, error) {
 	rdr, err := d.makeCategoryRenderer(g)
 	if err != nil {
 		return nil, err
@@ -85,7 +126,7 @@ type Limit struct {
 	Count  int
 }
 
-type File struct {
+type LocalFile struct {
 	Path  string
 	Ident string
 	X     int
@@ -94,14 +135,14 @@ type File struct {
 	Style
 }
 
-func (f File) Name() string {
+func (f LocalFile) Name() string {
 	if f.Ident != "" {
 		return f.Ident
 	}
 	return strings.TrimSuffix(filepath.Base(f.Path), filepath.Ext(f.Path))
 }
 
-func (f File) TimeSerie(g Style, timefmt string, x charts.Scaler[time.Time], y charts.Scaler[float64]) (charts.Data, error) {
+func (f LocalFile) TimeSerie(g Style, timefmt string, x charts.Scaler[time.Time], y charts.Scaler[float64]) (charts.Data, error) {
 	rdr, err := f.makeTimeRenderer(g)
 	if err != nil {
 		return nil, err
@@ -116,7 +157,7 @@ func (f File) TimeSerie(g Style, timefmt string, x charts.Scaler[time.Time], y c
 	return ser, err
 }
 
-func (f File) NumberSerie(g Style, x charts.Scaler[float64], y charts.Scaler[float64]) (charts.Data, error) {
+func (f LocalFile) NumberSerie(g Style, x charts.Scaler[float64], y charts.Scaler[float64]) (charts.Data, error) {
 	rdr, err := f.makeNumberRenderer(g)
 	if err != nil {
 		return nil, err
@@ -131,7 +172,7 @@ func (f File) NumberSerie(g Style, x charts.Scaler[float64], y charts.Scaler[flo
 	return ser, nil
 }
 
-func (f File) CategorySerie(g Style, x charts.Scaler[string], y charts.Scaler[float64]) (charts.Data, error) {
+func (f LocalFile) CategorySerie(g Style, x charts.Scaler[string], y charts.Scaler[float64]) (charts.Data, error) {
 	rdr, err := f.makeCategoryRenderer(g)
 	if err != nil {
 		return nil, err
@@ -146,17 +187,17 @@ func (f File) CategorySerie(g Style, x charts.Scaler[string], y charts.Scaler[fl
 	return ser, nil
 }
 
-func loadCategoryPoints(f File) ([]charts.Point[string, float64], error) {
+func loadCategoryPoints(f LocalFile) ([]charts.Point[string, float64], error) {
 	get := getCategoryFunc(f.X, f.Y)
 	return loadPoints[string, float64](f.Path, f.Limit, get)
 }
 
-func loadNumberPoints(f File) ([]charts.Point[float64, float64], error) {
+func loadNumberPoints(f LocalFile) ([]charts.Point[float64, float64], error) {
 	get := getNumberFunc(f.X, f.Y)
 	return loadPoints[float64, float64](f.Path, f.Limit, get)
 }
 
-func loadTimePoints(f File, timefmt string) ([]charts.Point[time.Time, float64], error) {
+func loadTimePoints(f LocalFile, timefmt string) ([]charts.Point[time.Time, float64], error) {
 	get, err := getTimeFunc(f.X, f.Y, timefmt)
 	if err != nil {
 		return nil, err
