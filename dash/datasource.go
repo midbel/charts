@@ -45,11 +45,14 @@ type HttpFile struct {
 	Url   string
 	Ident string
 
-	Method   string
-	Body     string
+	Method string
+	Body   string
+
 	Username string
 	Password string
-	Headers  http.Header
+	Token    string
+
+	Headers http.Header
 }
 
 func (f HttpFile) TimeSerie(Style, string, charts.Scaler[time.Time], charts.Scaler[float64]) (charts.Data, error) {

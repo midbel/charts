@@ -4,7 +4,7 @@ define function {...}
 
 include <path>
 
-load <location> [limit [offset,]count] using [x,]y [with (
+load <location> [limit [offset,]count] [using [x,]y] [with (
 	limit [offset,]count]
 	xcol  number
 	ycol  selection

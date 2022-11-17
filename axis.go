@@ -9,8 +9,6 @@ import (
 	"github.com/midbel/svg"
 )
 
-const FontSize = 12.0
-
 type Orientation int
 
 const (
