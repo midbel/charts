@@ -16,8 +16,8 @@ const (
 	kwDeclare = "declare"
 	kwAt      = "at"
 	kwUse     = "use"
-	// kwTo      = "to"
-	// kwAs      = "as"
+	kwTo      = "to"
+	kwAs      = "as"
 )
 
 func isKeyword(str string) bool {
@@ -35,6 +35,8 @@ func isKeyword(str string) bool {
 	case kwDeclare:
 	case kwAt:
 	case kwUse:
+	case kwAs:
+	case kwTo:
 	}
 	return true
 }

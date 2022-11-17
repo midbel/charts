@@ -24,9 +24,19 @@ type DataSource interface {
 	CategorySerie(Style, charts.Scaler[string], charts.Scaler[float64]) (charts.Data, error)
 }
 
+type Limit struct {
+	Offset int
+	Count  int
+}
+
+type Using struct {
+	X int
+	Y Selector
+}
+
 type Exec struct {
-	Ident string
-	Expr  ast.Expression
+	Ident   string
+	Command string
 }
 
 func (e Exec) TimeSerie(Style, string, charts.Scaler[time.Time], charts.Scaler[float64]) (charts.Data, error) {
@@ -41,9 +51,28 @@ func (e Exec) CategorySerie(Style, charts.Scaler[string], charts.Scaler[float64]
 	return nil, nil
 }
 
-type HttpFile struct {
-	Url   string
+type Expr struct {
 	Ident string
+	Expr  ast.Expression
+}
+
+func (e Expr) TimeSerie(Style, string, charts.Scaler[time.Time], charts.Scaler[float64]) (charts.Data, error) {
+	return nil, nil
+}
+
+func (e Expr) NumberSerie(Style, charts.Scaler[float64], charts.Scaler[float64]) (charts.Data, error) {
+	return nil, nil
+}
+
+func (e Expr) CategorySerie(Style, charts.Scaler[string], charts.Scaler[float64]) (charts.Data, error) {
+	return nil, nil
+}
+
+type HttpFile struct {
+	Uri   string
+	Ident string
+	Using
+	Limit
 
 	Method string
 	Body   string
@@ -124,16 +153,10 @@ func (d LocalData) CategorySerie(g Style, x charts.Scaler[string], y charts.Scal
 	return ser, nil
 }
 
-type Limit struct {
-	Offset int
-	Count  int
-}
-
 type LocalFile struct {
 	Path  string
 	Ident string
-	X     int
-	Y     Selector
+	Using
 	Limit
 	Style
 }

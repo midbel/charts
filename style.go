@@ -42,7 +42,7 @@ type Style struct {
 
 func DefaultStyle() Style {
 	return Style{
-		LineStyle:    StyleStraight,
+		LineType:     StyleStraight,
 		LineColor:    ColorBlue,
 		LineWidth:    1,
 		LineOpacity:  1,

@@ -5,16 +5,16 @@ define function {...}
 include <path>
 
 load <location> [limit [offset,]count] [using [x,]y] [with (
-	limit [offset,]count]
-	xcol  number
-	ycol  selection
+	offset number
+	count  number
+	xcol   number
+	ycol   selection
 
 	username string
 	password string
 	token    string
 	method   string
 	body     string
-	tls      [list]
 	headers  [list]
 )] [as <ident>]
 
@@ -24,12 +24,7 @@ EOD as <ident>
 
 load {expr} as <ident>
 
-location
-- local file    (eg: ./file.csv)
-- local command (eg: cat file.csv | grep -v '^$')
-- http resource (eg: http://localhost:8000/file.csv)
-- generate data from function call
-- database??? TBD
+load $(command) as <ident>
 
 note: only csv supported now - extension to json/xml to be written
 

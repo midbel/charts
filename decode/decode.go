@@ -5,6 +5,8 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"net/http"
+	"net/url"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -15,6 +17,12 @@ import (
 	"github.com/midbel/charts"
 	"github.com/midbel/charts/dash"
 	"github.com/midbel/slices"
+)
+
+const (
+	schemeHttp  = "http"
+	schemeHttps = "https"
+	schemeFile  = "file"
 )
 
 var (
@@ -511,43 +519,150 @@ func (d *Decoder) decodeTicks(dom *dash.Domain) error {
 	return d.eol()
 }
 
-func (d *Decoder) decodeLoad(cfg *dash.Config) error {
-	d.next()
+func (d *Decoder) decodeLoadData(cfg *dash.Config) error {
 	var (
-		fi  dash.LocalFile
+		dat dash.LocalData
 		err error
 	)
-	if fi.Path, err = d.getString(); err != nil {
+	dat.Content = d.curr.Literal
+	d.next()
+	if err := d.expectKw(kwAs); err != nil {
 		return err
 	}
-	if err := d.expectKw(kwLimit); err == nil {
-		d.next()
-		if d.peekIs(Comma) {
-			fi.Offset, err = d.getInt()
-			if err != nil {
-				return err
-			}
-		}
-		fi.Count, err = d.getInt()
+	dat.Ident, err = d.getString()
+	if err == nil {
+		cfg.Inputs = append(cfg.Inputs, dat)
+	}
+	return err
+}
+
+func (d *Decoder) decodeLoadExpr(cfg *dash.Config) error {
+	var (
+		expr dash.Expr
+		err  error
+	)
+	expr.Expr, err = parse.Parse(strings.NewReader(d.curr.Literal))
+	if err != nil {
+		return err
+	}
+	d.next()
+	if err := d.expectKw(kwAs); err != nil {
+		return err
+	}
+	expr.Ident, err = d.getString()
+	if err == nil {
+		cfg.Inputs = append(cfg.Inputs, expr)
+	}
+	return err
+}
+
+func (d *Decoder) decodeLoadExec(cfg *dash.Config) error {
+	var (
+		exec dash.Exec
+		err  error
+	)
+	exec.Command = d.curr.Literal
+	d.next()
+	if err := d.expectKw(kwAs); err != nil {
+		return err
+	}
+	exec.Ident, err = d.getString()
+	if err == nil {
+		cfg.Inputs = append(cfg.Inputs, exec)
+	}
+	return err
+}
+
+func (d *Decoder) decodeLoadHttp(cfg *dash.Config, path string) error {
+	var (
+		fi  dash.HttpFile
+		err error
+	)
+	fi.Uri = path
+	fi.Ident = filepath.Base(path)
+	fi.Headers = make(http.Header)
+	if err = d.decodeLimit(&fi.Limit); err != nil {
+		return err
+	}
+	if err = d.decodeUsing(&fi.Using); err != nil {
+		return err
+	}
+	if err = d.expectKw(kwWith); err == nil {
+		err = d.decodeHttpFile(&fi)
 		if err != nil {
 			return err
 		}
 	}
-	if err := d.expectKw(kwUsing); err != nil {
+	if err = d.expectKw(kwAs); err == nil {
+		d.next()
+		fi.Ident, err = d.getString()
+	} else {
+		err = d.eol()
+	}
+	if err == nil {
+		cfg.Inputs = append(cfg.Inputs, fi)
+	}
+	return err
+}
+
+func (d *Decoder) decodeHttpFile(fi *dash.HttpFile) error {
+	d.next()
+	return d.decodeWith(func() error {
+		var (
+			cmd = d.curr.Literal
+			err error
+		)
+		switch cmd {
+		case "offset":
+			fi.Offset, err = d.getInt()
+		case "count":
+			fi.Count, err = d.getInt()
+		case "xcol":
+			fi.X, err = d.getInt()
+		case "ycol":
+			fi.Y, err = d.decodeSelect()
+		case "username":
+			fi.Username, err = d.getString()
+		case "password":
+			fi.Password, err = d.getString()
+		case "token":
+			fi.Token, err = d.getString()
+		case "method":
+			fi.Method, err = d.getString()
+		case "body":
+			fi.Body, err = d.getString()
+		default:
+			fi.Headers.Add(cmd, d.curr.Literal)
+		}
+		if err == nil {
+			err = d.eol()
+		}
+		return err
+	})
+}
+
+func (d *Decoder) decodeLoadFile(cfg *dash.Config, path string) error {
+	var (
+		fi  dash.LocalFile
+		err error
+	)
+	fi.Path = path
+	fi.Ident = filepath.Base(path)
+	if err = d.decodeLimit(&fi.Limit); err != nil {
 		return err
 	}
-	d.next()
-	if d.peekIs(Comma) {
-		if fi.X, err = d.getInt(); err != nil {
+	if err = d.decodeUsing(&fi.Using); err != nil {
+		return err
+	}
+	if err = d.expectKw(kwWith); err == nil {
+		err = d.decodeLocalFile(&fi)
+		if err != nil {
 			return err
 		}
+	}
+	if err = d.expectKw(kwAs); err == nil {
 		d.next()
-	}
-	if fi.Y, err = d.decodeSelect(); err != nil {
-		return err
-	}
-	if err := d.expectKw(kwWith); err == nil {
-		err = d.decodeStyle(&fi.Style)
+		fi.Ident, err = d.getString()
 	} else {
 		err = d.eol()
 	}
@@ -556,6 +671,97 @@ func (d *Decoder) decodeLoad(cfg *dash.Config) error {
 		cfg.Inputs = append(cfg.Inputs, fi)
 	}
 	return err
+}
+
+func (d *Decoder) decodeLocalFile(fi *dash.LocalFile) error {
+	d.next()
+	return d.decodeWith(func() error {
+		var (
+			cmd = d.curr.Literal
+			err error
+		)
+		switch cmd {
+		case "offset":
+			fi.Offset, err = d.getInt()
+		case "count":
+			fi.Count, err = d.getInt()
+		case "xcol":
+			fi.X, err = d.getInt()
+		case "ycol":
+			fi.Y, err = d.decodeSelect()
+		default:
+			err = d.optionError("file")
+		}
+		if err == nil {
+			err = d.eol()
+		}
+		return err
+	})
+}
+
+func (d *Decoder) decodeUsing(use *dash.Using) error {
+	err := d.expectKw(kwUsing)
+	if err != nil {
+		return nil
+	}
+	d.next()
+	if d.peekIs(Comma) {
+		use.X, err = d.getInt()
+		if err != nil {
+			return err
+		}
+		d.next()
+	}
+	use.Y, err = d.decodeSelect()
+	return err
+}
+
+func (d *Decoder) decodeLimit(lim *dash.Limit) error {
+	err := d.expectKw(kwLimit)
+	if err != nil {
+		return nil
+	}
+	d.next()
+	if d.peekIs(Comma) {
+		lim.Offset, err = d.getInt()
+		if err != nil {
+			return err
+		}
+		d.next()
+	}
+	lim.Count, err = d.getInt()
+	return err
+}
+
+func (d *Decoder) decodeLoad(cfg *dash.Config) error {
+	d.next()
+	switch d.curr.Type {
+	case Expr:
+		return d.decodeLoadExpr(cfg)
+	case Data:
+		return d.decodeLoadData(cfg)
+	case Command:
+		return d.decodeLoadExec(cfg)
+	case Literal, Variable:
+	default:
+		return d.decodeError("expected expression, data or path")
+	}
+	path, err := d.getString()
+	if err != nil {
+		return err
+	}
+	u, err := url.Parse(path)
+	if err != nil {
+		return err
+	}
+	switch u.Scheme {
+	case schemeHttp, schemeHttps:
+		return d.decodeLoadHttp(cfg, path)
+	case schemeFile, "":
+		return d.decodeLoadFile(cfg, u.Path)
+	default:
+		return d.decodeError(fmt.Sprintf("%s: unsupported scheme", u.Scheme))
+	}
 }
 
 func (d *Decoder) decodeSelect() (dash.Selector, error) {
