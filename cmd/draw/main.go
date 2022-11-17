@@ -38,6 +38,7 @@ type scalerConstraint = charts.ScalerConstraint
 func main() {
 	var (
 		title  = flag.String("title", "", "chart title")
+		theme  = flag.String("theme", "", "theme file")
 		kind   = flag.String("type", "", "chart type")
 		xdata  = flag.String("xdata", "number", "x data type")
 		ydata  = flag.String("ydata", "number", "y data type")
@@ -61,7 +62,7 @@ func main() {
 	)
 	switch {
 	case *xdata == "number" && *ydata == "number":
-		ch, err0 := numberChart(*title, *width, *height)
+		ch, err0 := numberChart(*title, *theme, *width, *height)
 		xscale, err1 := numberScale(*xdom, 0, *width-defaultPad.Horizontal(), false)
 		yscale, err2 := numberScale(*ydom, 0, *height-defaultPad.Vertical(), true)
 		if withAxis(*noaxis, *kind) {
@@ -73,7 +74,7 @@ func main() {
 
 		rdr, err = ch, hasError(err0, err1, err2)
 	case *xdata == "time" && *ydata == "number":
-		ch, err0 := timeChart(*title, *width, *height)
+		ch, err0 := timeChart(*title, *theme, *width, *height)
 		xscale, err1 := timeScale(*xdom, 0, *width-defaultPad.Horizontal(), false)
 		yscale, err2 := numberScale(*ydom, 0, *height-defaultPad.Vertical(), true)
 		if withAxis(*noaxis, *kind) {
@@ -85,7 +86,7 @@ func main() {
 
 		rdr, err = ch, hasError(err0, err1, err2)
 	case *xdata == "string" && *ydata == "number":
-		ch, err0 := categoryChart(*title, *width, *height)
+		ch, err0 := categoryChart(*title, *theme, *width, *height)
 		xscale, err1 := stringScale(*xdom, 0, *width-defaultPad.Horizontal())
 		yscale, err2 := numberScale(*ydom, 0, *height-defaultPad.Vertical(), true)
 		if withAxis(*noaxis, *kind) {
@@ -256,6 +257,18 @@ func stringScale(str string, width, height float64) (charts.Scaler[string], erro
 	return charts.StringScaler(vs, charts.NewRange(width, height)), nil
 }
 
+func getIdent(file string) string {
+	file = filepath.Base(file)
+	for {
+		e := filepath.Ext(file)
+		if e == "" {
+			break
+		}
+		file = strings.TrimSuffix(file, e)
+	}
+	return file
+}
+
 type dataFunc func(string) (charts.Data, error)
 
 func numberSerie(kind string, xcol, ycol int, x, y charts.Scaler[float64]) dataFunc {
@@ -269,7 +282,7 @@ func numberSerie(kind string, xcol, ycol int, x, y charts.Scaler[float64]) dataF
 			return nil, err
 		}
 		ser := charts.Serie[float64, float64]{
-			Title:    "",
+			Title:    getIdent(file),
 			Points:   points,
 			Renderer: rdr,
 			X:        x,
@@ -291,7 +304,7 @@ func timeSerie(kind string, xcol, ycol int, x charts.Scaler[time.Time], y charts
 			return nil, err
 		}
 		ser := charts.Serie[time.Time, float64]{
-			Title:    "",
+			Title:    getIdent(file),
 			Points:   points,
 			Renderer: rdr,
 			X:        x,
@@ -317,7 +330,7 @@ func stringSerie(kind string, xcol, ycol int, x charts.Scaler[string], y charts.
 			return nil, err
 		}
 		ser := charts.Serie[string, float64]{
-			Title:    "",
+			Title:    getIdent(file),
 			Points:   points,
 			Renderer: rdr,
 			X:        x,
@@ -397,29 +410,32 @@ func getNumberNumber(x, y string) (charts.Point[float64, float64], error) {
 	return pt, err
 }
 
-func numberChart(file string, width, height float64) (charts.Chart[float64, float64], error) {
-	ch := createChart[float64, float64](file, width, height)
+func numberChart(title, theme string, width, height float64) (charts.Chart[float64, float64], error) {
+	ch := createChart[float64, float64](title, theme, width, height)
 	return ch, nil
 
 }
 
-func timeChart(file string, width, height float64) (charts.Chart[time.Time, float64], error) {
-	ch := createChart[time.Time, float64](file, width, height)
+func timeChart(title, theme string, width, height float64) (charts.Chart[time.Time, float64], error) {
+	ch := createChart[time.Time, float64](title, theme, width, height)
 	return ch, nil
 }
 
-func categoryChart(file string, width, height float64) (charts.Chart[string, float64], error) {
-	ch := createChart[string, float64](file, width, height)
+func categoryChart(title, theme string, width, height float64) (charts.Chart[string, float64], error) {
+	ch := createChart[string, float64](title, theme, width, height)
 	return ch, nil
 }
 
-func createChart[T, U scalerConstraint](file string, width, height float64) charts.Chart[T, U] {
-	title := strings.TrimSuffix(filepath.Base(file), filepath.Ext(file))
-
+func createChart[T, U scalerConstraint](title, theme string, width, height float64) charts.Chart[T, U] {
+	var style string
+	if dat, err := os.ReadFile(theme); err == nil {
+		style = string(dat)
+	}
 	return charts.Chart[T, U]{
 		Title:   title,
 		Width:   width,
 		Height:  height,
 		Padding: defaultPad,
+		Theme: style,
 	}
 }

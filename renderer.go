@@ -17,14 +17,6 @@ const (
 	TextCenter
 )
 
-type LineStyle int
-
-const (
-	StyleStraight LineStyle = 1 << iota
-	StyleDotted
-	StyleDashed
-)
-
 type PolarType int
 
 const (
@@ -32,8 +24,6 @@ const (
 	PolarArea
 	PolarPolygon
 )
-
-const currentColour = "currentColour"
 
 type Renderer[T, U ScalerConstraint] interface {
 	Render(Serie[T, U]) svg.Element

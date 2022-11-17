@@ -85,6 +85,8 @@ func (c Chart[T, U]) Drawn(set ...Data) svg.Element {
 	var el svg.SVG
 	el.Dim = svg.NewDim(c.Width, c.Height)
 	el.OmitProlog = true
+
+	el.Append(c.getDefs())
 	if c.Theme != "" {
 		s := svg.Style{
 			Content: c.Theme,
@@ -93,18 +95,18 @@ func (c Chart[T, U]) Drawn(set ...Data) svg.Element {
 		el.Append(s.AsElement())
 	}
 
-	if txt := c.drawTitle(); txt != nil {
-		el.Append(txt)
-	}
 	el.Append(c.drawAxis())
 	for _, s := range set {
-		ar := c.getArea()
+		ar := c.getArea(s)
 		ar.Append(s.Render())
 		el.Append(ar.AsElement())
 	}
 	// if ld := c.drawLegend(set); ld != nil {
 	// 	el.Append(ld)
 	// }
+	if txt := c.drawTitle(); txt != nil {
+		el.Append(txt)
+	}
 	return el.AsElement()
 }
 
@@ -116,11 +118,34 @@ func (c Chart[T, U]) Render(w io.Writer, set ...Data) {
 	el.Render(bw)
 }
 
-func (c Chart[T, U]) getArea() svg.Group {
+func (c Chart[T, U]) getArea(serie Data) svg.Group {
 	var g svg.Group
 	g.Class = append(g.Class, "area")
+	if id := serie.Id(); id != "" {
+		g.Id = id
+	}
+	g.Clip = "clip-chart"
 	g.Transform = svg.Translate(c.Padding.Left, c.Padding.Top)
 	return g
+}
+
+func (c Chart[T, U]) getDefs() svg.Element {
+	var defs svg.Defs
+	defs.Append(c.getClip())
+	return defs.AsElement()
+}
+
+func (c Chart[T, U]) getClip() svg.Element {
+	var (
+		w = c.Width - c.Padding.Horizontal()
+		h = c.Height - c.Padding.Vertical()
+		rec svg.Rect
+		clip svg.ClipPath
+	)
+	rec.Dim = svg.NewDim(w, h)
+	clip.Id = "clip-chart"
+	clip.Append(rec.AsElement())
+	return clip.AsElement()
 }
 
 func (c Chart[T, U]) drawTitle() svg.Element {

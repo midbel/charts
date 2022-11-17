@@ -6,9 +6,11 @@ import (
 
 	"github.com/midbel/slices"
 	"github.com/midbel/svg"
+	"github.com/midbel/slug"
 )
 
 type Data interface {
+	Id() string
 	Render() svg.Element
 
 	fmt.Stringer
@@ -22,6 +24,10 @@ type Serie[T, U ScalerConstraint] struct {
 	Points []Point[T, U]
 
 	Renderer[T, U]
+}
+
+func (s Serie[T, U]) Id() string {
+	return slug.Slug(s.Title)
 }
 
 func (s Serie[T, U]) Depth() int {

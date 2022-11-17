@@ -1,8 +1,19 @@
 package charts
 
+type LineStyle int
+
+const (
+	StyleStraight LineStyle = 1 << iota
+	StyleDotted
+	StyleDashed
+)
+
+const currentColour = "currentColour"
+
 type Style struct {
 	Line struct {
 		Style   LineStyle
+		Color   string
 		Width   float64
 		Opacity float64
 	}
@@ -14,5 +25,7 @@ type Style struct {
 		Size     float64
 		Color    string
 		Families []string
+		Bold     bool
+		Italic   bool
 	}
 }

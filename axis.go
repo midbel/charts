@@ -111,12 +111,14 @@ func domainLine(orient Orientation, length float64, stroke svg.Stroke) svg.Line 
 		x, y = y, x
 	}
 	d := svg.NewLine(svg.NewPos(0, 0), svg.NewPos(x, y))
+	d.Class = append(d.Class, "domain")
 	d.Stroke = svg.NewStroke("black", 1)
 	return d
 }
 
 func bandTick(orient Orientation, width, height float64) svg.Rect {
 	var rec svg.Rect
+	rec.Class = append(rec.Class, "band-ticks")
 	rec.Pos = svg.NewPos(0, 0)
 	rec.Dim = svg.NewDim(width, height)
 	switch orient {
@@ -152,6 +154,7 @@ func lineTick(orient Orientation, offset, size float64, stroke svg.Stroke) svg.L
 	default:
 	}
 	tick := svg.NewLine(pos1, pos2)
+	tick.Class = append(tick.Class, "tick")
 	tick.Stroke = stroke
 	return tick
 }
@@ -162,6 +165,7 @@ func axisText(orient Orientation, str string, x, y float64, font svg.Font) svg.T
 	txt.Anchor = "middle"
 	txt.Baseline = "auto"
 	txt.Pos = svg.NewPos(x, y)
+	txt.Class = append(txt.Class, "axis-label")
 	switch orient {
 	case OrientBottom:
 		txt.Baseline = "start"
@@ -198,12 +202,13 @@ func tickText(orient Orientation, str string, offset, rotate float64, font svg.F
 		y = -y
 	default:
 	}
-	text := svg.NewText(str)
-	text.Pos = svg.NewPos(x, y)
-	text.Font = font
-	text.Anchor = anchor
-	text.Baseline = base
-	return rotateText(orient, rotate, text)
+	txt := svg.NewText(str)
+	txt.Pos = svg.NewPos(x, y)
+	txt.Font = font
+	txt.Anchor = anchor
+	txt.Baseline = base
+	txt.Class = append(txt.Class, "tick-label")
+	return rotateText(orient, rotate, txt)
 }
 
 func normRotate(rotate float64) float64 {
