@@ -4,11 +4,25 @@ define function {...}
 
 include <path>
 
-declare data <<EOD
-...
-EOD
+load <location> [limit [offset,]count] using [x,]y [with (
+	limit [offset,]count]
+	xcol  number
+	ycol  selection
 
-load <location> [limit [begin,]end] using [x,]y with (...)
+	username string
+	password string
+	token    string
+	method   string
+	body     string
+	tls      [list]
+	headers  [list]
+)] [as <ident>]
+
+load <<EOD
+...
+EOD as <ident>
+
+load {expr} as <ident>
 
 location
 - local file    (eg: ./file.csv)
@@ -34,6 +48,19 @@ set legend with (
 )
 
 set grid [rows,]cols
+
+set style with(
+	fill-color   string[,string...]
+	fill-opacity number
+	fill-style   solid|...
+	line-color   string
+	line-width   number
+	line-opacity number
+	line-type    straight|solid|dashed|dotted
+	text-size    number
+	text-color   string
+	text-family  string[,...]
+)
 
 at x,y[,w,h] include <path>
 at x,y[,w,h] (
@@ -61,6 +88,7 @@ set xticks with (
 	label-ticks true|false
 	band-ticks  true|false
 )
+
 set yticks with (
 	count       number
 	position    top|right|bottom|left
@@ -72,16 +100,8 @@ set yticks with (
 	band-ticks  true|false
 )
 
-set style with (
-	type           line|step|step-after|step-before|pie|bar|sun|stack|...
-	color          string
-	fill           string
-	text-position  text-before|text-after
-	line-style     dashed|dotted|straight
-	width          number
-	inner-radius   number
-	outer-radius   number
-	ignore-missing true|false
+set <type> with (
+	type specific option (line,bar,group,...)
 )
 
-render [path]
+render [to <file>] <ident> [using [x,]y] <type> [with (...)][,...]
