@@ -38,10 +38,27 @@ type NumberStyle struct {
 	Color         string
 }
 
+func DefaultNumberStyle() NumberStyle {
+	return NumberStyle{
+		Style:         charts.DefaultStyle(),
+		IgnoreMissing: true,
+		Color:         "blue",
+		LineType:      StyleSolid,
+	}
+}
+
 type CategoryStyle struct {
 	charts.Style
 	Fill  []string
 	Width float64
+}
+
+func DefaultCategoryStyle() CategoryStyle {
+	return CategoryStyle{
+		Style: charts.DefaultStyle(),
+		Fill:  charts.Tableau10,
+		Width: 0.75,
+	}
 }
 
 func (s CategoryStyle) Copy() CategoryStyle {
@@ -56,6 +73,15 @@ type CircularStyle struct {
 	Fill        []string
 	InnerRadius float64
 	OuterRadius float64
+}
+
+func DefaultCircularStyle() CircularStyle {
+	return CircularStyle{
+		Style:       charts.DefaultStyle(),
+		Fill:        charts.Tableau10,
+		InnerRadius: 0,
+		OuterRadius: 0,
+	}
 }
 
 func (s CircularStyle) Copy() CircularStyle {
