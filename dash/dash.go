@@ -128,6 +128,16 @@ func Default() Config {
 		TimeFormat: TimeFormat,
 		Style:      GlobalStyle(),
 		Scripts:    EmptyEnv[ast.Expression](),
+		Linear:     DefaultNumberStyle(),
+		Step:       DefaultNumberStyle(),
+		StepBefore: DefaultNumberStyle(),
+		StepAfter:  DefaultNumberStyle(),
+		Pie:        DefaultCircularStyle(),
+		Sun:        DefaultCircularStyle(),
+		Bar:        DefaultCategoryStyle(),
+		Group:      DefaultCategoryStyle(),
+		Stack:      DefaultCategoryStyle(),
+		NormStack:  DefaultCategoryStyle(),
 	}
 	cfg.X.Type = TypeNumber
 	cfg.Y.Type = TypeNumber
