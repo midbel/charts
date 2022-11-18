@@ -314,9 +314,6 @@ func (d *Decoder) decodeDeclare() error {
 	}
 	ident := d.curr.Literal
 	d.next()
-	if d.is(Data) {
-		return d.eol()
-	}
 	values, err := d.getStringList()
 	if err != nil {
 		return err
@@ -982,12 +979,12 @@ func (d *Decoder) decodeSelect() (dash.Selector, error) {
 	var xs []dash.Selector
 	for !d.is(EOL) && !d.is(EOF) && !d.is(Keyword) {
 		switch d.peek.Type {
-		case Comma:
-			rg, err := getList(Comma)
+		case Comma, Keyword, EOL, EOF:
+			i, err := d.getInt()
 			if err != nil {
 				return nil, err
 			}
-			xs = append(xs, dash.SelectMulti(rg))
+			xs = append(xs, dash.SelectSingle(i))
 		case Sum:
 			rg, err := getList(Sum)
 			if err != nil {
@@ -1006,12 +1003,6 @@ func (d *Decoder) decodeSelect() (dash.Selector, error) {
 				return nil, err
 			}
 			xs = append(xs, dash.SelectSum(rg))
-		case Keyword, EOL, EOF:
-			i, err := d.getInt()
-			if err != nil {
-				return nil, err
-			}
-			xs = append(xs, dash.SelectMulti([]int{i}))
 		default:
 			return nil, d.decodeError("expected ',', ':', ':+', keyword or end of line")
 		}

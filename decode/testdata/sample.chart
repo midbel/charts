@@ -1,9 +1,14 @@
-declare ident value
+# a comment
+declare ident registry.ch
+
+include testdata/include.chart # include another comment
 
 set xdata   time
 set xdomain 2022-01-01,$(date)
+set xdomain file using 0:+9
 set ydata   number
 set ydomain 0,100
+set ydomain file using 1+2+9
 
 set yticks 10
 set xticks with (
@@ -14,6 +19,7 @@ set xticks with (
 	outer-ticks false
 	label-ticks true
 	band-ticks  false
+	format      million
 )
 
 load $(cat file | grep -v '$^') as command
@@ -59,6 +65,18 @@ set pie with (
 	outer-radius 400
 	fill         blue,green,red
 )
+
+set timefmt "%Y-%m-%d"
+
+at 0,0,4,1 (
+	set padding 10,10
+	set title   "sample cell"
+	set xdomain $ident using 0
+	set ydomain $ident using 1:+9	
+	set size 800,600
+)
+
+at 1,0,4,1 include testdata/cell.chart
 
 render to out.svg local line with (
 	color         blue

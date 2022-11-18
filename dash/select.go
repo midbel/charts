@@ -3,6 +3,8 @@ package dash
 import (
 	"errors"
 	"strconv"
+
+	"github.com/midbel/slices"
 )
 
 var ErrIndex = errors.New("invalid index")
@@ -79,15 +81,39 @@ func (s summer) Select(row []string) ([]float64, error) {
 	return []float64{sum}, nil
 }
 
+type single struct {
+	index int
+}
+
+func SelectSingle(i int) Selector {
+	return single{
+		index: i,
+	}
+}
+
+func (s single) Select(row []string) ([]float64, error) {
+	if s.index < 0 || s.index >= len(row) {
+		return nil, ErrIndex
+	}
+	f, err := strconv.ParseFloat(row[s.index], 64)
+	if err != nil {
+		return nil, err
+	}
+	return []float64{f}, nil
+}
+
+func (s single) columns() []int {
+	return []int{s.index}
+}
+
 type multi struct {
 	index []int
 }
 
-func SelectSingle(i int) Selector {
-	return SelectMulti([]int{i})
-}
-
 func SelectMulti(list []int) Selector {
+	if len(list) == 1 {
+		return SelectSingle(slices.Fst(list))
+	}
 	return multi{
 		index: list,
 	}

@@ -1,0 +1,9 @@
+define lower {
+	import strings
+	return strings.lower(value)
+}
+
+define upper {
+	import strings
+	return strings.upper(value)
+}

@@ -1,0 +1,5 @@
+set xdomain 0,1
+set ydomain 0,1
+set size 800
+
+load file using 0,1
