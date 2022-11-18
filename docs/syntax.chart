@@ -98,7 +98,17 @@ set yticks with (
 )
 
 set <type> with (
-	type specific option (line,bar,group,...)
+	ignore-missing boolean
+	text-position  string
+	line-type      string
+	color          string
+
+	fill  string[,...]
+	width number
+
+	fill         string[,...]
+	inner-radius number
+	outer-radius number
 )
 
-render [to <file>] <ident> [using [x,]y] <type> [with (...)][,...]
+render [to <file>] <datasource> [using [x,]y] <type> [with (...)][,...]

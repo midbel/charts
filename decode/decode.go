@@ -95,14 +95,91 @@ func (d *Decoder) decodeRender(cfg *dash.Config) error {
 			return err
 		}
 	}
-	switch d.curr.Type {
-	case Literal:
-		cfg.Path, _ = d.getString()
-	case EOL, EOF, Comment:
-	default:
-		return d.decodeError("literal or end of line expected")
+	for !d.is(EOL) && !d.done() {
+		el, err := d.decodeElement(cfg)
+		if err != nil {
+			return err
+		}
+		cfg.Elements = append(cfg.Elements, el)
+		switch d.curr.Type {
+		case EOL, EOF:
+		case Comma:
+			d.next()
+			if !d.peekIs(EOL) {
+				d.skipEOL()
+			}
+		default:
+			return d.decodeError("expected ',' or end of line")
+		}
 	}
 	return d.eol()
+}
+
+func (d *Decoder) decodeElement(cfg *dash.Config) (dash.Element, error) {
+	var (
+		el  dash.Element
+		err error
+	)
+	el.Ident, err = d.getString()
+	if err != nil {
+		return el, err
+	}
+	if err := d.decodeUsing(&el.Using); err != nil {
+		return el, err
+	}
+	el.Type, err = d.getRenderType()
+	if err != nil {
+		return el, err
+	}
+	if err := d.expectKw(kwWith); err != nil {
+		return el, nil
+	}
+	switch el.Type {
+	default:
+		msg := fmt.Sprintf("%s: chart type not recognized", el.Type)
+		return el, d.decodeError(msg)
+	case dash.RenderLine:
+		style := cfg.Linear
+		err = d.decodeNumberStyle(&style)
+		el.Style = style
+	case dash.RenderStep:
+		style := cfg.Step
+		err = d.decodeNumberStyle(&style)
+		el.Style = style
+	case dash.RenderStepAfter:
+		style := cfg.StepAfter
+		err = d.decodeNumberStyle(&style)
+		el.Style = style
+	case dash.RenderStepBefore:
+		style := cfg.StepBefore
+		err = d.decodeNumberStyle(&style)
+		el.Style = style
+	case dash.RenderSun:
+		style := cfg.Sun
+		err = d.decodeCircularStyle(&style)
+		el.Style = style
+	case dash.RenderPie:
+		style := cfg.Pie.Copy()
+		err = d.decodeCircularStyle(&style)
+		el.Style = style
+	case dash.RenderBar:
+		style := cfg.Bar.Copy()
+		err = d.decodeCategoryStyle(&style)
+		el.Style = style
+	case dash.RenderStack:
+		style := cfg.Stack.Copy()
+		err = d.decodeCategoryStyle(&style)
+		el.Style = style
+	case dash.RenderNormStack:
+		style := cfg.NormStack.Copy()
+		err = d.decodeCategoryStyle(&style)
+		el.Style = style
+	case dash.RenderGroup:
+		style := cfg.Group.Copy()
+		err = d.decodeCategoryStyle(&style)
+		el.Style = style
+	}
+	return el, err
 }
 
 func (d *Decoder) decodeBody(cfg *dash.Config, accept func(Token) bool) error {
@@ -394,15 +471,16 @@ func (d *Decoder) decodeNumberStyle(style *dash.NumberStyle) error {
 		style.Color, err = d.getString()
 	case kwWith:
 		err = d.decodeWith(func() error {
-			return d.decodeNumberStyle(style)
+			err := d.decodeNumberStyle(style)
+			if err == nil {
+				err = d.eol()
+			}
+			return err
 		})
 	default:
 		err = d.optionError("number-style")
 	}
-	if err != nil {
-		return err
-	}
-	return d.eol()
+	return err
 }
 
 func (d *Decoder) decodeCategoryStyle(style *dash.CategoryStyle) error {
@@ -418,15 +496,16 @@ func (d *Decoder) decodeCategoryStyle(style *dash.CategoryStyle) error {
 		style.Width, err = d.getFloat()
 	case kwWith:
 		err = d.decodeWith(func() error {
-			return d.decodeCategoryStyle(style)
+			err := d.decodeCategoryStyle(style)
+			if err == nil {
+				err = d.eol()
+			}
+			return err
 		})
 	default:
-		return d.optionError("category-style")
+		err = d.optionError("category-style")
 	}
-	if err != nil {
-		return err
-	}
-	return d.eol()
+	return err
 }
 
 func (d *Decoder) decodeCircularStyle(style *dash.CircularStyle) error {
@@ -444,15 +523,16 @@ func (d *Decoder) decodeCircularStyle(style *dash.CircularStyle) error {
 		style.OuterRadius, err = d.getFloat()
 	case kwWith:
 		err = d.decodeWith(func() error {
-			return d.decodeCircularStyle(style)
+			err := d.decodeCircularStyle(style)
+			if err == nil {
+				err = d.eol()
+			}
+			return err
 		})
 	default:
-		return d.optionError("circular-style")
+		err = d.optionError("circular-style")
 	}
-	if err != nil {
-		return err
-	}
-	return d.eol()
+	return err
 }
 
 func (d *Decoder) decodeScaler() (dash.ScalerMaker, error) {
@@ -625,9 +705,11 @@ func (d *Decoder) decodeLoadData(cfg *dash.Config) error {
 	if err := d.expectKw(kwAs); err != nil {
 		return err
 	}
+	d.next()
 	dat.Ident, err = d.getString()
 	if err == nil {
 		cfg.Inputs = append(cfg.Inputs, dat)
+		err = d.eol()
 	}
 	return err
 }
@@ -645,9 +727,11 @@ func (d *Decoder) decodeLoadExpr(cfg *dash.Config) error {
 	if err := d.expectKw(kwAs); err != nil {
 		return err
 	}
+	d.next()
 	expr.Ident, err = d.getString()
 	if err == nil {
 		cfg.Inputs = append(cfg.Inputs, expr)
+		err = d.eol()
 	}
 	return err
 }
@@ -662,9 +746,11 @@ func (d *Decoder) decodeLoadExec(cfg *dash.Config) error {
 	if err := d.expectKw(kwAs); err != nil {
 		return err
 	}
+	d.next()
 	exec.Ident, err = d.getString()
 	if err == nil {
 		cfg.Inputs = append(cfg.Inputs, exec)
+		err = d.eol()
 	}
 	return err
 }
@@ -708,6 +794,7 @@ func (d *Decoder) decodeHttpFile(fi *dash.HttpFile) error {
 			cmd = d.curr.Literal
 			err error
 		)
+		d.next()
 		switch cmd {
 		case "offset":
 			fi.Offset, err = d.getInt()
@@ -729,6 +816,7 @@ func (d *Decoder) decodeHttpFile(fi *dash.HttpFile) error {
 			fi.Body, err = d.getString()
 		default:
 			fi.Headers.Add(cmd, d.curr.Literal)
+			d.next()
 		}
 		if err == nil {
 			err = d.eol()
@@ -776,6 +864,7 @@ func (d *Decoder) decodeLocalFile(fi *dash.LocalFile) error {
 			cmd = d.curr.Literal
 			err error
 		)
+		d.next()
 		switch cmd {
 		case "offset":
 			fi.Offset, err = d.getInt()

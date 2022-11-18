@@ -95,8 +95,10 @@ func (s *Scanner) scanHeredoc(tok *Token) {
 		for !isNL(s.char) && !s.done() {
 			s.read()
 		}
-		line = string(s.input[tmp:s.curr])
+		line = string(s.input[tmp : tmp+len(prefix)])
 		if line == prefix {
+			end = tmp - utf8.RuneLen(s.char)
+			s.seek(end + len(prefix) + 1)
 			break
 		}
 		end = s.curr
@@ -236,6 +238,12 @@ func (s *Scanner) skipNL() {
 	s.skip(isNL)
 }
 
+func (s *Scanner) skipN(n int) {
+	for i := 0; i < n; i++ {
+		s.read()
+	}
+}
+
 func (s *Scanner) skip(accept func(rune) bool) {
 	defer s.unread()
 	for accept(s.char) && !s.done() {
@@ -279,6 +287,13 @@ func (s *Scanner) unread() {
 func (s *Scanner) peek() rune {
 	r, _ := utf8.DecodeRune(s.input[s.next:])
 	return r
+}
+
+func (s *Scanner) seek(n int) {
+	c, z := utf8.DecodeRune(s.input[n:])
+	s.next = n
+	s.curr = n - z
+	s.char = c
 }
 
 const (

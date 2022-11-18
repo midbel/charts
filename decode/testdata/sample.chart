@@ -1,0 +1,66 @@
+declare ident value
+
+set xdata   time
+set xdomain 2022-01-01,$(date)
+set ydata   number
+set ydomain 0,100
+
+set yticks 10
+set xticks with (
+	count       5
+	position    left
+	label       "x label"
+	inner-ticks true
+	outer-ticks false
+	label-ticks true
+	band-ticks  false
+)
+
+load $(cat file | grep -v '$^') as command
+
+load "http://localhost:5000/file" limit 10,50 using 0,1 with (
+	offset 0
+	count  10
+	xcol   1
+	ycol   2:+9
+	username test
+	password test
+	method   GET
+	content-type text/csv
+	accept       text/csv
+) as remote
+
+load file limit 0,50 using 0,1 with (
+	offset 0
+	count  10
+	xcol   0
+	ycol   1,5,7,9:+11
+) as local
+
+load {value * 2 + 1} as expr
+
+load <<EOD
+1,1
+2,10
+3,20
+EOD as data
+
+set line with (
+	ignore-missing true
+	color          green
+	line-type      solid
+)
+set bar with (
+	fill  red,green,blue
+	width 0.8
+)
+set pie with (
+	inner-radius 100
+	outer-radius 400
+	fill         blue,green,red
+)
+
+render to out.svg local line with (
+	color         blue
+	text-position text-after
+)

@@ -71,11 +71,20 @@ func MakeCell(c Config) Cell {
 	return empty
 }
 
+type Element struct {
+	Type  string
+	Ident string
+	// Data DataSource
+	Using
+	Style any // one of NumberStyle, CategoryStyle, CircularStyle
+}
+
 type Config struct {
 	Title string
 	Legend
 
-	Path string
+	Path     string
+	Elements []Element
 
 	Width  float64
 	Height float64
@@ -89,12 +98,11 @@ type Config struct {
 	X      Input
 	Y      Input
 	Inputs []DataSource
+	Cells  []Cell
 
 	Style   Style
 	Env     *Environ[any]
 	Scripts *Environ[ast.Expression]
-
-	Cells []Cell
 
 	Theme string
 

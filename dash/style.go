@@ -31,6 +31,7 @@ const (
 // type Style = charts.Style
 
 type NumberStyle struct {
+	charts.Style
 	TextPosition  string
 	LineType      string
 	IgnoreMissing bool
@@ -38,14 +39,30 @@ type NumberStyle struct {
 }
 
 type CategoryStyle struct {
+	charts.Style
 	Fill  []string
 	Width float64
 }
 
+func (s CategoryStyle) Copy() CategoryStyle {
+	x := s
+	x.Fill = make([]string, len(s.Fill))
+	copy(x.Fill, s.Fill)
+	return x
+}
+
 type CircularStyle struct {
+	charts.Style
 	Fill        []string
 	InnerRadius float64
 	OuterRadius float64
+}
+
+func (s CircularStyle) Copy() CircularStyle {
+	x := s
+	x.Fill = make([]string, len(s.Fill))
+	copy(x.Fill, s.Fill)
+	return x
 }
 
 type Style struct {

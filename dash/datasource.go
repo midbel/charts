@@ -29,9 +29,17 @@ type Limit struct {
 	Count  int
 }
 
+func (i Limit) zero() bool {
+	return i.Offset == 0 && i.Count == 0
+}
+
 type Using struct {
 	X int
 	Y Selector
+}
+
+func (u Using) valid() bool {
+	return u.Y != nil
 }
 
 type Exec struct {
