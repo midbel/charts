@@ -127,6 +127,10 @@ func (d *Decoder) decodeElement(cfg *dash.Config) (dash.Element, error) {
 	if err := d.decodeUsing(&el.Using); err != nil {
 		return el, err
 	}
+	if err := d.expectKw(kwAs); err != nil {
+		return el, err
+	}
+	d.next()
 	el.Type, err = d.getRenderType()
 	if err != nil {
 		return el, err

@@ -78,7 +78,10 @@ at 0,0,4,1 (
 
 at 1,0,4,1 include testdata/cell.chart
 
-render to out.svg local line with (
+render to out.svg local as line with (
 	color         blue
 	text-position text-after
+), remote using 1,10 as bar with (
+	fill  green,red,blue
+	width 0.7
 )
