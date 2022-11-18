@@ -8,6 +8,7 @@ import (
 	"net/http"
 	"net/url"
 	"os"
+	"os/exec"
 	"path/filepath"
 	"strconv"
 	"strings"
@@ -15,6 +16,7 @@ import (
 
 	"github.com/midbel/buddy/ast"
 	"github.com/midbel/charts"
+	"github.com/midbel/shlex"
 	"github.com/midbel/slices"
 )
 
@@ -47,16 +49,78 @@ type Exec struct {
 	Command string
 }
 
-func (e Exec) TimeSerie(Style, string, charts.Scaler[time.Time], charts.Scaler[float64]) (charts.Data, error) {
-	return nil, nil
+func (e Exec) TimeSerie(g Style, timefmt string, x charts.Scaler[time.Time], y charts.Scaler[float64]) (charts.Data, error) {
+	out, err := e.execute()
+	if err != nil {
+		return nil, err
+	}
+	var rdr charts.Renderer[time.Time, float64]
+
+	get, err := getTimeFunc(0, SelectSingle(1), timefmt)
+	if err != nil {
+		return nil, err
+	}
+	points, err := loadPointsFromReader(strings.NewReader(out), get)
+	if err != nil {
+		return nil, err
+	}
+	ser := createSerie[time.Time, float64](d.Ident, rdr, points)
+	ser.X = x
+	ser.Y = y
+	return ser, err
 }
 
-func (e Exec) NumberSerie(Style, charts.Scaler[float64], charts.Scaler[float64]) (charts.Data, error) {
-	return nil, nil
+func (e Exec) NumberSerie(g Style, x charts.Scaler[float64], y charts.Scaler[float64]) (charts.Data, error) {
+	out, err := e.execute()
+	if err != nil {
+		return nil, err
+	}
+	var (
+		rdr charts.Renderer[float64, float64]
+		get = getNumberFunc(0, SelectSingle(1))
+	)
+
+	points, err := loadPointsFromReader(strings.NewReader(out), get)
+	if err != nil {
+		return nil, err
+	}
+	ser := createSerie[time.Time, float64](d.Ident, rdr, points)
+	ser.X = x
+	ser.Y = y
+	return ser, err
 }
 
-func (e Exec) CategorySerie(Style, charts.Scaler[string], charts.Scaler[float64]) (charts.Data, error) {
-	return nil, nil
+func (e Exec) CategorySerie(g Style, x charts.Scaler[string], y charts.Scaler[float64]) (charts.Data, error) {
+	out, err := e.execute()
+	if err != nil {
+		return nil, err
+	}
+	var (
+		rdr charts.Renderer[string, float64]
+		get = getCategoryFunc(0, SelectSingle(1))
+	)
+
+	points, err := loadPointsFromReader(strings.NewReader(d.Content), get)
+	if err != nil {
+		return nil, err
+	}
+	ser := createSerie[string, float64](d.Ident, rdr, points)
+	ser.X = x
+	ser.Y = y
+	return ser, nil
+}
+
+func (e Exec) execute() (string, error) {
+	words, err := shlex.Split(strings.NewReader(e.Command))
+	if err != nil {
+		return nil, err
+	}
+	cmd := exec.Command(slices.Fst(words), slices.Rest(words)...)
+	out, err := cmd.Output()
+	if err != nil {
+		return "", err
+	}
+	return string(out), nil
 }
 
 type Expr struct {
