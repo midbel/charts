@@ -1,3 +1,5 @@
+github.com/midbel/shlex v0.2.1 h1:YCovEhFpTnR6R9WD95hbJccFRxXlPPMBGbwjZfcsIDw=
+github.com/midbel/shlex v0.2.1/go.mod h1:AN3Oxs3u28J06GaDWOGYu+OX/hLTyWg9C8gj9cHy18w=
 github.com/midbel/slices v0.2.1 h1:UHCBsx80w9+mzfaZyd8hlskKhUi6ncxHBOrpAVgL5e4=
 github.com/midbel/slices v0.2.1/go.mod h1:uKstGBCfyQnPPr776jKPo/NMWpiJjYx463lANVMYSgk=
 github.com/midbel/slug v0.1.0 h1:Suvs2CZXWpEr0rawMIspkVgp9Qeqikjwjr/VkQA3DVk=
