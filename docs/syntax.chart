@@ -61,8 +61,8 @@ set style with(
 
 at x,y[,w,h] include <path>
 at x,y[,w,h] (
-	use <ident> with(...)
 	...
+	use <ident> as <type> [with (...)]
 )
 
 set padding number[,number[,number[,number]]]
@@ -113,4 +113,4 @@ set <type> with (
 
 alias <type> as <ident> with (...)
 
-render [to <file>] <datasource> [using [x,]y] <type> [with (...)][,...]
+render [to <file>] <ident> [using [x,]y] <type> [with (...)][,...]

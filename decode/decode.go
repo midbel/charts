@@ -137,78 +137,11 @@ func (d *Decoder) decodeElement(cfg *dash.Config) (dash.Element, error) {
 	if err != nil {
 		return el, err
 	}
-	switch el.Type {
-	default:
-		msg := fmt.Sprintf("%s: chart type not recognized", el.Type)
-		return el, d.decodeError(msg)
-	case dash.RenderLine:
-		el.Style = cfg.Linear
-	case dash.RenderStep:
-		el.Style = cfg.Step
-	case dash.RenderStepAfter:
-		el.Style = cfg.StepAfter
-	case dash.RenderStepBefore:
-		el.Style = cfg.StepBefore
-	case dash.RenderPie:
-		el.Style = cfg.Pie.Copy()
-	case dash.RenderBar:
-		el.Style = cfg.Bar.Copy()
-	case dash.RenderSun:
-		el.Style = cfg.Sun.Copy()
-	case dash.RenderStack:
-		el.Style = cfg.Stack.Copy()
-	case dash.RenderNormStack:
-		el.Style = cfg.NormStack.Copy()
-	case dash.RenderGroup:
-		el.Style = cfg.Group.Copy()
+	if el.Style, err = d.getStyleForType(el.Type, cfg); err != nil {
+		return el, err
 	}
-	if err := d.expectKw(kwWith); err != nil {
-		return el, nil
-	}
-	switch el.Type {
-	default:
-		msg := fmt.Sprintf("%s: chart type not recognized", el.Type)
-		return el, d.decodeError(msg)
-	case dash.RenderLine:
-		style := el.Style.(dash.NumberStyle)
-		err = d.decodeNumberStyle(&style)
-		el.Style = style
-	case dash.RenderStep:
-		style := el.Style.(dash.NumberStyle)
-		err = d.decodeNumberStyle(&style)
-		el.Style = style
-	case dash.RenderStepAfter:
-		style := el.Style.(dash.NumberStyle)
-		err = d.decodeNumberStyle(&style)
-		el.Style = style
-	case dash.RenderStepBefore:
-		style := el.Style.(dash.NumberStyle)
-		err = d.decodeNumberStyle(&style)
-		el.Style = style
-	case dash.RenderSun:
-		style := el.Style.(dash.CircularStyle)
-		err = d.decodeCircularStyle(&style)
-		el.Style = style
-	case dash.RenderPie:
-		style := el.Style.(dash.CircularStyle)
-		err = d.decodeCircularStyle(&style)
-		el.Style = style
-	case dash.RenderBar:
-		style := el.Style.(dash.CategoryStyle)
-		err = d.decodeCategoryStyle(&style)
-		el.Style = style
-	case dash.RenderStack:
-		style := el.Style.(dash.CategoryStyle)
-		err = d.decodeCategoryStyle(&style)
-		el.Style = style
-	case dash.RenderNormStack:
-		style := el.Style.(dash.CategoryStyle)
-		err = d.decodeCategoryStyle(&style)
-		el.Style = style
-	case dash.RenderGroup:
-		style := el.Style.(dash.CategoryStyle)
-		err = d.decodeCategoryStyle(&style)
-		el.Style = style
+	if err = d.expectKw(kwWith); err == nil {
+		err = d.decodeElementStyle(&el)
 	}
 	return el, err
 }
@@ -251,7 +184,34 @@ func (d *Decoder) decodeBody(cfg *dash.Config, accept func(Token) bool) error {
 
 func (d *Decoder) decodeUse(cfg *dash.Config) error {
 	d.next()
-	return fmt.Errorf("use: not yet implemented")
+	var (
+		el  dash.Element
+		err error
+	)
+	if el.Ident, err = d.getString(); err != nil {
+		return err
+	}
+	if el.Data, err = d.files.Resolve(el.Ident); err != nil {
+		return err
+	}
+	if err := d.expectKw(kwAs); err != nil {
+		return err
+	}
+	d.next()
+	el.Type, err = d.getString()
+	if err != nil {
+		return err
+	}
+	if el.Style, err = d.getStyleForType(el.Type, cfg); err != nil {
+		return err
+	}
+	if err := d.expectKw(kwWith); err == nil {
+		err = d.decodeElementStyle(&el)
+	}
+	if err == nil {
+		cfg.Elements = append(cfg.Elements, el)
+	}
+	return err
 }
 
 func (d *Decoder) decodeAt(cfg *dash.Config) error {
@@ -815,7 +775,7 @@ func (d *Decoder) decodeLoadFile(cfg *dash.Config, path string) error {
 		err error
 	)
 	fi.Path = path
-	fi.Ident = filepath.Base(path)
+	fi.Ident = strings.TrimSuffix(filepath.Base(path), filepath.Ext(path))
 	if err = d.decodeLimit(&fi.Limit); err != nil {
 		return err
 	}
@@ -1025,6 +985,86 @@ func (d *Decoder) decodeWith(decode func() error) error {
 	}
 	d.next()
 	return nil
+}
+
+func (d *Decoder) decodeElementStyle(el *dash.Element) error {
+	var err error
+	switch el.Type {
+	default:
+		msg := fmt.Sprintf("%s: chart type not recognized", el.Type)
+		return d.decodeError(msg)
+	case dash.RenderLine:
+		style := el.Style.(dash.NumberStyle)
+		err = d.decodeNumberStyle(&style)
+		el.Style = style
+	case dash.RenderStep:
+		style := el.Style.(dash.NumberStyle)
+		err = d.decodeNumberStyle(&style)
+		el.Style = style
+	case dash.RenderStepAfter:
+		style := el.Style.(dash.NumberStyle)
+		err = d.decodeNumberStyle(&style)
+		el.Style = style
+	case dash.RenderStepBefore:
+		style := el.Style.(dash.NumberStyle)
+		err = d.decodeNumberStyle(&style)
+		el.Style = style
+	case dash.RenderSun:
+		style := el.Style.(dash.CircularStyle)
+		err = d.decodeCircularStyle(&style)
+		el.Style = style
+	case dash.RenderPie:
+		style := el.Style.(dash.CircularStyle)
+		err = d.decodeCircularStyle(&style)
+		el.Style = style
+	case dash.RenderBar:
+		style := el.Style.(dash.CategoryStyle)
+		err = d.decodeCategoryStyle(&style)
+		el.Style = style
+	case dash.RenderStack:
+		style := el.Style.(dash.CategoryStyle)
+		err = d.decodeCategoryStyle(&style)
+		el.Style = style
+	case dash.RenderNormStack:
+		style := el.Style.(dash.CategoryStyle)
+		err = d.decodeCategoryStyle(&style)
+		el.Style = style
+	case dash.RenderGroup:
+		style := el.Style.(dash.CategoryStyle)
+		err = d.decodeCategoryStyle(&style)
+		el.Style = style
+	}
+	return err
+}
+
+func (d *Decoder) getStyleForType(kind string, cfg *dash.Config) (any, error) {
+	var style any
+	switch kind {
+	default:
+		msg := fmt.Sprintf("%s: chart type not recognized", kind)
+		return nil, d.decodeError(msg)
+	case dash.RenderLine:
+		style = cfg.Linear
+	case dash.RenderStep:
+		style = cfg.Step
+	case dash.RenderStepAfter:
+		style = cfg.StepAfter
+	case dash.RenderStepBefore:
+		style = cfg.StepBefore
+	case dash.RenderPie:
+		style = cfg.Pie.Copy()
+	case dash.RenderBar:
+		style = cfg.Bar.Copy()
+	case dash.RenderSun:
+		style = cfg.Sun.Copy()
+	case dash.RenderStack:
+		style = cfg.Stack.Copy()
+	case dash.RenderNormStack:
+		style = cfg.NormStack.Copy()
+	case dash.RenderGroup:
+		style = cfg.Group.Copy()
+	}
+	return style, nil
 }
 
 func (d *Decoder) wrap() {

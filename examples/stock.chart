@@ -4,8 +4,6 @@ set title "stock prices evolution"
 
 set timefmt %Y-%m-%d
 
-set theme black-orange
-
 set xdata time
 set ydata number
 set xdomain 2018-09-19,$(date +%Y-%m-%d)

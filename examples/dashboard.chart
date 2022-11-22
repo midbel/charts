@@ -7,13 +7,6 @@ set ydata number
 set xdomain 2018-09-19,2022-09-30
 set ydomain 0,350
 
-set style with (
-	type line
-	color black
-	ignore-missing true
-	text-position text-after
-)
-
 set xticks with (
 	count 7
 	position bottom
@@ -34,55 +27,51 @@ set yticks with (
 	inner-ticks true
 )
 
-load data/GOOG.csv using 0,1 with (
-	type line
-	color blue
-)
-load data/MSFT.csv using 0,1 with (
-	type line
-	color red
-)
-load data/AAPL.csv using 0,1 with (
-	type line
-	color green
-)
-load data/TWTR.csv using 0,1 with (
-	type line
-	color grey
-)
+load data/GOOG.csv using 0,1
+load data/MSFT.csv using 0,1
+load data/AAPL.csv using 0,1
+load data/TWTR.csv using 0,1
 
 at 0,0 (
 	set title "google"
 	set padding 60
 	set ydomain 0,170
-	use GOOG
+	use GOOG as line
 )
 at 0,1 (
 	set title "apple"
 	set padding 60
 	set ydomain 0,210
-	use AAPL
+	use AAPL as line
 )
 at 1,0 (
 	set title "twitter"
 	set padding 60
 	set ydomain 0,110
-	use TWTR
+	use TWTR as line
 )
 at 1,1 (
 	set title "microsoft"
 	set padding 60
-	use MSFT
+	use MSFT as line
 )
 
 at 2, 0, 2, 2 (
 	set title "stock prices evolution"
 	set padding 60
 
-	use TWTR
-	use AAPL
-	use MSFT
-	use GOOG
+	use TWTR as line with (
+		color green
+	)
+	use AAPL as line with (
+		color red
+	)
+	use MSFT as line with (
+		color blue
+	)
+	use GOOG as line with (
+		color grey
+	)
 )
 
-render tmp/dashboard.svg
+render to tmp/dashboard.svg
