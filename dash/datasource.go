@@ -64,7 +64,7 @@ func (e Exec) TimeSerie(g Style, timefmt string, x charts.Scaler[time.Time], y c
 	if err != nil {
 		return nil, err
 	}
-	ser := createSerie[time.Time, float64](d.Ident, rdr, points)
+	ser := createSerie[time.Time, float64](e.Ident, rdr, points)
 	ser.X = x
 	ser.Y = y
 	return ser, err
@@ -84,7 +84,7 @@ func (e Exec) NumberSerie(g Style, x charts.Scaler[float64], y charts.Scaler[flo
 	if err != nil {
 		return nil, err
 	}
-	ser := createSerie[time.Time, float64](d.Ident, rdr, points)
+	ser := createSerie[float64, float64](e.Ident, rdr, points)
 	ser.X = x
 	ser.Y = y
 	return ser, err
@@ -100,11 +100,11 @@ func (e Exec) CategorySerie(g Style, x charts.Scaler[string], y charts.Scaler[fl
 		get = getCategoryFunc(0, SelectSingle(1))
 	)
 
-	points, err := loadPointsFromReader(strings.NewReader(d.Content), get)
+	points, err := loadPointsFromReader(strings.NewReader(out), get)
 	if err != nil {
 		return nil, err
 	}
-	ser := createSerie[string, float64](d.Ident, rdr, points)
+	ser := createSerie[string, float64](e.Ident, rdr, points)
 	ser.X = x
 	ser.Y = y
 	return ser, nil
@@ -113,7 +113,7 @@ func (e Exec) CategorySerie(g Style, x charts.Scaler[string], y charts.Scaler[fl
 func (e Exec) execute() (string, error) {
 	words, err := shlex.Split(strings.NewReader(e.Command))
 	if err != nil {
-		return nil, err
+		return "", err
 	}
 	cmd := exec.Command(slices.Fst(words), slices.Rest(words)...)
 	out, err := cmd.Output()
