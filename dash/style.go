@@ -2,7 +2,6 @@ package dash
 
 import (
 	"fmt"
-	"time"
 
 	"github.com/midbel/charts"
 )
@@ -91,30 +90,9 @@ func (s CircularStyle) Copy() CircularStyle {
 	return x
 }
 
-type Style struct {
-	Type          string
-	Stroke        string
-	Fill          bool
-	Point         string
-	Width         float64
-	InnerRadius   float64
-	OuterRadius   float64
-	IgnoreMissing bool
-	TextPosition  string
-	LineStyle     string
-}
-
-func GlobalStyle() Style {
-	return Style{
-		Type:   RenderLine,
-		Stroke: "black",
-		Fill:   false,
-	}
-}
-
-func (s Style) getTextPosition() charts.TextPosition {
+func getTextPosition(str string) charts.TextPosition {
 	var pos charts.TextPosition
-	switch s.TextPosition {
+	switch str {
 	case "text-before":
 		pos = charts.TextBefore
 	case "text-after":
@@ -124,8 +102,8 @@ func (s Style) getTextPosition() charts.TextPosition {
 	return pos
 }
 
-func (s Style) getPointFunc() charts.PointFunc {
-	switch s.Point {
+func getPointFunc(str string) charts.PointFunc {
+	switch str {
 	case "circle":
 		return charts.GetCircle
 	case "square":
@@ -135,9 +113,9 @@ func (s Style) getPointFunc() charts.PointFunc {
 	}
 }
 
-func (s Style) getLineStyle() charts.LineStyle {
+func getLineStyle(str string) charts.LineStyle {
 	var i charts.LineStyle
-	switch s.LineStyle {
+	switch str {
 	case "", StyleStraight:
 		i = charts.StyleStraight
 	case StyleDotted:
@@ -148,120 +126,128 @@ func (s Style) getLineStyle() charts.LineStyle {
 	return i
 }
 
-func (s Style) makeTimeRenderer(g Style) (charts.Renderer[time.Time, float64], error) {
-	return createRenderer[time.Time, float64](s.merge(g))
-}
-
-func (s Style) makeNumberRenderer(g Style) (charts.Renderer[float64, float64], error) {
-	return createRenderer[float64, float64](s.merge(g))
-}
-
-func (s Style) makeCategoryRenderer(g Style) (charts.Renderer[string, float64], error) {
-	return createCategoryRenderer(s.merge(g))
-}
-
-func (s Style) merge(g Style) Style {
-	if s.Type == "" {
-		s.Type = g.Type
-	}
-	if s.Stroke == "" {
-		s.Stroke = g.Stroke
-	}
-	if s.Point == "" {
-		s.Point = g.Point
-	}
-	if s.InnerRadius == 0 && g.InnerRadius != 0 {
-		s.InnerRadius = g.InnerRadius
-	}
-	if s.OuterRadius == 0 && g.OuterRadius != 0 {
-		s.OuterRadius = g.OuterRadius
-	}
-	if s.TextPosition == "" {
-		s.TextPosition = g.TextPosition
-	}
-	return s
-}
-
-func createCategoryRenderer(style Style) (charts.Renderer[string, float64], error) {
-	var rdr charts.Renderer[string, float64]
-	switch style.Type {
-	case RenderBar:
-		rdr = charts.BarRenderer[string, float64]{
-			Fill:  charts.Tableau10,
-			Width: style.Width,
-		}
-	case RenderPie:
-		rdr = charts.PieRenderer[string, float64]{
-			Fill:        charts.Tableau10,
-			InnerRadius: style.InnerRadius,
-			OuterRadius: style.OuterRadius,
-		}
-	case RenderSun:
-		rdr = charts.SunburstRenderer[string, float64]{
-			Fill:        charts.Tableau10,
-			InnerRadius: style.InnerRadius,
-			OuterRadius: style.OuterRadius,
-		}
-	case RenderStack, RenderNormStack:
-		rdr = charts.StackedRenderer[string, float64]{
-			Fill:      charts.Tableau10,
-			Width:     style.Width,
-			Normalize: style.Type == RenderNormStack,
-		}
-	case RenderGroup:
-		rdr = charts.GroupRenderer[string, float64]{
-			Width: style.Width,
-			Fill:  charts.Tableau10,
-		}
-	case RenderPolar:
-		rdr = charts.PolarRenderer[string, float64]{
-			Fill:       charts.Tableau10,
-			Ticks:      10,
-			TicksStyle: charts.StyleStraight,
-		}
-	default:
-		return nil, fmt.Errorf("%s: can not use for number chart", style.Type)
-	}
-	return rdr, nil
-}
-
-func createRenderer[T, U charts.ScalerConstraint](style Style) (charts.Renderer[T, U], error) {
+func getRenderer[T, U charts.ScalerConstraint](kind string, style any) (charts.Renderer[T, U], error) {
 	var rdr charts.Renderer[T, U]
-	switch style.Type {
+	switch kind {
 	case RenderLine:
+		st, err := getNumberStyle(kind, style)
+		if err != nil {
+			return nil, err
+		}
 		rdr = charts.LinearRenderer[T, U]{
-			Color:         style.Stroke,
-			IgnoreMissing: style.IgnoreMissing,
-			Text:          style.getTextPosition(),
-			Point:         style.getPointFunc(),
-			Style:         style.getLineStyle(),
+			Color:         st.Color,
+			IgnoreMissing: st.IgnoreMissing,
 		}
 	case RenderStep:
-		rdr = charts.StepRenderer[T, U]{
-			Color:         style.Stroke,
-			IgnoreMissing: style.IgnoreMissing,
-			Text:          style.getTextPosition(),
-			Point:         style.getPointFunc(),
-			Style:         style.getLineStyle(),
+		st, err := getNumberStyle(kind, style)
+		if err != nil {
+			return nil, err
 		}
-	case RenderStepAfter:
-		rdr = charts.StepAfterRenderer[T, U]{
-			Color:         style.Stroke,
-			IgnoreMissing: style.IgnoreMissing,
-			Text:          style.getTextPosition(),
-			Point:         style.getPointFunc(),
-			Style:         style.getLineStyle(),
+		rdr = charts.StepRenderer[T, U]{
+			Color:         st.Color,
+			IgnoreMissing: st.IgnoreMissing,
 		}
 	case RenderStepBefore:
+		st, err := getNumberStyle(kind, style)
+		if err != nil {
+			return nil, err
+		}
 		rdr = charts.StepBeforeRenderer[T, U]{
-			Color:         style.Stroke,
-			IgnoreMissing: style.IgnoreMissing,
-			Text:          style.getTextPosition(),
-			Point:         style.getPointFunc(),
-			Style:         style.getLineStyle(),
+			Color:         st.Color,
+			IgnoreMissing: st.IgnoreMissing,
+		}
+	case RenderStepAfter:
+		st, err := getNumberStyle(kind, style)
+		if err != nil {
+			return nil, err
+		}
+		rdr = charts.StepAfterRenderer[T, U]{
+			Color:         st.Color,
+			IgnoreMissing: st.IgnoreMissing,
 		}
 	default:
-		return nil, fmt.Errorf("%s: can be not used for number/time chart", style.Type)
+		return nil, fmt.Errorf("%s unrecognized chart type", kind)
 	}
 	return rdr, nil
+}
+
+func getCategoryRenderer[T ~string, U float64](kind string, style any) (charts.Renderer[T, U], error) {
+	var rdr charts.Renderer[T, U]
+	switch kind {
+	case RenderBar:
+		st, err := getCategoryStyle(kind, style)
+		if err != nil {
+			return nil, err
+		}
+		rdr = charts.BarRenderer[T, U]{
+			Fill:  st.Fill,
+			Width: st.Width,
+		}
+	case RenderGroup:
+		st, err := getCategoryStyle(kind, style)
+		if err != nil {
+			return nil, err
+		}
+		rdr = charts.GroupRenderer[T, U]{
+			Fill:  st.Fill,
+			Width: st.Width,
+		}
+	case RenderStack, RenderNormStack:
+		st, err := getCategoryStyle(kind, style)
+		if err != nil {
+			return nil, err
+		}
+		rdr = charts.StackedRenderer[T, U]{
+			Fill:      st.Fill,
+			Width:     st.Width,
+			Normalize: kind == RenderNormStack,
+		}
+	case RenderPie:
+		st, err := getCircularStyle(kind, style)
+		if err != nil {
+			return nil, err
+		}
+		rdr = charts.PieRenderer[T, U]{
+			Fill:        st.Fill,
+			InnerRadius: st.InnerRadius,
+			OuterRadius: st.OuterRadius,
+		}
+	case RenderSun:
+		st, err := getCircularStyle(kind, style)
+		if err != nil {
+			return nil, err
+		}
+		rdr = charts.SunburstRenderer[T, U]{
+			Fill:        st.Fill,
+			InnerRadius: st.InnerRadius,
+			OuterRadius: st.OuterRadius,
+		}
+	default:
+		return nil, fmt.Errorf("%s unrecognized chart type", kind)
+	}
+	return rdr, nil
+}
+
+func getNumberStyle(kind string, style any) (NumberStyle, error) {
+	st, ok := style.(NumberStyle)
+	if !ok {
+		return st, fmt.Errorf("invalid style given for %s renderer", kind)
+	}
+	return st, nil
+}
+
+func getCategoryStyle(kind string, style any) (CategoryStyle, error) {
+	st, ok := style.(CategoryStyle)
+	if !ok {
+		return st, fmt.Errorf("invalid style given for %s renderer", kind)
+	}
+	return st, nil
+}
+
+func getCircularStyle(kind string, style any) (CircularStyle, error) {
+	st, ok := style.(CircularStyle)
+	if !ok {
+		return st, fmt.Errorf("invalid style given for %s renderer", kind)
+	}
+	return st, nil
 }

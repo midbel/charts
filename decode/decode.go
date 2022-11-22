@@ -37,7 +37,7 @@ type Decoder struct {
 	shell string
 
 	env   *dash.Environ[[]string]
-	files *dash.Environ[dash.LocalFile]
+	files *dash.Environ[dash.DataSource]
 
 	scan *Scanner
 	curr Token
@@ -48,7 +48,7 @@ func NewDecoder(r io.Reader) *Decoder {
 	d := Decoder{
 		cwd:   ".",
 		env:   dash.EmptyEnv[[]string](),
-		files: dash.EmptyEnv[dash.LocalFile](),
+		files: dash.EmptyEnv[dash.DataSource](),
 		shell: DefaultShell,
 		scan:  Scan(r),
 	}
@@ -120,8 +120,10 @@ func (d *Decoder) decodeElement(cfg *dash.Config) (dash.Element, error) {
 		el  dash.Element
 		err error
 	)
-	el.Ident, err = d.getString()
-	if err != nil {
+	if el.Ident, err = d.getString(); err != nil {
+		return el, err
+	}
+	if el.Data, err = d.files.Resolve(el.Ident); err != nil {
 		return el, err
 	}
 	if err := d.decodeUsing(&el.Using); err != nil {
@@ -135,6 +137,31 @@ func (d *Decoder) decodeElement(cfg *dash.Config) (dash.Element, error) {
 	if err != nil {
 		return el, err
 	}
+	switch el.Type {
+	default:
+		msg := fmt.Sprintf("%s: chart type not recognized", el.Type)
+		return el, d.decodeError(msg)
+	case dash.RenderLine:
+		el.Style = cfg.Linear
+	case dash.RenderStep:
+		el.Style = cfg.Step
+	case dash.RenderStepAfter:
+		el.Style = cfg.StepAfter
+	case dash.RenderStepBefore:
+		el.Style = cfg.StepBefore
+	case dash.RenderPie:
+		el.Style = cfg.Pie.Copy()
+	case dash.RenderBar:
+		el.Style = cfg.Bar.Copy()
+	case dash.RenderSun:
+		el.Style = cfg.Sun.Copy()
+	case dash.RenderStack:
+		el.Style = cfg.Stack.Copy()
+	case dash.RenderNormStack:
+		el.Style = cfg.NormStack.Copy()
+	case dash.RenderGroup:
+		el.Style = cfg.Group.Copy()
+	}
 	if err := d.expectKw(kwWith); err != nil {
 		return el, nil
 	}
@@ -143,43 +170,43 @@ func (d *Decoder) decodeElement(cfg *dash.Config) (dash.Element, error) {
 		msg := fmt.Sprintf("%s: chart type not recognized", el.Type)
 		return el, d.decodeError(msg)
 	case dash.RenderLine:
-		style := cfg.Linear
+		style := el.Style.(dash.NumberStyle)
 		err = d.decodeNumberStyle(&style)
 		el.Style = style
 	case dash.RenderStep:
-		style := cfg.Step
+		style := el.Style.(dash.NumberStyle)
 		err = d.decodeNumberStyle(&style)
 		el.Style = style
 	case dash.RenderStepAfter:
-		style := cfg.StepAfter
+		style := el.Style.(dash.NumberStyle)
 		err = d.decodeNumberStyle(&style)
 		el.Style = style
 	case dash.RenderStepBefore:
-		style := cfg.StepBefore
+		style := el.Style.(dash.NumberStyle)
 		err = d.decodeNumberStyle(&style)
 		el.Style = style
 	case dash.RenderSun:
-		style := cfg.Sun
+		style := el.Style.(dash.CircularStyle)
 		err = d.decodeCircularStyle(&style)
 		el.Style = style
 	case dash.RenderPie:
-		style := cfg.Pie.Copy()
+		style := el.Style.(dash.CircularStyle)
 		err = d.decodeCircularStyle(&style)
 		el.Style = style
 	case dash.RenderBar:
-		style := cfg.Bar.Copy()
+		style := el.Style.(dash.CategoryStyle)
 		err = d.decodeCategoryStyle(&style)
 		el.Style = style
 	case dash.RenderStack:
-		style := cfg.Stack.Copy()
+		style := el.Style.(dash.CategoryStyle)
 		err = d.decodeCategoryStyle(&style)
 		el.Style = style
 	case dash.RenderNormStack:
-		style := cfg.NormStack.Copy()
+		style := el.Style.(dash.CategoryStyle)
 		err = d.decodeCategoryStyle(&style)
 		el.Style = style
 	case dash.RenderGroup:
-		style := cfg.Group.Copy()
+		style := el.Style.(dash.CategoryStyle)
 		err = d.decodeCategoryStyle(&style)
 		el.Style = style
 	}
@@ -224,19 +251,7 @@ func (d *Decoder) decodeBody(cfg *dash.Config, accept func(Token) bool) error {
 
 func (d *Decoder) decodeUse(cfg *dash.Config) error {
 	d.next()
-	if err := d.expect(Literal, "literal expected"); err != nil {
-		return err
-	}
-	fi, err := d.files.Resolve(d.curr.Literal)
-	if err != nil {
-		return fmt.Errorf("%s: file not registered", d.curr.Literal)
-	}
-	d.next()
-	if err := d.expectKw(kwWith); err == nil {
-
-	}
-	cfg.Inputs = append(cfg.Inputs, fi)
-	return nil
+	return fmt.Errorf("use: not yet implemented")
 }
 
 func (d *Decoder) decodeAt(cfg *dash.Config) error {
@@ -417,7 +432,7 @@ func (d *Decoder) decodeSet(cfg *dash.Config) error {
 	case "yticks":
 		return d.decodeTicks(&cfg.Y.Domain)
 	case "style":
-		return d.decodeStyle(&cfg.Style)
+
 	case "timefmt":
 		cfg.TimeFormat, err = d.getString()
 	case "delimiter":
@@ -620,38 +635,6 @@ func (d *Decoder) decodeLegend(cfg *dash.Config) error {
 	return d.eol()
 }
 
-func (d *Decoder) decodeStyle(style *dash.Style) error {
-	var (
-		cmd = d.curr.Literal
-		err error
-	)
-	d.next()
-	switch cmd {
-	case "fill-color":
-	case "fill-opacity":
-	case "fill-style":
-	case "line-color":
-	case "line-width":
-	case "line-opacity":
-	case "line-type":
-	case "font-size":
-	case "font-color":
-	case "font-family":
-	case "font-bold":
-	case "font-italic":
-	case kwWith:
-		err = d.decodeWith(func() error {
-			return d.decodeStyle(style)
-		})
-	default:
-		err = d.optionError("style")
-	}
-	if err != nil {
-		return err
-	}
-	return d.eol()
-}
-
 func (d *Decoder) decodeTicks(dom *dash.Domain) error {
 	if d.peekIs(EOL) || d.peekIs(EOF) {
 		count, err := d.getInt()
@@ -709,7 +692,7 @@ func (d *Decoder) decodeLoadData(cfg *dash.Config) error {
 	d.next()
 	dat.Ident, err = d.getString()
 	if err == nil {
-		cfg.Inputs = append(cfg.Inputs, dat)
+		d.files.Define(dat.Ident, dat)
 		err = d.eol()
 	}
 	return err
@@ -731,7 +714,7 @@ func (d *Decoder) decodeLoadExpr(cfg *dash.Config) error {
 	d.next()
 	expr.Ident, err = d.getString()
 	if err == nil {
-		cfg.Inputs = append(cfg.Inputs, expr)
+		d.files.Define(expr.Ident, expr)
 		err = d.eol()
 	}
 	return err
@@ -750,19 +733,19 @@ func (d *Decoder) decodeLoadExec(cfg *dash.Config) error {
 	d.next()
 	exec.Ident, err = d.getString()
 	if err == nil {
-		cfg.Inputs = append(cfg.Inputs, exec)
+		d.files.Define(exec.Ident, exec)
 		err = d.eol()
 	}
 	return err
 }
 
-func (d *Decoder) decodeLoadHttp(cfg *dash.Config, path string) error {
+func (d *Decoder) decodeLoadHttp(cfg *dash.Config, path, ident string) error {
 	var (
 		fi  dash.HttpFile
 		err error
 	)
 	fi.Uri = path
-	fi.Ident = filepath.Base(path)
+	fi.Ident = ident
 	fi.Headers = make(http.Header)
 	if err = d.decodeLimit(&fi.Limit); err != nil {
 		return err
@@ -783,7 +766,7 @@ func (d *Decoder) decodeLoadHttp(cfg *dash.Config, path string) error {
 		err = d.eol()
 	}
 	if err == nil {
-		cfg.Inputs = append(cfg.Inputs, fi)
+		d.files.Define(fi.Ident, fi)
 	}
 	return err
 }
@@ -853,7 +836,6 @@ func (d *Decoder) decodeLoadFile(cfg *dash.Config, path string) error {
 	}
 	if err == nil {
 		d.files.Define(fi.Name(), fi)
-		cfg.Inputs = append(cfg.Inputs, fi)
 	}
 	return err
 }
@@ -942,7 +924,7 @@ func (d *Decoder) decodeLoad(cfg *dash.Config) error {
 	}
 	switch u.Scheme {
 	case schemeHttp, schemeHttps:
-		return d.decodeLoadHttp(cfg, path)
+		return d.decodeLoadHttp(cfg, path, filepath.Base(u.Path))
 	case schemeFile, "":
 		return d.decodeLoadFile(cfg, u.Path)
 	default:

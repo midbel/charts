@@ -20,10 +20,55 @@ import (
 	"github.com/midbel/slices"
 )
 
+type Element struct {
+	Type  string
+	Ident string
+	Data  DataSource
+	Using
+	Style any // one of NumberStyle, CategoryStyle, CircularStyle
+}
+
+func (e Element) TimeSerie(timefmt string, x TimeScale, y FloatScale) (charts.Data, error) {
+	ser, err := e.Data.TimeSerie(timefmt, x, y)
+	if err != nil {
+		return nil, err
+	}
+	ser.Renderer, err = getRenderer[time.Time, float64](e.Type, e.Style)
+	return ser, err
+}
+
+func (e Element) NumberSerie(x FloatScale, y FloatScale) (charts.Data, error) {
+	ser, err := e.Data.NumberSerie(x, y)
+	if err != nil {
+		return nil, err
+	}
+	ser.Renderer, err = getRenderer[float64, float64](e.Type, e.Style)
+	return ser, err
+}
+
+func (e Element) CategorySerie(x StringScale, y FloatScale) (charts.Data, error) {
+	ser, err := e.Data.CategorySerie(x, y)
+	if err != nil {
+		return nil, err
+	}
+	ser.Renderer, err = getCategoryRenderer[string, float64](e.Type, e.Style)
+	return ser, err
+}
+
+type (
+	TimeSerie     = charts.Serie[time.Time, float64]
+	NumberSerie   = charts.Serie[float64, float64]
+	CategorySerie = charts.Serie[string, float64]
+
+	TimeScale   = charts.Scaler[time.Time]
+	FloatScale  = charts.Scaler[float64]
+	StringScale = charts.Scaler[string]
+)
+
 type DataSource interface {
-	TimeSerie(Style, string, charts.Scaler[time.Time], charts.Scaler[float64]) (charts.Data, error)
-	NumberSerie(Style, charts.Scaler[float64], charts.Scaler[float64]) (charts.Data, error)
-	CategorySerie(Style, charts.Scaler[string], charts.Scaler[float64]) (charts.Data, error)
+	TimeSerie(string, TimeScale, FloatScale) (TimeSerie, error)
+	NumberSerie(FloatScale, FloatScale) (NumberSerie, error)
+	CategorySerie(StringScale, FloatScale) (CategorySerie, error)
 }
 
 type Limit struct {
@@ -49,62 +94,54 @@ type Exec struct {
 	Command string
 }
 
-func (e Exec) TimeSerie(g Style, timefmt string, x charts.Scaler[time.Time], y charts.Scaler[float64]) (charts.Data, error) {
+func (e Exec) TimeSerie(timefmt string, x TimeScale, y FloatScale) (ser TimeSerie, err error) {
 	out, err := e.execute()
 	if err != nil {
-		return nil, err
+		return
 	}
-	var rdr charts.Renderer[time.Time, float64]
-
 	get, err := getTimeFunc(0, SelectSingle(1), timefmt)
 	if err != nil {
-		return nil, err
+		return
 	}
 	points, err := loadPointsFromReader(strings.NewReader(out), get)
 	if err != nil {
-		return nil, err
+		return
 	}
-	ser := createSerie[time.Time, float64](e.Ident, rdr, points)
+	ser = createSerie[time.Time, float64](e.Ident, points)
 	ser.X = x
 	ser.Y = y
 	return ser, err
 }
 
-func (e Exec) NumberSerie(g Style, x charts.Scaler[float64], y charts.Scaler[float64]) (charts.Data, error) {
+func (e Exec) NumberSerie(x FloatScale, y FloatScale) (ser NumberSerie, err error) {
 	out, err := e.execute()
 	if err != nil {
-		return nil, err
+		return
 	}
-	var (
-		rdr charts.Renderer[float64, float64]
-		get = getNumberFunc(0, SelectSingle(1))
-	)
 
+	get := getNumberFunc(0, SelectSingle(1))
 	points, err := loadPointsFromReader(strings.NewReader(out), get)
 	if err != nil {
-		return nil, err
+		return
 	}
-	ser := createSerie[float64, float64](e.Ident, rdr, points)
+	ser = createSerie[float64, float64](e.Ident, points)
 	ser.X = x
 	ser.Y = y
 	return ser, err
 }
 
-func (e Exec) CategorySerie(g Style, x charts.Scaler[string], y charts.Scaler[float64]) (charts.Data, error) {
+func (e Exec) CategorySerie(x StringScale, y FloatScale) (ser CategorySerie, err error) {
 	out, err := e.execute()
 	if err != nil {
-		return nil, err
+		return
 	}
-	var (
-		rdr charts.Renderer[string, float64]
-		get = getCategoryFunc(0, SelectSingle(1))
-	)
 
+	get := getCategoryFunc(0, SelectSingle(1))
 	points, err := loadPointsFromReader(strings.NewReader(out), get)
 	if err != nil {
-		return nil, err
+		return
 	}
-	ser := createSerie[string, float64](e.Ident, rdr, points)
+	ser = createSerie[string, float64](e.Ident, points)
 	ser.X = x
 	ser.Y = y
 	return ser, nil
@@ -128,16 +165,16 @@ type Expr struct {
 	Expr  ast.Expression
 }
 
-func (e Expr) TimeSerie(Style, string, charts.Scaler[time.Time], charts.Scaler[float64]) (charts.Data, error) {
-	return nil, nil
+func (e Expr) TimeSerie(string, TimeScale, FloatScale) (ser TimeSerie, err error) {
+	return
 }
 
-func (e Expr) NumberSerie(Style, charts.Scaler[float64], charts.Scaler[float64]) (charts.Data, error) {
-	return nil, nil
+func (e Expr) NumberSerie(FloatScale, FloatScale) (ser NumberSerie, err error) {
+	return
 }
 
-func (e Expr) CategorySerie(Style, charts.Scaler[string], charts.Scaler[float64]) (charts.Data, error) {
-	return nil, nil
+func (e Expr) CategorySerie(StringScale, FloatScale) (ser CategorySerie, err error) {
+	return
 }
 
 type HttpFile struct {
@@ -156,70 +193,57 @@ type HttpFile struct {
 	Headers http.Header
 }
 
-func (f HttpFile) TimeSerie(Style, string, charts.Scaler[time.Time], charts.Scaler[float64]) (charts.Data, error) {
-	return nil, nil
+func (f HttpFile) TimeSerie(string, TimeScale, FloatScale) (ser TimeSerie, err error) {
+	return
 }
 
-func (f HttpFile) NumberSerie(Style, charts.Scaler[float64], charts.Scaler[float64]) (charts.Data, error) {
-	return nil, nil
+func (f HttpFile) NumberSerie(FloatScale, FloatScale) (ser NumberSerie, err error) {
+	return
 }
 
-func (f HttpFile) CategorySerie(Style, charts.Scaler[string], charts.Scaler[float64]) (charts.Data, error) {
-	return nil, nil
+func (f HttpFile) CategorySerie(StringScale, FloatScale) (ser CategorySerie, err error) {
+	return
 }
 
 type LocalData struct {
 	Ident   string
 	Content string
-	Style
 }
 
-func (d LocalData) TimeSerie(g Style, timefmt string, x charts.Scaler[time.Time], y charts.Scaler[float64]) (charts.Data, error) {
-	rdr, err := d.makeTimeRenderer(g)
-	if err != nil {
-		return nil, err
-	}
+func (d LocalData) TimeSerie(timefmt string, x TimeScale, y FloatScale) (ser TimeSerie, err error) {
 	get, err := getTimeFunc(0, SelectSingle(1), timefmt)
 	if err != nil {
-		return nil, err
+		return
 	}
 	points, err := loadPointsFromReader(strings.NewReader(d.Content), get)
 	if err != nil {
-		return nil, err
+		return
 	}
-	ser := createSerie[time.Time, float64](d.Ident, rdr, points)
+	ser = createSerie[time.Time, float64](d.Ident, points)
 	ser.X = x
 	ser.Y = y
 	return ser, err
 }
 
-func (d LocalData) NumberSerie(g Style, x charts.Scaler[float64], y charts.Scaler[float64]) (charts.Data, error) {
-	rdr, err := d.makeNumberRenderer(g)
-	if err != nil {
-		return nil, err
-	}
+func (d LocalData) NumberSerie(x FloatScale, y FloatScale) (ser NumberSerie, err error) {
 	get := getNumberFunc(0, SelectSingle(1))
 	points, err := loadPointsFromReader(strings.NewReader(d.Content), get)
 	if err != nil {
-		return nil, err
+		return
 	}
-	ser := createSerie[float64, float64](d.Ident, rdr, points)
+	ser = createSerie[float64, float64](d.Ident, points)
 	ser.X = x
 	ser.Y = y
 	return ser, nil
 }
 
-func (d LocalData) CategorySerie(g Style, x charts.Scaler[string], y charts.Scaler[float64]) (charts.Data, error) {
-	rdr, err := d.makeCategoryRenderer(g)
-	if err != nil {
-		return nil, err
-	}
+func (d LocalData) CategorySerie(x StringScale, y FloatScale) (ser CategorySerie, err error) {
 	get := getCategoryFunc(0, SelectSingle(1))
 	points, err := loadPointsFromReader(strings.NewReader(d.Content), get)
 	if err != nil {
-		return nil, err
+		return
 	}
-	ser := createSerie[string, float64](d.Ident, rdr, points)
+	ser = createSerie[string, float64](d.Ident, points)
 	ser.X = x
 	ser.Y = y
 	return ser, nil
@@ -230,7 +254,6 @@ type LocalFile struct {
 	Ident string
 	Using
 	Limit
-	Style
 }
 
 func (f LocalFile) Name() string {
@@ -240,46 +263,34 @@ func (f LocalFile) Name() string {
 	return strings.TrimSuffix(filepath.Base(f.Path), filepath.Ext(f.Path))
 }
 
-func (f LocalFile) TimeSerie(g Style, timefmt string, x charts.Scaler[time.Time], y charts.Scaler[float64]) (charts.Data, error) {
-	rdr, err := f.makeTimeRenderer(g)
-	if err != nil {
-		return nil, err
-	}
+func (f LocalFile) TimeSerie(timefmt string, x TimeScale, y FloatScale) (ser TimeSerie, err error) {
 	points, err := loadTimePoints(f, timefmt)
 	if err != nil {
-		return nil, err
+		return
 	}
-	ser := createSerie[time.Time, float64](f.Name(), rdr, points)
+	ser = createSerie[time.Time, float64](f.Name(), points)
 	ser.X = x
 	ser.Y = y
 	return ser, err
 }
 
-func (f LocalFile) NumberSerie(g Style, x charts.Scaler[float64], y charts.Scaler[float64]) (charts.Data, error) {
-	rdr, err := f.makeNumberRenderer(g)
-	if err != nil {
-		return nil, err
-	}
+func (f LocalFile) NumberSerie(x FloatScale, y FloatScale) (ser NumberSerie, err error) {
 	points, err := loadNumberPoints(f)
 	if err != nil {
-		return nil, err
+		return
 	}
-	ser := createSerie[float64, float64](f.Name(), rdr, points)
+	ser = createSerie[float64, float64](f.Name(), points)
 	ser.X = x
 	ser.Y = y
 	return ser, nil
 }
 
-func (f LocalFile) CategorySerie(g Style, x charts.Scaler[string], y charts.Scaler[float64]) (charts.Data, error) {
-	rdr, err := f.makeCategoryRenderer(g)
-	if err != nil {
-		return nil, err
-	}
+func (f LocalFile) CategorySerie(x StringScale, y FloatScale) (ser CategorySerie, err error) {
 	points, err := loadCategoryPoints(f)
 	if err != nil {
-		return nil, err
+		return
 	}
-	ser := createSerie[string, float64](f.Name(), rdr, points)
+	ser = createSerie[string, float64](f.Name(), points)
 	ser.X = x
 	ser.Y = y
 	return ser, nil
@@ -448,10 +459,9 @@ func getNumberFunc(x int, y Selector) getFunc[float64, float64] {
 	return get
 }
 
-func createSerie[T, U charts.ScalerConstraint](ident string, rdr charts.Renderer[T, U], points []charts.Point[T, U]) charts.Serie[T, U] {
+func createSerie[T, U charts.ScalerConstraint](ident string, points []charts.Point[T, U]) charts.Serie[T, U] {
 	return charts.Serie[T, U]{
-		Title:    ident,
-		Renderer: rdr,
-		Points:   points,
+		Title:  ident,
+		Points: points,
 	}
 }

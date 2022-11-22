@@ -66,17 +66,9 @@ func MakeCell(c Config) Cell {
 		Height: 1,
 		Config: c,
 	}
-	empty.Config.Inputs = nil
 	empty.Config.Cells = nil
+	empty.Config.Elements = nil
 	return empty
-}
-
-type Element struct {
-	Type  string
-	Ident string
-	// Data DataSource
-	Using
-	Style any // one of NumberStyle, CategoryStyle, CircularStyle
 }
 
 type Config struct {
@@ -95,12 +87,10 @@ type Config struct {
 	Delimiter  string
 	TimeFormat string
 
-	X      Input
-	Y      Input
-	Inputs []DataSource
-	Cells  []Cell
+	X     Input
+	Y     Input
+	Cells []Cell
 
-	Style   Style
 	Env     *Environ[any]
 	Scripts *Environ[ast.Expression]
 
@@ -126,7 +116,6 @@ func Default() Config {
 		Width:      DefaultWidth,
 		Height:     DefaultHeight,
 		TimeFormat: TimeFormat,
-		Style:      GlobalStyle(),
 		Scripts:    EmptyEnv[ast.Expression](),
 		Linear:     DefaultNumberStyle(),
 		Step:       DefaultNumberStyle(),
@@ -241,7 +230,7 @@ func (c Config) categoryChart() (Renderer, error) {
 		xrange = c.createRangeX()
 		yrange = c.createRangeY()
 		chart  = createChart[string, float64](c)
-		series = make([]charts.Data, len(c.Inputs))
+		series = make([]charts.Data, len(c.Elements))
 	)
 	xscale, err := c.X.CategoryScale(xrange)
 	if err != nil {
@@ -251,8 +240,8 @@ func (c Config) categoryChart() (Renderer, error) {
 	if err != nil {
 		return nil, err
 	}
-	for i := range c.Inputs {
-		series[i], err = c.Inputs[i].CategorySerie(c.Style, xscale, yscale)
+	for i := range c.Elements {
+		series[i], err = c.Elements[i].CategorySerie(xscale, yscale)
 		if err != nil {
 			return nil, err
 		}
@@ -283,7 +272,7 @@ func (c Config) timeChart() (Renderer, error) {
 		xrange = c.createRangeX()
 		yrange = c.createRangeY()
 		chart  = createChart[time.Time, float64](c)
-		series = make([]charts.Data, len(c.Inputs))
+		series = make([]charts.Data, len(c.Elements))
 	)
 	xscale, err := c.X.TimeScale(xrange, TimeFormat, false)
 	if err != nil {
@@ -293,8 +282,8 @@ func (c Config) timeChart() (Renderer, error) {
 	if err != nil {
 		return nil, err
 	}
-	for i := range c.Inputs {
-		series[i], err = c.Inputs[i].TimeSerie(c.Style, c.TimeFormat, xscale, yscale)
+	for i := range c.Elements {
+		series[i], err = c.Elements[i].TimeSerie(c.TimeFormat, xscale, yscale)
 		if err != nil {
 			return nil, err
 		}
@@ -325,7 +314,7 @@ func (c Config) numberChart() (Renderer, error) {
 		xrange = c.createRangeX()
 		yrange = c.createRangeY()
 		chart  = createChart[float64, float64](c)
-		series = make([]charts.Data, len(c.Inputs))
+		series = make([]charts.Data, len(c.Elements))
 	)
 	xscale, err := c.X.NumberScale(xrange, false)
 	if err != nil {
@@ -335,8 +324,8 @@ func (c Config) numberChart() (Renderer, error) {
 	if err != nil {
 		return nil, err
 	}
-	for i := range c.Inputs {
-		series[i], err = c.Inputs[i].NumberSerie(c.Style, xscale, yscale)
+	for i := range c.Elements {
+		series[i], err = c.Elements[i].NumberSerie(xscale, yscale)
 		if err != nil {
 			return nil, err
 		}

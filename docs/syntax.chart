@@ -111,4 +111,6 @@ set <type> with (
 	outer-radius number
 )
 
+alias <type> as <ident> with (...)
+
 render [to <file>] <datasource> [using [x,]y] <type> [with (...)][,...]

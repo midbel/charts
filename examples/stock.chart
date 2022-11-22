@@ -31,29 +31,17 @@ set yticks with (
 	inner-ticks true
 )
 
-set style with (
-	type line
-	color black
-	ignore-missing true
-	text-position text-after
-)
+load data/GOOG.csv using 0,1 as GOOG
+load data/MSFT.csv using 0,1 as MSFT
+load data/AAPL.csv using 0,1 as AAPL
+load data/TWTR.csv using 0,1 as TWTR
 
-load data/GOOG.csv using 0,1 with (
-	type line
+render to tmp/stock.svg GOOG as line with (
 	color blue
-
-)
-load data/MSFT.csv using 0,1 with (
-	type line
+), MSFT as line with (
 	color red
-)
-load data/AAPL.csv using 0,1 with (
-	type line
+), AAPL as line with (
 	color green
-)
-load data/TWTR.csv using 0,1 with (
-	type line
+), TWTR as line with (
 	color grey
 )
-
-render tmp/stock.svg
