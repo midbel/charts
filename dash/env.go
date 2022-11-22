@@ -31,18 +31,18 @@ func (e *Environ[T]) Unwrap() *Environ[T] {
 	return e.parent
 }
 
-func (e *Environ[T]) Resolve(name string) (T, error) {
+func (e *Environ[T]) Resolve(ident string) (T, error) {
 	var zero T
-	v, ok := e.values[name]
+	v, ok := e.values[ident]
 	if !ok {
 		if e.parent != nil {
-			return e.parent.Resolve(name)
+			return e.parent.Resolve(ident)
 		}
-		return zero, fmt.Errorf("%s undefined variable")
+		return zero, fmt.Errorf("%s undefined variable", ident)
 	}
 	return v, nil
 }
 
-func (e *Environ[T]) Define(name string, values T) {
-	e.values[name] = values
+func (e *Environ[T]) Define(ident string, values T) {
+	e.values[ident] = values
 }
