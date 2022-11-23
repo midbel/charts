@@ -946,21 +946,64 @@ func (d *Decoder) decodeWith(decode func() error) error {
 	return nil
 }
 
+func (d *Decoder) decodeGlobalStyle(cmd string, style *dash.Style) (bool, error) {
+	var err error
+	switch cmd {
+	default:
+		return false, nil
+	case "line-color":
+		style.LineColor, err = d.getString()
+	case "line-type":
+		var line string
+		line, err = d.getString()
+		if err != nil {
+			break
+		}
+		style.LineType = dash.GetLineType(line)
+	case "line-width":
+		style.LineWidth, err = d.getFloat()
+	case "line-opacity":
+		style.LineOpacity, err = d.getFloat()
+	case "fill-list":
+		style.FillList, err = d.getStringList()
+	case "fill-style":
+		_, err = d.getString()
+	case "fill-opacity":
+		style.FillOpacity, err = d.getFloat()
+	case "font-family":
+		style.FontFamily, err = d.getStringList()
+	case "font-size":
+		style.FontSize, err = d.getFloat()
+	case "font-color":
+		style.FontColor, err = d.getString()
+	case "font-bold":
+		style.FontBold, err = d.getBool()
+	case "font-italic":
+		style.FontItalic, err = d.getBool()
+	}
+	return true, err
+}
+
 func (d *Decoder) decodeNumberStyle(style *dash.NumberStyle) error {
 	var (
 		cmd = d.curr.Literal
 		err error
 	)
 	d.next()
+	ok, err := d.decodeGlobalStyle(cmd, &style.Style)
+	if ok {
+		return err
+	}
 	switch cmd {
 	case "text-position":
-		style.TextPosition, err = d.getString()
-	case "line-type":
-		style.LineType, err = d.getString()
+		var line string
+		line, err = d.getString()
+		if err != nil {
+			break
+		}
+		style.TextPosition = dash.GetTextPosition(line)
 	case "ignore-missing":
 		style.IgnoreMissing, err = d.getBool()
-	case "color":
-		style.Color, err = d.getString()
 	case kwWith:
 		err = d.decodeWith(func() error {
 			err := d.decodeNumberStyle(style)
@@ -992,6 +1035,10 @@ func (d *Decoder) decodeCategoryStyle(style *dash.CategoryStyle) error {
 		err error
 	)
 	d.next()
+	ok, err := d.decodeGlobalStyle(cmd, &style.Style)
+	if ok {
+		return err
+	}
 	switch cmd {
 	case "fill":
 		style.Fill, err = d.getStringList()
@@ -1028,6 +1075,10 @@ func (d *Decoder) decodeCircularStyle(style *dash.CircularStyle) error {
 		err error
 	)
 	d.next()
+	ok, err := d.decodeGlobalStyle(cmd, &style.Style)
+	if ok {
+		return err
+	}
 	switch cmd {
 	case "fill":
 		style.Fill, err = d.getStringList()

@@ -556,27 +556,22 @@ func (r CubicRenderer[T, U]) Render(serie Serie[T, U]) svg.Element {
 }
 
 type LinearRenderer[T, U ScalerConstraint] struct {
+	Style
 	Fill          bool
-	Color         string
-	Skip          int
 	Point         PointFunc
 	Text          TextPosition
-	Style         LineStyle
 	IgnoreMissing bool
 }
 
 func (r LinearRenderer[T, U]) Render(serie Serie[T, U]) svg.Element {
 	var (
-		grp = getBaseGroup(r.Color, "line")
-		pat = getBasePath(r.Fill, r.Style)
+		grp = getBaseGroup("", "line")
+		pat = r.LinePath()
 		pos svg.Pos
 		nan bool
 	)
 	grp.Id = serie.Title
 	for i, pt := range serie.Points {
-		if r.Skip != 0 && i > 0 && i%r.Skip == 0 {
-			continue
-		}
 		if f, ok := isFloat(pt.Y); ok && math.IsNaN(f) {
 			nan = true
 			continue
@@ -618,18 +613,17 @@ func (r LinearRenderer[T, U]) Render(serie Serie[T, U]) svg.Element {
 }
 
 type StepRenderer[T, U ScalerConstraint] struct {
-	Color         string
+	Style
 	Fill          bool
 	Point         PointFunc
 	Text          TextPosition
-	Style         LineStyle
 	IgnoreMissing bool
 }
 
 func (r StepRenderer[T, U]) Render(serie Serie[T, U]) svg.Element {
 	var (
-		grp = getBaseGroup(r.Color, "line", "line-step")
-		pat = getBasePath(r.Fill, r.Style)
+		grp = getBaseGroup("", "line", "line-step")
+		pat = r.LinePath()
 		pos = svg.NewPos(serie.X.Min(), serie.Y.Max())
 		ori svg.Pos
 		nan bool
@@ -687,18 +681,17 @@ func (r StepRenderer[T, U]) Render(serie Serie[T, U]) svg.Element {
 }
 
 type StepAfterRenderer[T, U ScalerConstraint] struct {
-	Color         string
+	Style
 	Fill          bool
 	Point         PointFunc
 	Text          TextPosition
-	Style         LineStyle
 	IgnoreMissing bool
 }
 
 func (r StepAfterRenderer[T, U]) Render(serie Serie[T, U]) svg.Element {
 	var (
-		grp = getBaseGroup(r.Color, "line", "line-step-after")
-		pat = getBasePath(r.Fill, r.Style)
+		grp = getBaseGroup("", "line", "line-step-after")
+		pat = r.LinePath()
 		pos svg.Pos
 		ori svg.Pos
 		nan bool
@@ -762,18 +755,17 @@ func (r StepAfterRenderer[T, U]) Render(serie Serie[T, U]) svg.Element {
 }
 
 type StepBeforeRenderer[T, U ScalerConstraint] struct {
-	Color         string
+	Style
 	Fill          bool
 	Point         PointFunc
 	Text          TextPosition
-	Style         LineStyle
 	IgnoreMissing bool
 }
 
 func (r StepBeforeRenderer[T, U]) Render(serie Serie[T, U]) svg.Element {
 	var (
-		grp = getBaseGroup(r.Color, "line", "line-step-before")
-		pat = getBasePath(r.Fill, r.Style)
+		grp = getBaseGroup("", "line", "line-step-before")
+		pat = r.LinePath()
 		pos svg.Pos
 		ori svg.Pos
 		nan bool

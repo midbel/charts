@@ -2,12 +2,16 @@ package charts
 
 import (
 	"fmt"
+
+	"github.com/midbel/svg"
+	// "github.com/midbel/slices"
 )
 
 type LineStyle int
 
 const (
 	StyleStraight LineStyle = 1 << iota
+	StyleSolid
 	StyleDotted
 	StyleDashed
 )
@@ -32,27 +36,68 @@ type Style struct {
 	FillList    []string
 	FillStyle   string
 
-	FontSize     float64
-	FontColor    string
-	FontFamilies []string
-	FontBold     bool
-	FontItalic   bool
+	FontSize   float64
+	FontColor  string
+	FontFamily []string
+	FontBold   bool
+	FontItalic bool
 
 	Padding
 }
 
 func DefaultStyle() Style {
 	return Style{
-		LineType:     StyleStraight,
-		LineColor:    ColorBlue,
-		LineWidth:    1,
-		LineOpacity:  1,
-		FillList:     Tableau10,
-		FillOpacity:  1,
-		FontSize:     FontSize,
-		FontFamilies: []string{FontMonospace},
-		FontColor:    ColorBlack,
+		LineType:    StyleStraight,
+		LineColor:   ColorBlue,
+		LineWidth:   1,
+		LineOpacity: 1,
+		FillList:    Tableau10,
+		FillOpacity: 1,
+		FontSize:    FontSize,
+		FontFamily:  []string{FontMonospace},
+		FontColor:   ColorBlack,
 	}
+}
+
+func (s Style) Rect() svg.Rect {
+	var rect svg.Rect
+	return rect
+}
+
+func (s Style) Text(str string) svg.Text {
+	txt := svg.NewText(str)
+	txt.Baseline = "middle"
+	txt.Fill = svg.NewFill(s.FontColor)
+	txt.Font = svg.NewFont(s.FontSize)
+	txt.Font.Family = s.FontFamily
+	if s.FontBold {
+		txt.Font.Weight = "bold"
+	}
+	if s.FontItalic {
+		txt.Font.Style = "italic"
+	}
+	return txt
+}
+
+func (s Style) LinePath() svg.Path {
+	var pat svg.Path
+	pat.Rendering = "geometricPrecision"
+	pat.Stroke = svg.NewStroke(s.LineColor, s.LineWidth)
+	pat.Stroke.Opacity = s.LineOpacity
+	pat.Stroke.LineJoin = "round"
+	pat.Stroke.LineCap = "round"
+	pat.Fill = svg.NewFill("none")
+	fmt.Printf("%+v\n", pat)
+
+	switch s.LineType {
+	case StyleStraight, StyleSolid:
+	case StyleDotted:
+		pat.Stroke.DashArray = append(pat.Stroke.DashArray, 1, 5)
+	case StyleDashed:
+		pat.Stroke.DashArray = append(pat.Stroke.DashArray, 10, 5)
+	default:
+	}
+	return pat
 }
 
 type Padding struct {

@@ -27,26 +27,24 @@ const (
 	RenderPolar      = "polar"
 )
 
+type Style = charts.Style
+
 type NumberStyle struct {
-	charts.Style
+	Style
 	Ident         string
-	TextPosition  string
-	LineType      string
+	TextPosition  charts.TextPosition
 	IgnoreMissing bool
-	Color         string
 }
 
 func DefaultNumberStyle() NumberStyle {
 	return NumberStyle{
 		Style:         charts.DefaultStyle(),
 		IgnoreMissing: true,
-		Color:         "blue",
-		LineType:      StyleSolid,
 	}
 }
 
 type CategoryStyle struct {
-	charts.Style
+	Style
 	Ident string
 	Fill  []string
 	Width float64
@@ -68,7 +66,7 @@ func (s CategoryStyle) Copy() CategoryStyle {
 }
 
 type CircularStyle struct {
-	charts.Style
+	Style
 	Ident       string
 	Fill        []string
 	InnerRadius float64
@@ -91,7 +89,7 @@ func (s CircularStyle) Copy() CircularStyle {
 	return x
 }
 
-func getTextPosition(str string) charts.TextPosition {
+func GetTextPosition(str string) charts.TextPosition {
 	var pos charts.TextPosition
 	switch str {
 	case "text-before":
@@ -103,7 +101,7 @@ func getTextPosition(str string) charts.TextPosition {
 	return pos
 }
 
-func getPointFunc(str string) charts.PointFunc {
+func GetPointFunc(str string) charts.PointFunc {
 	switch str {
 	case "circle":
 		return charts.GetCircle
@@ -114,10 +112,10 @@ func getPointFunc(str string) charts.PointFunc {
 	}
 }
 
-func getLineStyle(str string) charts.LineStyle {
+func GetLineType(str string) charts.LineStyle {
 	var i charts.LineStyle
 	switch str {
-	case "", StyleStraight:
+	case "", StyleStraight, StyleSolid:
 		i = charts.StyleStraight
 	case StyleDotted:
 		i = charts.StyleDotted
@@ -136,7 +134,8 @@ func getRenderer[T, U charts.ScalerConstraint](kind string, style any) (charts.R
 			return nil, err
 		}
 		rdr = charts.LinearRenderer[T, U]{
-			Color:         st.Color,
+			Style:         st.Style,
+			Text:          st.TextPosition,
 			IgnoreMissing: st.IgnoreMissing,
 		}
 	case RenderStep:
@@ -145,7 +144,8 @@ func getRenderer[T, U charts.ScalerConstraint](kind string, style any) (charts.R
 			return nil, err
 		}
 		rdr = charts.StepRenderer[T, U]{
-			Color:         st.Color,
+			Style:         st.Style,
+			Text:          st.TextPosition,
 			IgnoreMissing: st.IgnoreMissing,
 		}
 	case RenderStepBefore:
@@ -154,7 +154,8 @@ func getRenderer[T, U charts.ScalerConstraint](kind string, style any) (charts.R
 			return nil, err
 		}
 		rdr = charts.StepBeforeRenderer[T, U]{
-			Color:         st.Color,
+			Style:         st.Style,
+			Text:          st.TextPosition,
 			IgnoreMissing: st.IgnoreMissing,
 		}
 	case RenderStepAfter:
@@ -163,7 +164,8 @@ func getRenderer[T, U charts.ScalerConstraint](kind string, style any) (charts.R
 			return nil, err
 		}
 		rdr = charts.StepAfterRenderer[T, U]{
-			Color:         st.Color,
+			Style:         st.Style,
+			Text:          st.TextPosition,
 			IgnoreMissing: st.IgnoreMissing,
 		}
 	default:

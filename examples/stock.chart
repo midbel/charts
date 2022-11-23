@@ -35,13 +35,15 @@ load data/AAPL.csv using 0,1 as AAPL
 load data/TWTR.csv using 0,1 as TWTR
 
 set line with (
-	color blue
+	line-color blue
+	line-width 1
+	font-size  16
 ) as blue-line
 
 render to tmp/stock.svg GOOG as blue-line, MSFT as line with (
-	color red
+	line-color red
 ), AAPL as line with (
-	color green
+	line-color green
 ), TWTR as line with (
-	color grey
+	line-color grey
 )
