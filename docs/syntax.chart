@@ -109,8 +109,6 @@ set <type> with (
 	fill         string[,...]
 	inner-radius number
 	outer-radius number
-)
-
-alias <type> as <ident> with (...)
+) [as <ident>]
 
 render [to <file>] <ident> [using [x,]y] <type> [with (...)][,...]

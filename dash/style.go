@@ -27,10 +27,9 @@ const (
 	RenderPolar      = "polar"
 )
 
-// type Style = charts.Style
-
 type NumberStyle struct {
 	charts.Style
+	Ident         string
 	TextPosition  string
 	LineType      string
 	IgnoreMissing bool
@@ -48,6 +47,7 @@ func DefaultNumberStyle() NumberStyle {
 
 type CategoryStyle struct {
 	charts.Style
+	Ident string
 	Fill  []string
 	Width float64
 }
@@ -69,6 +69,7 @@ func (s CategoryStyle) Copy() CategoryStyle {
 
 type CircularStyle struct {
 	charts.Style
+	Ident       string
 	Fill        []string
 	InnerRadius float64
 	OuterRadius float64

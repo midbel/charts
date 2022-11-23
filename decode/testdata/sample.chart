@@ -55,7 +55,7 @@ set line with (
 	ignore-missing true
 	color          green
 	line-type      solid
-)
+) as green-line
 set bar with (
 	fill  red,green,blue
 	width 0.8

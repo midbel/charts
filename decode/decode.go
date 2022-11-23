@@ -36,8 +36,10 @@ type Decoder struct {
 	cwd   string
 	shell string
 
-	env   *dash.Environ[[]string]
-	files *dash.Environ[dash.DataSource]
+	env    *dash.Environ[[]string]
+	files  *dash.Environ[dash.DataSource]
+	styles *dash.Environ[any]
+	alias  map[string]string
 
 	scan *Scanner
 	curr Token
@@ -46,11 +48,13 @@ type Decoder struct {
 
 func NewDecoder(r io.Reader) *Decoder {
 	d := Decoder{
-		cwd:   ".",
-		env:   dash.EmptyEnv[[]string](),
-		files: dash.EmptyEnv[dash.DataSource](),
-		shell: DefaultShell,
-		scan:  Scan(r),
+		cwd:    ".",
+		env:    dash.EmptyEnv[[]string](),
+		files:  dash.EmptyEnv[dash.DataSource](),
+		styles: dash.EmptyEnv[any](),
+		alias:  make(map[string]string),
+		shell:  DefaultShell,
+		scan:   Scan(r),
 	}
 	if r, ok := r.(interface{ Name() string }); ok {
 		d.file = r.Name()
@@ -133,14 +137,17 @@ func (d *Decoder) decodeElement(cfg *dash.Config) (dash.Element, error) {
 		return el, err
 	}
 	d.next()
-	el.Type, err = d.getRenderType()
+	el.Type, err = d.getString()
 	if err != nil {
 		return el, err
 	}
 	if el.Style, err = d.getStyleForType(el.Type, cfg); err != nil {
 		return el, err
 	}
-	if err = d.expectKw(kwWith); err == nil {
+	if kind, ok := d.alias[el.Type]; ok {
+		el.Type = kind
+	}
+	if tmp := d.expectKw(kwWith); tmp == nil {
 		err = d.decodeElementStyle(&el)
 	}
 	return el, err
@@ -403,24 +410,54 @@ func (d *Decoder) decodeSet(cfg *dash.Config) error {
 		cfg.Theme, err = d.getString()
 	case dash.RenderLine:
 		err = d.decodeNumberStyle(&cfg.Linear)
+		if cfg.Linear.Ident != "" {
+			d.alias[cfg.Linear.Ident] = cmd
+		}
 	case dash.RenderStep:
 		err = d.decodeNumberStyle(&cfg.Step)
+		if cfg.Step.Ident != "" {
+			d.alias[cfg.Step.Ident] = cmd
+		}
 	case dash.RenderStepAfter:
 		err = d.decodeNumberStyle(&cfg.StepAfter)
+		if cfg.StepAfter.Ident != "" {
+			d.alias[cfg.StepAfter.Ident] = cmd
+		}
 	case dash.RenderStepBefore:
 		err = d.decodeNumberStyle(&cfg.StepBefore)
+		if cfg.StepBefore.Ident != "" {
+			d.alias[cfg.StepBefore.Ident] = cmd
+		}
 	case dash.RenderPie:
 		err = d.decodeCircularStyle(&cfg.Pie)
+		if cfg.Pie.Ident != "" {
+			d.alias[cfg.Pie.Ident] = cmd
+		}
 	case dash.RenderSun:
 		err = d.decodeCircularStyle(&cfg.Sun)
+		if cfg.Sun.Ident != "" {
+			d.alias[cfg.Sun.Ident] = cmd
+		}
 	case dash.RenderBar:
 		err = d.decodeCategoryStyle(&cfg.Bar)
+		if cfg.Bar.Ident != "" {
+			d.alias[cfg.Bar.Ident] = cmd
+		}
 	case dash.RenderStack:
 		err = d.decodeCategoryStyle(&cfg.Stack)
+		if cfg.Stack.Ident != "" {
+			d.alias[cfg.Stack.Ident] = cmd
+		}
 	case dash.RenderNormStack:
 		err = d.decodeCategoryStyle(&cfg.NormStack)
+		if cfg.NormStack.Ident != "" {
+			d.alias[cfg.NormStack.Ident] = cmd
+		}
 	case dash.RenderGroup:
 		err = d.decodeCategoryStyle(&cfg.Group)
+		if cfg.Group.Ident != "" {
+			d.alias[cfg.Group.Ident] = cmd
+		}
 	default:
 		err = d.optionError("set")
 	}
@@ -428,87 +465,6 @@ func (d *Decoder) decodeSet(cfg *dash.Config) error {
 		return err
 	}
 	return d.eol()
-}
-
-func (d *Decoder) decodeNumberStyle(style *dash.NumberStyle) error {
-	var (
-		cmd = d.curr.Literal
-		err error
-	)
-	d.next()
-	switch cmd {
-	case "text-position":
-		style.TextPosition, err = d.getString()
-	case "line-type":
-		style.LineType, err = d.getString()
-	case "ignore-missing":
-		style.IgnoreMissing, err = d.getBool()
-	case "color":
-		style.Color, err = d.getString()
-	case kwWith:
-		err = d.decodeWith(func() error {
-			err := d.decodeNumberStyle(style)
-			if err == nil {
-				err = d.eol()
-			}
-			return err
-		})
-	default:
-		err = d.optionError("number-style")
-	}
-	return err
-}
-
-func (d *Decoder) decodeCategoryStyle(style *dash.CategoryStyle) error {
-	var (
-		cmd = d.curr.Literal
-		err error
-	)
-	d.next()
-	switch cmd {
-	case "fill":
-		style.Fill, err = d.getStringList()
-	case "width":
-		style.Width, err = d.getFloat()
-	case kwWith:
-		err = d.decodeWith(func() error {
-			err := d.decodeCategoryStyle(style)
-			if err == nil {
-				err = d.eol()
-			}
-			return err
-		})
-	default:
-		err = d.optionError("category-style")
-	}
-	return err
-}
-
-func (d *Decoder) decodeCircularStyle(style *dash.CircularStyle) error {
-	var (
-		cmd = d.curr.Literal
-		err error
-	)
-	d.next()
-	switch cmd {
-	case "fill":
-		style.Fill, err = d.getStringList()
-	case "inner-radius":
-		style.InnerRadius, err = d.getFloat()
-	case "outer-radius":
-		style.OuterRadius, err = d.getFloat()
-	case kwWith:
-		err = d.decodeWith(func() error {
-			err := d.decodeCircularStyle(style)
-			if err == nil {
-				err = d.eol()
-			}
-			return err
-		})
-	default:
-		err = d.optionError("circular-style")
-	}
-	return err
 }
 
 func (d *Decoder) decodeScaler() (dash.ScalerMaker, error) {
@@ -987,51 +943,133 @@ func (d *Decoder) decodeWith(decode func() error) error {
 	return nil
 }
 
+func (d *Decoder) decodeNumberStyle(style *dash.NumberStyle) error {
+	var (
+		cmd = d.curr.Literal
+		err error
+	)
+	d.next()
+	switch cmd {
+	case "text-position":
+		style.TextPosition, err = d.getString()
+	case "line-type":
+		style.LineType, err = d.getString()
+	case "ignore-missing":
+		style.IgnoreMissing, err = d.getBool()
+	case "color":
+		style.Color, err = d.getString()
+	case kwWith:
+		err = d.decodeWith(func() error {
+			err := d.decodeNumberStyle(style)
+			if err == nil {
+				err = d.eol()
+			}
+			return err
+		})
+		if err != nil {
+			break
+		}
+		if tmp := d.expectKw(kwAs); tmp == nil {
+			d.next()
+			alias, err := d.getString()
+			if err == nil {
+				d.styles.Define(alias, *style)
+				style.Ident = alias
+			}
+		}
+	default:
+		err = d.optionError("number-style")
+	}
+	return err
+}
+
+func (d *Decoder) decodeCategoryStyle(style *dash.CategoryStyle) error {
+	var (
+		cmd = d.curr.Literal
+		err error
+	)
+	d.next()
+	switch cmd {
+	case "fill":
+		style.Fill, err = d.getStringList()
+	case "width":
+		style.Width, err = d.getFloat()
+	case kwWith:
+		err = d.decodeWith(func() error {
+			err := d.decodeCategoryStyle(style)
+			if err == nil {
+				err = d.eol()
+			}
+			return err
+		})
+		if err != nil {
+			break
+		}
+		if tmp := d.expectKw(kwAs); tmp == nil {
+			d.next()
+			alias, err := d.getString()
+			if err == nil {
+				d.styles.Define(alias, *style)
+				style.Ident = alias
+			}
+		}
+	default:
+		err = d.optionError("category-style")
+	}
+	return err
+}
+
+func (d *Decoder) decodeCircularStyle(style *dash.CircularStyle) error {
+	var (
+		cmd = d.curr.Literal
+		err error
+	)
+	d.next()
+	switch cmd {
+	case "fill":
+		style.Fill, err = d.getStringList()
+	case "inner-radius":
+		style.InnerRadius, err = d.getFloat()
+	case "outer-radius":
+		style.OuterRadius, err = d.getFloat()
+	case kwWith:
+		err = d.decodeWith(func() error {
+			err := d.decodeCircularStyle(style)
+			if err == nil {
+				err = d.eol()
+			}
+			return err
+		})
+		if err != nil {
+			break
+		}
+		if tmp := d.expectKw(kwAs); tmp == nil {
+			d.next()
+			alias, err := d.getString()
+			if err == nil {
+				d.styles.Define(alias, *style)
+				style.Ident = alias
+			}
+		}
+	default:
+		err = d.optionError("circular-style")
+	}
+	return err
+}
+
 func (d *Decoder) decodeElementStyle(el *dash.Element) error {
 	var err error
-	switch el.Type {
+	switch style := el.Style.(type) {
 	default:
-		msg := fmt.Sprintf("%s: chart type not recognized", el.Type)
-		return d.decodeError(msg)
-	case dash.RenderLine:
-		style := el.Style.(dash.NumberStyle)
+		return nil
+	case dash.NumberStyle:
 		err = d.decodeNumberStyle(&style)
 		el.Style = style
-	case dash.RenderStep:
-		style := el.Style.(dash.NumberStyle)
-		err = d.decodeNumberStyle(&style)
+	case dash.CategoryStyle:
+		err = d.decodeCategoryStyle(&style)
 		el.Style = style
-	case dash.RenderStepAfter:
-		style := el.Style.(dash.NumberStyle)
-		err = d.decodeNumberStyle(&style)
-		el.Style = style
-	case dash.RenderStepBefore:
-		style := el.Style.(dash.NumberStyle)
-		err = d.decodeNumberStyle(&style)
-		el.Style = style
-	case dash.RenderSun:
-		style := el.Style.(dash.CircularStyle)
+	case dash.CircularStyle:
 		err = d.decodeCircularStyle(&style)
-		el.Style = style
-	case dash.RenderPie:
-		style := el.Style.(dash.CircularStyle)
-		err = d.decodeCircularStyle(&style)
-		el.Style = style
-	case dash.RenderBar:
-		style := el.Style.(dash.CategoryStyle)
-		err = d.decodeCategoryStyle(&style)
-		el.Style = style
-	case dash.RenderStack:
-		style := el.Style.(dash.CategoryStyle)
-		err = d.decodeCategoryStyle(&style)
-		el.Style = style
-	case dash.RenderNormStack:
-		style := el.Style.(dash.CategoryStyle)
-		err = d.decodeCategoryStyle(&style)
-		el.Style = style
-	case dash.RenderGroup:
-		style := el.Style.(dash.CategoryStyle)
-		err = d.decodeCategoryStyle(&style)
 		el.Style = style
 	}
 	return err
@@ -1041,6 +1079,10 @@ func (d *Decoder) getStyleForType(kind string, cfg *dash.Config) (any, error) {
 	var style any
 	switch kind {
 	default:
+		if style, err := d.styles.Resolve(kind); err == nil {
+			return style, err
+		} else {
+		}
 		msg := fmt.Sprintf("%s: chart type not recognized", kind)
 		return nil, d.decodeError(msg)
 	case dash.RenderLine:
@@ -1070,11 +1112,13 @@ func (d *Decoder) getStyleForType(kind string, cfg *dash.Config) (any, error) {
 func (d *Decoder) wrap() {
 	d.env = d.env.Wrap()
 	d.files = d.files.Wrap()
+	d.styles = d.styles.Wrap()
 }
 
 func (d *Decoder) unwrap() {
 	d.env = d.env.Unwrap()
 	d.files = d.files.Unwrap()
+	d.styles = d.styles.Unwrap()
 }
 
 func (d *Decoder) is(kind rune) bool {
@@ -1155,7 +1199,7 @@ func (d *Decoder) getRenderType() (string, error) {
 	case dash.RenderLine, dash.RenderStep, dash.RenderStepAfter, dash.RenderStepBefore:
 	case dash.RenderBar, dash.RenderPie, dash.RenderStack, dash.RenderNormStack, dash.RenderGroup:
 	default:
-		return "", fmt.Errorf("%s: unknown type provided", str)
+		return "", fmt.Errorf("%s: unknown renderer type provided", str)
 	}
 	return str, nil
 }
@@ -1169,7 +1213,7 @@ func (d *Decoder) getType() (string, error) {
 	case dash.TypeNumber, dash.TypeTime, dash.TypeString:
 		return str, nil
 	default:
-		return "", fmt.Errorf("%s: unknown type provided", str)
+		return "", fmt.Errorf("%s: unknown chart type provided", str)
 	}
 }
 
