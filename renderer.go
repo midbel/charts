@@ -9,14 +9,6 @@ import (
 	"github.com/midbel/svg"
 )
 
-type TextPosition int
-
-const (
-	TextBefore TextPosition = 1 << iota
-	TextAfter
-	TextCenter
-)
-
 type PolarType int
 
 const (
@@ -43,20 +35,20 @@ type PolarRenderer[T ~string, U ~float64] struct {
 
 func (r PolarRenderer[T, U]) Render(serie Serie[T, U]) svg.Element {
 	var (
-		g  = getBaseGroup("", "polar")
+		grp  = classGroup("", "polar")
 		el svg.Element
 	)
-	g.Transform = svg.Translate(serie.X.Max()/2, serie.Y.Max()/2)
-	g.Append(r.drawTicks(serie))
+	grp.Transform = svg.Translate(serie.X.Max()/2, serie.Y.Max()/2)
+	grp.Append(r.drawTicks(serie))
 	if r.Stacked {
 		el = r.drawStackedArcs(serie)
 	} else {
 		el = r.drawArcs(serie)
 	}
 	if el != nil {
-		g.Append(el)
+		grp.Append(el)
 	}
-	return g.AsElement()
+	return grp.AsElement()
 }
 
 func (r PolarRenderer[T, U]) drawStackedArcs(serie Serie[T, U]) svg.Element {
@@ -244,7 +236,7 @@ func (r SunburstRenderer[T, U]) Render(serie Serie[T, U]) svg.Element {
 		r.Fill = Tableau10
 	}
 	var (
-		grp    = getBaseGroup("", "sun")
+		grp    = classGroup("sun")
 		height = (r.OuterRadius - r.InnerRadius) / float64(serie.Depth())
 		frac   = fullcircle / serie.Sum()
 		offset float64
@@ -323,7 +315,7 @@ func (r PieRenderer[T, U]) Render(serie Serie[T, U]) svg.Element {
 		r.Fill = Tableau10
 	}
 	var (
-		grp   = getBaseGroup("", "pie")
+		grp   = classGroup("pie")
 		part  = fullcircle / serie.Sum()
 		angle float64
 	)
@@ -398,11 +390,11 @@ func (r GroupRenderer[T, U]) Render(serie Serie[T, U]) svg.Element {
 		r.Fill = Tableau10
 	}
 	var (
-		grp = getBaseGroup("", "bar")
+		grp = classGroup("bar")
 		sub = serie.X.replace(NewRange(0, serie.X.Space()))
 	)
 	for _, pt := range serie.Points {
-		g := getBaseGroup("", "group", "bar-group")
+		g := classGroup("group", "bar-group")
 		g.Transform = svg.Translate(serie.X.Scale(pt.X), 0)
 
 		if r, ok := sub.(scalerReset[T]); ok {
@@ -442,7 +434,7 @@ func (r StackedRenderer[T, U]) Render(serie Serie[T, U]) svg.Element {
 	for _, parent := range serie.Points {
 		var (
 			offset float64
-			bar    = getBaseGroup("", "bar")
+			bar    = classGroup("bar")
 		)
 		bar.Transform = svg.Translate(serie.X.Scale(parent.X), 0)
 		for i, pt := range parent.Sub {
@@ -479,7 +471,7 @@ func (r BarRenderer[T, U]) Render(serie Serie[T, U]) svg.Element {
 	if len(r.Fill) == 0 {
 		r.Fill = Tableau10
 	}
-	grp := getBaseGroup("", "bar")
+	grp := classGroup("bar")
 	for i, pt := range serie.Points {
 		el := getRect(pt, serie.X, serie.Y, r.Width, r.Fill[i%len(r.Fill)])
 		grp.Append(el)
@@ -496,7 +488,7 @@ func (r PointRenderer[T, U]) Render(serie Serie[T, U]) svg.Element {
 	if r.Point == nil {
 		r.Point = GetCircle
 	}
-	grp := getBaseGroup(r.Fill, "scatter")
+	grp := classGroup("scatter")
 	for _, pt := range serie.Points {
 		var (
 			x = serie.X.Scale(pt.X)
@@ -508,18 +500,16 @@ func (r PointRenderer[T, U]) Render(serie Serie[T, U]) svg.Element {
 }
 
 type CubicRenderer[T, U ScalerConstraint] struct {
+	Style
 	Stretch float64
-	Color   string
 	Fill    bool
-	Skip    int
-	Style   LineStyle
 	Point   PointFunc
 }
 
 func (r CubicRenderer[T, U]) Render(serie Serie[T, U]) svg.Element {
 	var (
-		grp = getBaseGroup(r.Color, "line")
-		pat = getBasePath(r.Fill, r.Style)
+		grp = classGroup("line")
+		pat = r.LinePath()
 		pos = svg.NewPos(serie.X.Min(), serie.Y.Max())
 		ori svg.Pos
 	)
@@ -530,10 +520,7 @@ func (r CubicRenderer[T, U]) Render(serie Serie[T, U]) svg.Element {
 		grp.Append(r.Point(pos))
 	}
 	ori = pos
-	for i, pt := range slices.Rest(serie.Points) {
-		if r.Skip != 0 && i > 0 && i%r.Skip != 0 {
-			continue
-		}
+	for _, pt := range slices.Rest(serie.Points) {
 		pos.X = serie.X.Scale(pt.X)
 		pos.Y = serie.Y.Scale(pt.Y)
 
@@ -565,7 +552,7 @@ type LinearRenderer[T, U ScalerConstraint] struct {
 
 func (r LinearRenderer[T, U]) Render(serie Serie[T, U]) svg.Element {
 	var (
-		grp = getBaseGroup("", "line")
+		grp = classGroup("line")
 		pat = r.LinePath()
 		pos svg.Pos
 		nan bool
@@ -592,15 +579,19 @@ func (r LinearRenderer[T, U]) Render(serie Serie[T, U]) svg.Element {
 		}
 	}
 
-	switch r.Text {
+	switch txt := r.Style.Text(serie.Title); r.Text {
 	case TextBefore:
-		pt := slices.Fst(serie.Points)
-		txt := getLineText(serie.Title, 0, serie.Y.Scale(pt.Y), true)
-		grp.Append(txt.AsElement())
+		var (
+			pt = slices.Fst(serie.Points)
+			el = getText(txt, 0, serie.Y.Scale(pt.Y), true)
+		)
+		grp.Append(el)
 	case TextAfter:
-		pt := slices.Lst(serie.Points)
-		txt := getLineText(serie.Title, serie.X.Scale(pt.X), serie.Y.Scale(pt.Y), false)
-		grp.Append(txt.AsElement())
+		var (
+			pt = slices.Lst(serie.Points)
+			el = getText(txt, serie.X.Scale(pt.X), serie.Y.Scale(pt.Y), false)
+		)
+		grp.Append(el)
 	default:
 	}
 
@@ -622,7 +613,7 @@ type StepRenderer[T, U ScalerConstraint] struct {
 
 func (r StepRenderer[T, U]) Render(serie Serie[T, U]) svg.Element {
 	var (
-		grp = getBaseGroup("", "line", "line-step")
+		grp = classGroup("line", "line-step")
 		pat = r.LinePath()
 		pos = svg.NewPos(serie.X.Min(), serie.Y.Max())
 		ori svg.Pos
@@ -661,17 +652,23 @@ func (r StepRenderer[T, U]) Render(serie Serie[T, U]) svg.Element {
 			grp.Append(r.Point(pos))
 		}
 	}
-	switch r.Text {
+
+	switch txt := r.Style.Text(serie.Title); r.Text {
 	case TextBefore:
-		pt := slices.Fst(serie.Points)
-		txt := getLineText(serie.Title, 0, serie.Y.Scale(pt.Y), true)
-		grp.Append(txt.AsElement())
+		var (
+			pt = slices.Fst(serie.Points)
+			el = getText(txt, 0, serie.Y.Scale(pt.Y), true)
+		)
+		grp.Append(el)
 	case TextAfter:
-		pt := slices.Lst(serie.Points)
-		txt := getLineText(serie.Title, serie.X.Scale(pt.X), serie.Y.Scale(pt.Y), false)
-		grp.Append(txt.AsElement())
+		var (
+			pt = slices.Lst(serie.Points)
+			el = getText(txt, serie.X.Scale(pt.X), serie.Y.Scale(pt.Y), false)
+		)
+		grp.Append(el)
 	default:
 	}
+
 	if r.Fill {
 		pos.Y = serie.Y.Max()
 		pat.AbsLineTo(pos)
@@ -690,7 +687,7 @@ type StepAfterRenderer[T, U ScalerConstraint] struct {
 
 func (r StepAfterRenderer[T, U]) Render(serie Serie[T, U]) svg.Element {
 	var (
-		grp = getBaseGroup("", "line", "line-step-after")
+		grp = classGroup("line", "line-step-after")
 		pat = r.LinePath()
 		pos svg.Pos
 		ori svg.Pos
@@ -732,15 +729,19 @@ func (r StepAfterRenderer[T, U]) Render(serie Serie[T, U]) svg.Element {
 		}
 	}
 
-	switch r.Text {
+	switch txt := r.Style.Text(serie.Title); r.Text {
 	case TextBefore:
-		pt := slices.Fst(serie.Points)
-		txt := getLineText(serie.Title, 0, serie.Y.Scale(pt.Y), true)
-		grp.Append(txt.AsElement())
+		var (
+			pt = slices.Fst(serie.Points)
+			el = getText(txt, 0, serie.Y.Scale(pt.Y), true)
+		)
+		grp.Append(el)
 	case TextAfter:
-		pt := slices.Lst(serie.Points)
-		txt := getLineText(serie.Title, serie.X.Scale(pt.X), serie.Y.Scale(pt.Y), false)
-		grp.Append(txt.AsElement())
+		var (
+			pt = slices.Lst(serie.Points)
+			el = getText(txt, serie.X.Scale(pt.X), serie.Y.Scale(pt.Y), false)
+		)
+		grp.Append(el)
 	default:
 	}
 
@@ -764,7 +765,7 @@ type StepBeforeRenderer[T, U ScalerConstraint] struct {
 
 func (r StepBeforeRenderer[T, U]) Render(serie Serie[T, U]) svg.Element {
 	var (
-		grp = getBaseGroup("", "line", "line-step-before")
+		grp = classGroup("line", "line-step-before")
 		pat = r.LinePath()
 		pos svg.Pos
 		ori svg.Pos
@@ -808,15 +809,19 @@ func (r StepBeforeRenderer[T, U]) Render(serie Serie[T, U]) svg.Element {
 		}
 	}
 
-	switch r.Text {
+	switch txt := r.Style.Text(serie.Title); r.Text {
 	case TextBefore:
-		pt := slices.Fst(serie.Points)
-		txt := getLineText(serie.Title, 0, serie.Y.Scale(pt.Y), true)
-		grp.Append(txt.AsElement())
+		var (
+			pt = slices.Fst(serie.Points)
+			el = getText(txt, 0, serie.Y.Scale(pt.Y), true)
+		)
+		grp.Append(el)
 	case TextAfter:
-		pt := slices.Lst(serie.Points)
-		txt := getLineText(serie.Title, serie.X.Scale(pt.X), serie.Y.Scale(pt.Y), false)
-		grp.Append(txt.AsElement())
+		var (
+			pt = slices.Lst(serie.Points)
+			el = getText(txt, serie.X.Scale(pt.X), serie.Y.Scale(pt.Y), false)
+		)
+		grp.Append(el)
 	default:
 	}
 
@@ -828,52 +833,16 @@ func (r StepBeforeRenderer[T, U]) Render(serie Serie[T, U]) svg.Element {
 	return grp.AsElement()
 }
 
-func getLineText(str string, x, y float64, before bool) svg.Text {
-	txt := svg.NewText(str)
-	txt.Font = svg.NewFont(FontSize)
+func getText(txt svg.Text, x, y float64, before bool) svg.Element {
 	txt.Pos = svg.NewPos(x, y)
-	txt.Anchor = "end"
-	txt.Baseline = "middle"
 	if !before {
 		txt.Anchor = "start"
-		txt.Pos.X += FontSize * 0.4
+		txt.Pos.X += txt.Font.Size * 0.4
 	} else {
-		txt.Pos.X -= FontSize * 0.4
+		txt.Anchor = "end"
+		txt.Pos.X -= txt.Font.Size * 0.4
 	}
-	return txt
-}
-
-func getBasePath(fill bool, style LineStyle) svg.Path {
-	var pat svg.Path
-	pat.Rendering = "geometricPrecision"
-	pat.Stroke = svg.NewStroke(currentColour, 1)
-	pat.Stroke.LineJoin = "round"
-	pat.Stroke.LineCap = "round"
-	if fill {
-		pat.Fill = svg.NewFill(currentColour)
-		pat.Fill.Opacity = 0.5
-	} else {
-		pat.Fill = svg.NewFill("none")
-	}
-	switch style {
-	case StyleStraight:
-	case StyleDotted:
-		pat.Stroke.DashArray = append(pat.Stroke.DashArray, 1, 5)
-	case StyleDashed:
-		pat.Stroke.DashArray = append(pat.Stroke.DashArray, 10, 5)
-	default:
-	}
-	return pat
-}
-
-func getBaseGroup(color string, class ...string) svg.Group {
-	var g svg.Group
-	if color != "" {
-		g.Fill = svg.NewFill(color)
-		g.Stroke = svg.NewStroke(color, 1)
-	}
-	g.Class = class
-	return g
+	return txt.AsElement()
 }
 
 func getRect[T, U ScalerConstraint](pt Point[T, U], x Scaler[T], y Scaler[U], ratio float64, fill string) svg.Element {

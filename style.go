@@ -7,6 +7,14 @@ import (
 	// "github.com/midbel/slices"
 )
 
+type TextPosition int
+
+const (
+	TextBefore TextPosition = 1 << iota
+	TextAfter
+	TextCenter
+)
+
 type LineStyle int
 
 const (
@@ -59,9 +67,20 @@ func DefaultStyle() Style {
 	}
 }
 
-func (s Style) Rect() svg.Rect {
-	var rect svg.Rect
-	return rect
+func (s Style) Rect(w, h float64, x int) svg.Rect {
+	var rec svg.Rect
+	rec.Dim = svg.NewDim(w, h)
+	rec.Fill = svg.NewFill("none")
+	rec.Fill.Opacity = s.FillOpacity
+	if s.LineColor != "" && s.LineWidth > 0 {
+		rec.Stroke = svg.NewStroke(s.LineColor, s.LineWidth)
+		rec.Stroke.Opacity = s.LineOpacity
+	}
+	if n := len(s.FillList); n > 0 {
+		rec.Fill = svg.NewFill(s.FillList[n%x])
+		rec.Fill.Opacity = s.FillOpacity
+	}
+	return rec
 }
 
 func (s Style) Text(str string) svg.Text {
@@ -87,7 +106,6 @@ func (s Style) LinePath() svg.Path {
 	pat.Stroke.LineJoin = "round"
 	pat.Stroke.LineCap = "round"
 	pat.Fill = svg.NewFill("none")
-	fmt.Printf("%+v\n", pat)
 
 	switch s.LineType {
 	case StyleStraight, StyleSolid:
@@ -139,4 +157,10 @@ func (p Padding) Horizontal() float64 {
 
 func (p Padding) Vertical() float64 {
 	return p.Top + p.Bottom
+}
+
+func classGroup(class ...string) svg.Group {
+	var grp svg.Group
+	grp.Class = append(grp.Class, class...)
+	return grp
 }
