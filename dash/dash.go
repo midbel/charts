@@ -95,19 +95,6 @@ type Config struct {
 	Scripts *Environ[ast.Expression]
 
 	Theme string
-
-	Linear     NumberStyle
-	Step       NumberStyle
-	StepBefore NumberStyle
-	StepAfter  NumberStyle
-
-	Pie CircularStyle
-	Sun CircularStyle
-
-	Bar       CategoryStyle
-	Group     CategoryStyle
-	Stack     CategoryStyle
-	NormStack CategoryStyle
 }
 
 func Default() Config {
@@ -117,16 +104,6 @@ func Default() Config {
 		Height:     DefaultHeight,
 		TimeFormat: TimeFormat,
 		Scripts:    EmptyEnv[ast.Expression](),
-		Linear:     DefaultNumberStyle(),
-		Step:       DefaultNumberStyle(),
-		StepBefore: DefaultNumberStyle(),
-		StepAfter:  DefaultNumberStyle(),
-		Pie:        DefaultCircularStyle(),
-		Sun:        DefaultCircularStyle(),
-		Bar:        DefaultCategoryStyle(),
-		Group:      DefaultCategoryStyle(),
-		Stack:      DefaultCategoryStyle(),
-		NormStack:  DefaultCategoryStyle(),
 	}
 	cfg.X.Type = TypeNumber
 	cfg.Y.Type = TypeNumber

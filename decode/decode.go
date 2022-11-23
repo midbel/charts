@@ -41,6 +41,19 @@ type Decoder struct {
 	styles *dash.Environ[any]
 	alias  map[string]string
 
+	Linear     dash.NumberStyle
+	Step       dash.NumberStyle
+	StepBefore dash.NumberStyle
+	StepAfter  dash.NumberStyle
+
+	Pie dash.CircularStyle
+	Sun dash.CircularStyle
+
+	Bar       dash.CategoryStyle
+	Group     dash.CategoryStyle
+	Stack     dash.CategoryStyle
+	NormStack dash.CategoryStyle
+
 	scan *Scanner
 	curr Token
 	peek Token
@@ -48,13 +61,23 @@ type Decoder struct {
 
 func NewDecoder(r io.Reader) *Decoder {
 	d := Decoder{
-		cwd:    ".",
-		env:    dash.EmptyEnv[[]string](),
-		files:  dash.EmptyEnv[dash.DataSource](),
-		styles: dash.EmptyEnv[any](),
-		alias:  make(map[string]string),
-		shell:  DefaultShell,
-		scan:   Scan(r),
+		cwd:        ".",
+		env:        dash.EmptyEnv[[]string](),
+		files:      dash.EmptyEnv[dash.DataSource](),
+		styles:     dash.EmptyEnv[any](),
+		alias:      make(map[string]string),
+		shell:      DefaultShell,
+		scan:       Scan(r),
+		Linear:     dash.DefaultNumberStyle(),
+		Step:       dash.DefaultNumberStyle(),
+		StepBefore: dash.DefaultNumberStyle(),
+		StepAfter:  dash.DefaultNumberStyle(),
+		Pie:        dash.DefaultCircularStyle(),
+		Sun:        dash.DefaultCircularStyle(),
+		Bar:        dash.DefaultCategoryStyle(),
+		Group:      dash.DefaultCategoryStyle(),
+		Stack:      dash.DefaultCategoryStyle(),
+		NormStack:  dash.DefaultCategoryStyle(),
 	}
 	if r, ok := r.(interface{ Name() string }); ok {
 		d.file = r.Name()
@@ -409,55 +432,35 @@ func (d *Decoder) decodeSet(cfg *dash.Config) error {
 	case "theme":
 		cfg.Theme, err = d.getString()
 	case dash.RenderLine:
-		err = d.decodeNumberStyle(&cfg.Linear)
-		if cfg.Linear.Ident != "" {
-			d.alias[cfg.Linear.Ident] = cmd
-		}
+		err = d.decodeNumberStyle(&d.Linear)
+		d.setAlias(cmd, d.Linear.Ident)
 	case dash.RenderStep:
-		err = d.decodeNumberStyle(&cfg.Step)
-		if cfg.Step.Ident != "" {
-			d.alias[cfg.Step.Ident] = cmd
-		}
+		err = d.decodeNumberStyle(&d.Step)
+		d.setAlias(cmd, d.Step.Ident)
 	case dash.RenderStepAfter:
-		err = d.decodeNumberStyle(&cfg.StepAfter)
-		if cfg.StepAfter.Ident != "" {
-			d.alias[cfg.StepAfter.Ident] = cmd
-		}
+		err = d.decodeNumberStyle(&d.StepAfter)
+		d.setAlias(cmd, d.StepAfter.Ident)
 	case dash.RenderStepBefore:
-		err = d.decodeNumberStyle(&cfg.StepBefore)
-		if cfg.StepBefore.Ident != "" {
-			d.alias[cfg.StepBefore.Ident] = cmd
-		}
+		err = d.decodeNumberStyle(&d.StepBefore)
+		d.setAlias(cmd, d.StepBefore.Ident)
 	case dash.RenderPie:
-		err = d.decodeCircularStyle(&cfg.Pie)
-		if cfg.Pie.Ident != "" {
-			d.alias[cfg.Pie.Ident] = cmd
-		}
+		err = d.decodeCircularStyle(&d.Pie)
+		d.setAlias(cmd, d.Pie.Ident)
 	case dash.RenderSun:
-		err = d.decodeCircularStyle(&cfg.Sun)
-		if cfg.Sun.Ident != "" {
-			d.alias[cfg.Sun.Ident] = cmd
-		}
+		err = d.decodeCircularStyle(&d.Sun)
+		d.setAlias(cmd, d.Sun.Ident)
 	case dash.RenderBar:
-		err = d.decodeCategoryStyle(&cfg.Bar)
-		if cfg.Bar.Ident != "" {
-			d.alias[cfg.Bar.Ident] = cmd
-		}
+		err = d.decodeCategoryStyle(&d.Bar)
+		d.setAlias(cmd, d.Bar.Ident)
 	case dash.RenderStack:
-		err = d.decodeCategoryStyle(&cfg.Stack)
-		if cfg.Stack.Ident != "" {
-			d.alias[cfg.Stack.Ident] = cmd
-		}
+		err = d.decodeCategoryStyle(&d.Stack)
+		d.setAlias(cmd, d.Stack.Ident)
 	case dash.RenderNormStack:
-		err = d.decodeCategoryStyle(&cfg.NormStack)
-		if cfg.NormStack.Ident != "" {
-			d.alias[cfg.NormStack.Ident] = cmd
-		}
+		err = d.decodeCategoryStyle(&d.NormStack)
+		d.setAlias(cmd, d.NormStack.Ident)
 	case dash.RenderGroup:
-		err = d.decodeCategoryStyle(&cfg.Group)
-		if cfg.Group.Ident != "" {
-			d.alias[cfg.Group.Ident] = cmd
-		}
+		err = d.decodeCategoryStyle(&d.Group)
+		d.setAlias(cmd, d.Group.Ident)
 	default:
 		err = d.optionError("set")
 	}
@@ -1081,32 +1084,38 @@ func (d *Decoder) getStyleForType(kind string, cfg *dash.Config) (any, error) {
 	default:
 		if style, err := d.styles.Resolve(kind); err == nil {
 			return style, err
-		} else {
 		}
 		msg := fmt.Sprintf("%s: chart type not recognized", kind)
 		return nil, d.decodeError(msg)
 	case dash.RenderLine:
-		style = cfg.Linear
+		style = d.Linear
 	case dash.RenderStep:
-		style = cfg.Step
+		style = d.Step
 	case dash.RenderStepAfter:
-		style = cfg.StepAfter
+		style = d.StepAfter
 	case dash.RenderStepBefore:
-		style = cfg.StepBefore
+		style = d.StepBefore
 	case dash.RenderPie:
-		style = cfg.Pie.Copy()
+		style = d.Pie.Copy()
 	case dash.RenderBar:
-		style = cfg.Bar.Copy()
+		style = d.Bar.Copy()
 	case dash.RenderSun:
-		style = cfg.Sun.Copy()
+		style = d.Sun.Copy()
 	case dash.RenderStack:
-		style = cfg.Stack.Copy()
+		style = d.Stack.Copy()
 	case dash.RenderNormStack:
-		style = cfg.NormStack.Copy()
+		style = d.NormStack.Copy()
 	case dash.RenderGroup:
-		style = cfg.Group.Copy()
+		style = d.Group.Copy()
 	}
 	return style, nil
+}
+
+func (d *Decoder) setAlias(kind, ident string) {
+	if ident == "" {
+		return
+	}
+	d.alias[ident] = kind
 }
 
 func (d *Decoder) wrap() {
