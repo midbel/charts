@@ -59,7 +59,6 @@ func DefaultStyle() Style {
 		LineColor:   ColorBlue,
 		LineWidth:   1,
 		LineOpacity: 1,
-		FillList:    Tableau10,
 		FillOpacity: 1,
 		FontSize:    FontSize,
 		FontFamily:  []string{FontMonospace},

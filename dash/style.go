@@ -126,51 +126,28 @@ func GetLineType(str string) charts.LineStyle {
 }
 
 func getRenderer[T, U charts.ScalerConstraint](kind string, style any) (charts.Renderer[T, U], error) {
-	var rdr charts.Renderer[T, U]
+	var (
+		rdr     charts.LinearRenderer[T, U]
+		st, err = getNumberStyle(kind, style)
+	)
+	if err != nil {
+		return nil, err
+	}
 	switch kind {
 	case RenderLine:
-		st, err := getNumberStyle(kind, style)
-		if err != nil {
-			return nil, err
-		}
-		rdr = charts.LinearRenderer[T, U]{
-			Style:         st.Style,
-			Text:          st.TextPosition,
-			IgnoreMissing: st.IgnoreMissing,
-		}
+		rdr = charts.Line[T, U]()
 	case RenderStep:
-		st, err := getNumberStyle(kind, style)
-		if err != nil {
-			return nil, err
-		}
-		rdr = charts.StepRenderer[T, U]{
-			Style:         st.Style,
-			Text:          st.TextPosition,
-			IgnoreMissing: st.IgnoreMissing,
-		}
+		rdr = charts.Step[T, U]()
 	case RenderStepBefore:
-		st, err := getNumberStyle(kind, style)
-		if err != nil {
-			return nil, err
-		}
-		rdr = charts.StepBeforeRenderer[T, U]{
-			Style:         st.Style,
-			Text:          st.TextPosition,
-			IgnoreMissing: st.IgnoreMissing,
-		}
+		rdr = charts.StepBefore[T, U]()
 	case RenderStepAfter:
-		st, err := getNumberStyle(kind, style)
-		if err != nil {
-			return nil, err
-		}
-		rdr = charts.StepAfterRenderer[T, U]{
-			Style:         st.Style,
-			Text:          st.TextPosition,
-			IgnoreMissing: st.IgnoreMissing,
-		}
+		rdr = charts.StepAfter[T, U]()
 	default:
 		return nil, fmt.Errorf("%s unrecognized chart type", kind)
 	}
+	rdr.Style = st.Style
+	rdr.Text = st.TextPosition
+	rdr.IgnoreMissing = st.IgnoreMissing
 	return rdr, nil
 }
 

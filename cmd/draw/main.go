@@ -40,6 +40,7 @@ func main() {
 		title  = flag.String("title", "", "chart title")
 		theme  = flag.String("theme", "", "theme file")
 		kind   = flag.String("type", "", "chart type")
+		area   = flag.Bool("area", false, "area chart")
 		xdata  = flag.String("xdata", "number", "x data type")
 		ydata  = flag.String("ydata", "number", "y data type")
 		xcol   = flag.Int("xcol", 0, "index of x column")
@@ -70,7 +71,7 @@ func main() {
 			ch.Left = getAxis[float64](yscale, *ytics, charts.OrientLeft)
 		}
 
-		get = numberSerie(*kind, *xcol, *ycol, xscale, yscale)
+		get = numberSerie(*kind, *xcol, *ycol, xscale, yscale, *area)
 
 		rdr, err = ch, hasError(err0, err1, err2)
 	case *xdata == "time" && *ydata == "number":
@@ -82,7 +83,7 @@ func main() {
 			ch.Left = getAxis[float64](yscale, *ytics, charts.OrientLeft)
 		}
 
-		get = timeSerie(*kind, *xcol, *ycol, xscale, yscale)
+		get = timeSerie(*kind, *xcol, *ycol, xscale, yscale, *area)
 
 		rdr, err = ch, hasError(err0, err1, err2)
 	case *xdata == "string" && *ydata == "number":
@@ -140,25 +141,20 @@ func getAxis[T scalerConstraint](scale charts.Scaler[T], ticks int, orient chart
 	}
 }
 
-func numberRenderer[T, U scalerConstraint](kind string) (charts.Renderer[T, U], error) {
+func numberRenderer[T, U scalerConstraint](kind string, area bool) (charts.Renderer[T, U], error) {
+	if area {
+		return charts.Area[T, U](), nil
+	}
 	var rdr charts.Renderer[T, U]
 	switch kind {
 	case "line", "":
-		rdr = charts.LinearRenderer[T, U]{
-			Color: "blue",
-		}
+		rdr = charts.Line[T, U]()
 	case "step":
-		rdr = charts.StepRenderer[T, U]{
-			Color: "blue",
-		}
+		rdr = charts.Step[T, U]()
 	case "step-before":
-		rdr = charts.StepBeforeRenderer[T, U]{
-			Color: "blue",
-		}
+		rdr = charts.StepBefore[T, U]()
 	case "step-after":
-		rdr = charts.StepAfterRenderer[T, U]{
-			Color: "blue",
-		}
+		rdr = charts.StepAfter[T, U]()
 	case "polar":
 	default:
 		return nil, fmt.Errorf("%s: unrecognized chart renderer", kind)
@@ -271,13 +267,13 @@ func getIdent(file string) string {
 
 type dataFunc func(string) (charts.Data, error)
 
-func numberSerie(kind string, xcol, ycol int, x, y charts.Scaler[float64]) dataFunc {
+func numberSerie(kind string, xcol, ycol int, x, y charts.Scaler[float64], area bool) dataFunc {
 	get := func(file string) (charts.Data, error) {
 		points, err := readPoints(file, xcol, ycol, getNumberNumber)
 		if err != nil {
 			return nil, err
 		}
-		rdr, err := numberRenderer[float64, float64](kind)
+		rdr, err := numberRenderer[float64, float64](kind, area)
 		if err != nil {
 			return nil, err
 		}
@@ -293,13 +289,13 @@ func numberSerie(kind string, xcol, ycol int, x, y charts.Scaler[float64]) dataF
 	return get
 }
 
-func timeSerie(kind string, xcol, ycol int, x charts.Scaler[time.Time], y charts.Scaler[float64]) dataFunc {
+func timeSerie(kind string, xcol, ycol int, x charts.Scaler[time.Time], y charts.Scaler[float64], area bool) dataFunc {
 	get := func(file string) (charts.Data, error) {
 		points, err := readPoints(file, xcol, ycol, getTimeNumber)
 		if err != nil {
 			return nil, err
 		}
-		rdr, err := numberRenderer[time.Time, float64](kind)
+		rdr, err := numberRenderer[time.Time, float64](kind, area)
 		if err != nil {
 			return nil, err
 		}

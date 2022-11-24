@@ -35,8 +35,8 @@ type PolarRenderer[T ~string, U ~float64] struct {
 
 func (r PolarRenderer[T, U]) Render(serie Serie[T, U]) svg.Element {
 	var (
-		grp  = classGroup("", "polar")
-		el svg.Element
+		grp = classGroup("", "polar")
+		el  svg.Element
 	)
 	grp.Transform = svg.Translate(serie.X.Max()/2, serie.Y.Max()/2)
 	grp.Append(r.drawTicks(serie))
@@ -499,65 +499,171 @@ func (r PointRenderer[T, U]) Render(serie Serie[T, U]) svg.Element {
 	return grp.AsElement()
 }
 
-type CubicRenderer[T, U ScalerConstraint] struct {
-	Style
-	Stretch float64
-	Fill    bool
-	Point   PointFunc
+// type CubicRenderer[T, U ScalerConstraint] struct {
+// 	Style
+// 	Stretch float64
+// 	Fill    bool
+// 	Point   PointFunc
+// }
+
+// func (r CubicRenderer[T, U]) Render(serie Serie[T, U]) svg.Element {
+// 	var (
+// 		grp = classGroup("line")
+// 		pat = r.LinePath()
+// 		pos = svg.NewPos(serie.X.Min(), serie.Y.Max())
+// 		ori svg.Pos
+// 	)
+// 	pos.X = serie.X.Scale(slices.Fst(serie.Points).X)
+// 	pos.Y = serie.Y.Scale(slices.Fst(serie.Points).Y)
+// 	pat.AbsMoveTo(pos)
+// 	if r.Point != nil {
+// 		grp.Append(r.Point(pos))
+// 	}
+// 	ori = pos
+// 	for _, pt := range slices.Rest(serie.Points) {
+// 		pos.X = serie.X.Scale(pt.X)
+// 		pos.Y = serie.Y.Scale(pt.Y)
+
+// 		var (
+// 			ctrl1 = ori
+// 			ctrl2 = pos
+// 			diff  = (pos.X - ori.X) * r.Stretch
+// 		)
+// 		ctrl1.X += diff
+// 		ctrl2.X -= diff
+
+// 		pat.AbsCubicCurve(pos, ctrl1, ctrl2)
+// 		ori = pos
+// 		if r.Point != nil {
+// 			grp.Append(r.Point(pos))
+// 		}
+// 	}
+// 	grp.Append(pat.AsElement())
+// 	return grp.AsElement()
+// }
+
+type CurveType int
+
+const (
+	CurveLine CurveType = 1 << iota
+	CurveStep
+	CurveBefore
+	CurveAfter
+)
+
+func (c CurveType) Classname() []string {
+	switch c {
+	default:
+		return nil
+	case CurveLine:
+		return []string{"line"}
+	case CurveStep:
+		return []string{"line", "line-step"}
+	case CurveBefore:
+		return []string{"line", "line-step", "step-before"}
+	case CurveAfter:
+		return []string{"line", "line-step", "step-after"}
+	}
 }
 
-func (r CubicRenderer[T, U]) Render(serie Serie[T, U]) svg.Element {
+type AreaRenderer[T, U ScalerConstraint] struct {
+	LinearRenderer[T, U]
+}
+
+func Area[T, U ScalerConstraint]() AreaRenderer[T, U] {
+	return AreaRenderer[T, U]{
+		LinearRenderer: Line[T, U](),
+	}
+}
+
+func (r AreaRenderer[T, U]) Render(serie Serie[T, U]) svg.Element {
 	var (
-		grp = classGroup("line")
-		pat = r.LinePath()
-		pos = svg.NewPos(serie.X.Min(), serie.Y.Max())
-		ori svg.Pos
+		grp = classGroup(r.Type.Classname()...)
+		pat = r.renderLine(serie, true)
 	)
-	pos.X = serie.X.Scale(slices.Fst(serie.Points).X)
-	pos.Y = serie.Y.Scale(slices.Fst(serie.Points).Y)
-	pat.AbsMoveTo(pos)
-	if r.Point != nil {
-		grp.Append(r.Point(pos))
-	}
-	ori = pos
-	for _, pt := range slices.Rest(serie.Points) {
-		pos.X = serie.X.Scale(pt.X)
-		pos.Y = serie.Y.Scale(pt.Y)
+	var (
+		lst = slices.Lst(serie.Points)
+		pos = svg.NewPos(serie.X.Scale(lst.X), serie.Y.Max())
+	)
+	pat.AbsLineTo(pos)
 
-		var (
-			ctrl1 = ori
-			ctrl2 = pos
-			diff  = (pos.X - ori.X) * r.Stretch
-		)
-		ctrl1.X += diff
-		ctrl2.X -= diff
-
-		pat.AbsCubicCurve(pos, ctrl1, ctrl2)
-		ori = pos
-		if r.Point != nil {
-			grp.Append(r.Point(pos))
-		}
+	if len(r.FillList) == 0 {
+		r.FillList = append(r.FillList, r.LineColor)
 	}
+	pat.Fill = svg.NewFill(slices.Fst(r.FillList))
+	pat.Fill.Opacity = r.FillOpacity
 	grp.Append(pat.AsElement())
+	if el := r.renderText(serie); el != nil {
+		grp.Append(el)
+	}
 	return grp.AsElement()
 }
 
 type LinearRenderer[T, U ScalerConstraint] struct {
 	Style
-	Fill          bool
-	Point         PointFunc
 	Text          TextPosition
 	IgnoreMissing bool
+	Type          CurveType
+}
+
+func Line[T, U ScalerConstraint]() LinearRenderer[T, U] {
+	return createLinearRenderer[T, U](CurveLine)
+}
+
+func Step[T, U ScalerConstraint]() LinearRenderer[T, U] {
+	return createLinearRenderer[T, U](CurveStep)
+}
+
+func StepBefore[T, U ScalerConstraint]() LinearRenderer[T, U] {
+	return createLinearRenderer[T, U](CurveBefore)
+}
+
+func StepAfter[T, U ScalerConstraint]() LinearRenderer[T, U] {
+	return createLinearRenderer[T, U](CurveAfter)
+}
+
+func createLinearRenderer[T, U ScalerConstraint](curve CurveType) LinearRenderer[T, U] {
+	return LinearRenderer[T, U]{
+		Type:  curve,
+		Style: DefaultStyle(),
+	}
 }
 
 func (r LinearRenderer[T, U]) Render(serie Serie[T, U]) svg.Element {
 	var (
-		grp = classGroup("line")
+		grp = classGroup(r.Type.Classname()...)
+		pat svg.Path
+	)
+	switch r.Type {
+	case CurveLine:
+		pat = r.renderLine(serie, false)
+	case CurveStep:
+		pat = r.renderStep(serie)
+	case CurveBefore:
+		pat = r.renderStepBefore(serie)
+	case CurveAfter:
+		pat = r.renderStepAfter(serie)
+	default:
+		return grp.AsElement()
+	}
+	grp.Append(pat.AsElement())
+	if el := r.renderText(serie); el != nil {
+		grp.Append(el)
+	}
+	return grp.AsElement()
+}
+
+func (r LinearRenderer[T, U]) renderLine(serie Serie[T, U], zero bool) svg.Path {
+	var (
 		pat = r.LinePath()
 		pos svg.Pos
 		nan bool
 	)
-	grp.Id = serie.Title
+	if zero {
+		fst := slices.Fst(serie.Points)
+		pos := svg.NewPos(serie.X.Scale(fst.X), serie.Y.Max())
+		pat.AbsMoveTo(pos)
+	}
 	for i, pt := range serie.Points {
 		if f, ok := isFloat(pt.Y); ok && math.IsNaN(f) {
 			nan = true
@@ -565,70 +671,30 @@ func (r LinearRenderer[T, U]) Render(serie Serie[T, U]) svg.Element {
 		}
 		pos.X = serie.X.Scale(pt.X)
 		pos.Y = serie.Y.Scale(pt.Y)
-		if i == 0 || (nan && r.IgnoreMissing) {
+		if (i == 0 && !zero) || (nan && r.IgnoreMissing) {
 			nan = false
 			pat.AbsMoveTo(pos)
 		} else {
 			pat.AbsLineTo(pos)
 		}
-		if r.Point != nil {
-			el := r.Point(pos)
-			if el != nil {
-				grp.Append(r.Point(pos))
-			}
-		}
 	}
-
-	switch txt := r.Style.Text(serie.Title); r.Text {
-	case TextBefore:
-		var (
-			pt = slices.Fst(serie.Points)
-			el = getText(txt, 0, serie.Y.Scale(pt.Y), true)
-		)
-		grp.Append(el)
-	case TextAfter:
-		var (
-			pt = slices.Lst(serie.Points)
-			el = getText(txt, serie.X.Scale(pt.X), serie.Y.Scale(pt.Y), false)
-		)
-		grp.Append(el)
-	default:
-	}
-
-	if r.Fill {
-		pos.Y = serie.Y.Max()
-		pat.AbsLineTo(pos)
-	}
-	grp.Append(pat.AsElement())
-	return grp.AsElement()
+	return pat
 }
 
-type StepRenderer[T, U ScalerConstraint] struct {
-	Style
-	Fill          bool
-	Point         PointFunc
-	Text          TextPosition
-	IgnoreMissing bool
-}
-
-func (r StepRenderer[T, U]) Render(serie Serie[T, U]) svg.Element {
+func (r LinearRenderer[T, U]) renderStep(serie Serie[T, U]) svg.Path {
 	var (
-		grp = classGroup("line", "line-step")
 		pat = r.LinePath()
 		pos = svg.NewPos(serie.X.Min(), serie.Y.Max())
 		ori svg.Pos
 		nan bool
 	)
-	grp.Id = serie.Title
 
 	pat.AbsMoveTo(pos)
 	pos.Y = serie.Y.Scale(slices.Fst(serie.Points).Y)
 	pat.AbsLineTo(pos)
 	pos.X = serie.X.Scale(slices.Fst(serie.Points).X)
 	pat.AbsLineTo(pos)
-	if r.Point != nil {
-		grp.Append(r.Point(pos))
-	}
+
 	ori = pos
 	for _, pt := range slices.Rest(serie.Points) {
 		if f, ok := isFloat(pt.Y); ok && math.IsNaN(f) {
@@ -648,61 +714,24 @@ func (r StepRenderer[T, U]) Render(serie Serie[T, U]) svg.Element {
 			pat.AbsLineTo(pos)
 		}
 		ori = pos
-		if r.Point != nil {
-			grp.Append(r.Point(pos))
-		}
 	}
-
-	switch txt := r.Style.Text(serie.Title); r.Text {
-	case TextBefore:
-		var (
-			pt = slices.Fst(serie.Points)
-			el = getText(txt, 0, serie.Y.Scale(pt.Y), true)
-		)
-		grp.Append(el)
-	case TextAfter:
-		var (
-			pt = slices.Lst(serie.Points)
-			el = getText(txt, serie.X.Scale(pt.X), serie.Y.Scale(pt.Y), false)
-		)
-		grp.Append(el)
-	default:
-	}
-
-	if r.Fill {
-		pos.Y = serie.Y.Max()
-		pat.AbsLineTo(pos)
-	}
-	grp.Append(pat.AsElement())
-	return grp.AsElement()
+	return pat
 }
 
-type StepAfterRenderer[T, U ScalerConstraint] struct {
-	Style
-	Fill          bool
-	Point         PointFunc
-	Text          TextPosition
-	IgnoreMissing bool
-}
-
-func (r StepAfterRenderer[T, U]) Render(serie Serie[T, U]) svg.Element {
+func (r LinearRenderer[T, U]) renderStepAfter(serie Serie[T, U]) svg.Path {
 	var (
-		grp = classGroup("line", "line-step-after")
 		pat = r.LinePath()
 		pos svg.Pos
 		ori svg.Pos
 		nan bool
 	)
-	grp.Id = serie.Title
 
 	pos.X = serie.X.Scale(slices.Fst(serie.Points).X)
 	pos.Y = serie.Y.Max()
 	pat.AbsMoveTo(pos)
 	pos.Y = serie.Y.Scale(slices.Fst(serie.Points).Y)
 	pat.AbsLineTo(pos)
-	if r.Point != nil {
-		grp.Append(r.Point(pos))
-	}
+
 	ori = pos
 	for _, pt := range slices.Rest(serie.Points) {
 		if f, ok := isFloat(pt.Y); ok && math.IsNaN(f) {
@@ -723,55 +752,17 @@ func (r StepAfterRenderer[T, U]) Render(serie Serie[T, U]) svg.Element {
 			pat.AbsLineTo(pos)
 		}
 		ori = pos
-
-		if r.Point != nil {
-			grp.Append(r.Point(pos))
-		}
 	}
-
-	switch txt := r.Style.Text(serie.Title); r.Text {
-	case TextBefore:
-		var (
-			pt = slices.Fst(serie.Points)
-			el = getText(txt, 0, serie.Y.Scale(pt.Y), true)
-		)
-		grp.Append(el)
-	case TextAfter:
-		var (
-			pt = slices.Lst(serie.Points)
-			el = getText(txt, serie.X.Scale(pt.X), serie.Y.Scale(pt.Y), false)
-		)
-		grp.Append(el)
-	default:
-	}
-
-	if r.Fill {
-		pos.X = serie.X.Max()
-		pat.AbsLineTo(pos)
-		pos.Y = serie.Y.Max()
-		pat.AbsLineTo(pos)
-	}
-	grp.Append(pat.AsElement())
-	return grp.AsElement()
+	return pat
 }
 
-type StepBeforeRenderer[T, U ScalerConstraint] struct {
-	Style
-	Fill          bool
-	Point         PointFunc
-	Text          TextPosition
-	IgnoreMissing bool
-}
-
-func (r StepBeforeRenderer[T, U]) Render(serie Serie[T, U]) svg.Element {
+func (r LinearRenderer[T, U]) renderStepBefore(serie Serie[T, U]) svg.Path {
 	var (
-		grp = classGroup("line", "line-step-before")
 		pat = r.LinePath()
 		pos svg.Pos
 		ori svg.Pos
 		nan bool
 	)
-	grp.Id = serie.Title
 
 	pos.X = serie.X.Min()
 	pos.Y = serie.Y.Max()
@@ -780,9 +771,7 @@ func (r StepBeforeRenderer[T, U]) Render(serie Serie[T, U]) svg.Element {
 	pat.AbsLineTo(pos)
 	pos.X = serie.X.Scale(slices.Fst(serie.Points).X)
 	pat.AbsLineTo(pos)
-	if r.Point != nil {
-		grp.Append(r.Point(pos))
-	}
+
 	ori = pos
 	for _, pt := range slices.Rest(serie.Points) {
 		if f, ok := isFloat(pt.Y); ok && math.IsNaN(f) {
@@ -803,34 +792,21 @@ func (r StepBeforeRenderer[T, U]) Render(serie Serie[T, U]) svg.Element {
 			pat.AbsLineTo(pos)
 		}
 		ori = pos
-
-		if r.Point != nil {
-			grp.Append(r.Point(pos))
-		}
 	}
+	return pat
+}
 
+func (r LinearRenderer[T, U]) renderText(serie Serie[T, U]) svg.Element {
 	switch txt := r.Style.Text(serie.Title); r.Text {
 	case TextBefore:
-		var (
-			pt = slices.Fst(serie.Points)
-			el = getText(txt, 0, serie.Y.Scale(pt.Y), true)
-		)
-		grp.Append(el)
+		pt := slices.Fst(serie.Points)
+		return getText(txt, 0, serie.Y.Scale(pt.Y), true)
 	case TextAfter:
-		var (
-			pt = slices.Lst(serie.Points)
-			el = getText(txt, serie.X.Scale(pt.X), serie.Y.Scale(pt.Y), false)
-		)
-		grp.Append(el)
+		pt := slices.Lst(serie.Points)
+		return getText(txt, serie.X.Scale(pt.X), serie.Y.Scale(pt.Y), false)
 	default:
+		return nil
 	}
-
-	if r.Fill {
-		pos.Y = serie.Y.Max()
-		pat.AbsLineTo(pos)
-	}
-	grp.Append(pat.AsElement())
-	return grp.AsElement()
 }
 
 func getText(txt svg.Text, x, y float64, before bool) svg.Element {
