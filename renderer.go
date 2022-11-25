@@ -653,8 +653,7 @@ func (r LinearRenderer[T, U]) renderLine(serie Serie[T, U], zero bool) svg.Path 
 		pat.AbsMoveTo(pos)
 	}
 	for i, pt := range serie.Points {
-		if f, ok := isFloat(pt.Y); ok && math.IsNaN(f) {
-			nan = true
+		if nan = isNaN(pt.Y); nan {
 			continue
 		}
 		pos.X = serie.X.Scale(pt.X)
@@ -685,8 +684,7 @@ func (r LinearRenderer[T, U]) renderStep(serie Serie[T, U], zero bool) svg.Path 
 
 	ori = pos
 	for _, pt := range slices.Rest(serie.Points) {
-		if f, ok := isFloat(pt.Y); ok && math.IsNaN(f) {
-			nan = true
+		if nan = isNaN(pt.Y); nan {
 			continue
 		}
 		pos.X = serie.X.Scale(pt.X)
@@ -722,8 +720,7 @@ func (r LinearRenderer[T, U]) renderStepAfter(serie Serie[T, U], zero bool) svg.
 
 	ori = pos
 	for _, pt := range slices.Rest(serie.Points) {
-		if f, ok := isFloat(pt.Y); ok && math.IsNaN(f) {
-			nan = true
+		if nan = isNaN(pt.Y); nan {
 			continue
 		}
 		pos.X = serie.X.Scale(pt.X)
@@ -762,8 +759,7 @@ func (r LinearRenderer[T, U]) renderStepBefore(serie Serie[T, U], zero bool) svg
 
 	ori = pos
 	for _, pt := range slices.Rest(serie.Points) {
-		if f, ok := isFloat(pt.Y); ok && math.IsNaN(f) {
-			nan = true
+		if nan = isNaN(pt.Y); nan {
 			continue
 		}
 		pos.X = serie.X.Scale(pt.X)
@@ -814,4 +810,12 @@ func getPosFromAngle(angle, radius float64) svg.Pos {
 func isFloat[T any](v T) (float64, bool) {
 	x, ok := any(v).(float64)
 	return x, ok
+}
+
+func isNaN[T any](v T) bool {
+	f, ok := isFloat(v)
+	if !ok {
+		return ok
+	}
+	return math.IsNaN(f)
 }
