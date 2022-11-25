@@ -1,8 +1,8 @@
 package charts
 
 var (
-	Category10 []string
-	Tableau10  []string
+	Category10 Palette
+	Tableau10  Palette
 )
 
 func init() {

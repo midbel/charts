@@ -3,8 +3,8 @@ package charts
 import (
 	"fmt"
 
+	"github.com/midbel/slices"
 	"github.com/midbel/svg"
-	// "github.com/midbel/slices"
 )
 
 type TextPosition int
@@ -40,8 +40,8 @@ type Style struct {
 	LineWidth   float64
 	LineOpacity float64
 
+	FillList    Palette
 	FillOpacity float64
-	FillList    []string
 	FillStyle   string
 
 	FontSize   float64
@@ -66,7 +66,7 @@ func DefaultStyle() Style {
 	}
 }
 
-func (s Style) Rect(w, h float64, x int) svg.Rect {
+func (s Style) Rect(w, h float64) svg.Rect {
 	var rec svg.Rect
 	rec.Dim = svg.NewDim(w, h)
 	rec.Fill = svg.NewFill("none")
@@ -76,7 +76,7 @@ func (s Style) Rect(w, h float64, x int) svg.Rect {
 		rec.Stroke.Opacity = s.LineOpacity
 	}
 	if n := len(s.FillList); n > 0 {
-		rec.Fill = svg.NewFill(s.FillList[n%x])
+		rec.Fill = svg.NewFill(s.FillList.Next())
 		rec.Fill.Opacity = s.FillOpacity
 	}
 	return rec
@@ -162,4 +162,11 @@ func classGroup(class ...string) svg.Group {
 	var grp svg.Group
 	grp.Class = append(grp.Class, class...)
 	return grp
+}
+
+type Palette []string
+
+func (p Palette) Next() string {
+	defer slices.ShiftLeft(p)
+	return slices.Fst(p)
 }
