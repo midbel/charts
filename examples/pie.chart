@@ -1,0 +1,24 @@
+declare file data/US.csv
+
+set title "US Population"
+set padding 60
+
+set size 600
+
+set xdata string
+set xdomain $file using 0
+set ydata number
+set ydomain $file using 1:+9
+
+load $file using 0,1:+9 as pop-pie
+
+set pie with (
+	line-width 2
+	line-color white
+	fill-list  "#f7ba0b","#d4652f","#a02128","#904684","#154889","#317f43","#9b9b9b","#7b5141","#f4f4f4","#282828"
+)
+
+render to tmp/pie.svg pop-pie as pie with (
+	inner-radius 180
+	outer-radius 240
+)
