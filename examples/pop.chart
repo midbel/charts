@@ -1,9 +1,9 @@
-set title "US Population"
-set padding 30,10,40,80
-
-set size 1366, 600
-
 declare file data/US.csv
+
+set title "US Population"
+set padding 60
+
+set size 1366, 2160
 
 set xdata string
 set xdomain $file using 0
@@ -27,9 +27,35 @@ set yticks with (
 	format by_million
 )
 
-load $file limit 10 using 0,1:+9 with (
-	type bar
-	width 0.8
+at 0,0 (
+	set title "bar population"
+	set size 1366,720
+	load $file using 0,1:+9 as pop-bar
+	use pop-bar as bar with (
+		fill-list "#f7ba0b","#d4652f","#a02128","#904684","#154889","#317f43","#9b9b9b","#7b5141","#f4f4f4","#282828"
+		line-color none
+	)
+)
+at 1,0 (
+	set title "stack population"
+	set size 1366,720
+	load $file using 0,1:9 as pop-stack
+	use pop-stack as stack with (
+		fill-list "#f7ba0b","#d4652f","#a02128","#904684","#154889","#317f43","#9b9b9b","#7b5141","#f4f4f4","#282828"
+		line-color none
+	)
+)
+at 2, 0 (
+	set title "stack normalize population"
+	set size 1366,720
+	set ydomain 0,1
+	set yticks count 10
+	set yticks format by_percent
+	load $file using 0,1:9 as pop-norm
+	use pop-norm as stack-normalize with (
+		fill-list "#f7ba0b","#d4652f","#a02128","#904684","#154889","#317f43","#9b9b9b","#7b5141","#f4f4f4","#282828"
+		line-color none
+	)
 )
 
-render tmp/pop.svg
+render to tmp/pop.svg

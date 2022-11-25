@@ -164,7 +164,7 @@ func numberRenderer[T, U scalerConstraint](kind string, area bool) (charts.Rende
 
 func categoryRenderer[T ~string, U ~float64](kind string, radius float64) (charts.Renderer[T, U], error) {
 	var (
-		rdr charts.Renderer[T, U]
+		rdr   charts.Renderer[T, U]
 		style = charts.DefaultStyle()
 	)
 	style.FillList = charts.Tableau10
@@ -176,16 +176,21 @@ func categoryRenderer[T ~string, U ~float64](kind string, radius float64) (chart
 			Width: 0.75,
 		}
 	case "group":
-	case "stack":
+	case "stack", "norm-stack":
+		rdr = charts.StackedRenderer[T, U]{
+			Style:     style,
+			Width:     0.75,
+			Normalize: kind == "norm-stack",
+		}
 	case "pie":
 		rdr = charts.PieRenderer[T, U]{
-			Style: style,
+			Style:       style,
 			InnerRadius: radius / 2,
 			OuterRadius: radius / 2,
 		}
 	case "donut":
 		rdr = charts.PieRenderer[T, U]{
-			Style: style,
+			Style:       style,
 			InnerRadius: radius / 4,
 			OuterRadius: radius / 2,
 		}

@@ -89,9 +89,9 @@ func CategoryPoint(x string, y float64) Point[string, float64] {
 	}
 }
 
-func (p Point[T, U]) String() string {
-	return fmt.Sprintf("%v,%v", p.X, p.Y)
-}
+// func (p Point[T, U]) String() string {
+// 	return fmt.Sprintf("%v,%v", p.X, p.Y)
+// }
 
 func (p Point[T, U]) Reverse() Point[U, T] {
 	return Point[U, T]{

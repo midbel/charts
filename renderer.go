@@ -280,7 +280,6 @@ func (r SunburstRenderer[T, U]) drawPoints(grp *svg.Group, fill svg.Fill, pt Poi
 		pat.AbsArcTo(pos4, distance-height, distance-height, 0, value > halfcircle, false)
 	}
 	pat.AbsLineTo(pos1)
-	pat.Title = html.EscapeString(pt.String())
 	grp.Append(pat.AsElement())
 
 	level += 1
@@ -418,7 +417,6 @@ func (r GroupRenderer[T, U]) Render(serie Serie[T, U]) svg.Element {
 
 type StackedRenderer[T ~string, U ~float64] struct {
 	Style
-	Fill      []string
 	Width     float64
 	Normalize bool
 }
@@ -427,36 +425,33 @@ func (r StackedRenderer[T, U]) Render(serie Serie[T, U]) svg.Element {
 	if r.Width <= 0 {
 		r.Width = 1
 	}
-	if len(r.Fill) == 0 {
-		r.Fill = Tableau10
-	}
 	var (
 		grp  svg.Group
+		pal  = r.FillList.Clone()
 		max  = serie.Y.Max()
 		size = serie.X.Space()
 	)
 	for _, parent := range serie.Points {
+		r.FillList = pal.Clone()
 		var (
 			offset float64
-			bar    = classGroup("bar")
+			bar    = classGroup("bar", "bar-stack")
 		)
 		bar.Transform = svg.Translate(serie.X.Scale(parent.X), 0)
-		for i, pt := range parent.Sub {
+		for _, pt := range parent.Sub {
 			if r.Normalize {
 				pt.Y = pt.Y / parent.Y
 			}
 			var (
-				y  = serie.Y.Scale(pt.Y)
-				w  = size * r.Width
-				o  = (size - w) / 2
-				el svg.Rect
+				val = serie.Y.Scale(pt.Y)
+				wid = size * r.Width
+				off = (size - wid) / 2
+				rec = r.Rect(wid, max-val)
 			)
-			el.Pos = svg.NewPos(o, y-offset)
-			el.Dim = svg.NewDim(w, max-y)
-			el.Fill = svg.NewFill(r.Fill[i%len(r.Fill)])
-			bar.Append(el.AsElement())
+			rec.Pos = svg.NewPos(off, val-offset)
+			bar.Append(rec.AsElement())
 
-			offset += max - y
+			offset += max - val
 		}
 		grp.Append(bar.AsElement())
 	}
@@ -465,7 +460,6 @@ func (r StackedRenderer[T, U]) Render(serie Serie[T, U]) svg.Element {
 
 type BarRenderer[T ~string, U ~float64] struct {
 	Style
-	Fill  []string
 	Width float64
 }
 

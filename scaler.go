@@ -172,6 +172,12 @@ func (n numberScaler) replace(rg Range) Scaler[float64] {
 	return x
 }
 
+func (n numberScaler) normalize() Scaler[float64] {
+	x := n
+	x.Domain = NumberDomain(1, 0)
+	return x
+}
+
 type timeScaler struct {
 	Range
 	Domain[time.Time]

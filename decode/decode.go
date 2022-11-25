@@ -1040,8 +1040,6 @@ func (d *Decoder) decodeCategoryStyle(style *dash.CategoryStyle) error {
 		return err
 	}
 	switch cmd {
-	case "fill":
-		style.Fill, err = d.getStringList()
 	case "width":
 		style.Width, err = d.getFloat()
 	case kwWith:

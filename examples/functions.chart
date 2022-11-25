@@ -14,3 +14,9 @@ define to_uppercase {
 	import strings
 	return strings.upper(value)
 }
+
+define by_percent {
+	import strings
+	value *= 100
+	return value ? strings.format("%.2f%%", value) : "0"
+}

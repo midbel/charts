@@ -46,22 +46,18 @@ func DefaultNumberStyle() NumberStyle {
 type CategoryStyle struct {
 	Style
 	Ident string
-	Fill  []string
 	Width float64
 }
 
 func DefaultCategoryStyle() CategoryStyle {
 	return CategoryStyle{
 		Style: charts.DefaultStyle(),
-		Fill:  charts.Tableau10,
 		Width: 0.75,
 	}
 }
 
 func (s CategoryStyle) Copy() CategoryStyle {
 	x := s
-	x.Fill = make([]string, len(s.Fill))
-	copy(x.Fill, s.Fill)
 	return x
 }
 
@@ -152,56 +148,42 @@ func getRenderer[T, U charts.ScalerConstraint](kind string, style any) (charts.R
 }
 
 func getCategoryRenderer[T ~string, U float64](kind string, style any) (charts.Renderer[T, U], error) {
-	var rdr charts.Renderer[T, U]
+	var (
+		rdr     charts.Renderer[T, U]
+		st, err = getCategoryStyle(kind, style)
+	)
+	if err != nil {
+		return nil, err
+	}
 	switch kind {
 	case RenderBar:
-		st, err := getCategoryStyle(kind, style)
-		if err != nil {
-			return nil, err
-		}
 		rdr = charts.BarRenderer[T, U]{
-			Fill:  st.Fill,
+			Style: st.Style,
 			Width: st.Width,
 		}
 	case RenderGroup:
-		st, err := getCategoryStyle(kind, style)
-		if err != nil {
-			return nil, err
-		}
 		rdr = charts.GroupRenderer[T, U]{
-			Fill:  st.Fill,
+			Style: st.Style,
 			Width: st.Width,
 		}
 	case RenderStack, RenderNormStack:
-		st, err := getCategoryStyle(kind, style)
-		if err != nil {
-			return nil, err
-		}
 		rdr = charts.StackedRenderer[T, U]{
-			Fill:      st.Fill,
+			Style:     st.Style,
 			Width:     st.Width,
 			Normalize: kind == RenderNormStack,
 		}
-	case RenderPie:
-		st, err := getCircularStyle(kind, style)
-		if err != nil {
-			return nil, err
-		}
-		rdr = charts.PieRenderer[T, U]{
-			Fill:        st.Fill,
-			InnerRadius: st.InnerRadius,
-			OuterRadius: st.OuterRadius,
-		}
-	case RenderSun:
-		st, err := getCircularStyle(kind, style)
-		if err != nil {
-			return nil, err
-		}
-		rdr = charts.SunburstRenderer[T, U]{
-			Fill:        st.Fill,
-			InnerRadius: st.InnerRadius,
-			OuterRadius: st.OuterRadius,
-		}
+	// case RenderPie:
+	// 	rdr = charts.PieRenderer[T, U]{
+	// 		Style: st.Style,
+	// 		InnerRadius: st.InnerRadius,
+	// 		OuterRadius: st.OuterRadius,
+	// 	}
+	// case RenderSun:
+	// 	rdr = charts.SunburstRenderer[T, U]{
+	// 		Style: st.Style,
+	// 		InnerRadius: st.InnerRadius,
+	// 		OuterRadius: st.OuterRadius,
+	// 	}
 	default:
 		return nil, fmt.Errorf("%s unrecognized chart type", kind)
 	}

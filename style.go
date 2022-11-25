@@ -30,6 +30,7 @@ const (
 
 	ColorBlack = "black"
 	ColorBlue  = "blue"
+	ColorNone  = "none"
 )
 
 const currentColour = "currentColour"
@@ -167,6 +168,15 @@ func classGroup(class ...string) svg.Group {
 type Palette []string
 
 func (p Palette) Next() string {
+	if len(p) == 0 {
+		return ColorNone
+	}
 	defer slices.ShiftLeft(p)
 	return slices.Fst(p)
+}
+
+func (p Palette) Clone() Palette {
+	x := make(Palette, len(p))
+	copy(x, p)
+	return x
 }
