@@ -6,7 +6,6 @@ import (
 	"fmt"
 	"io"
 	"net/http"
-	"net/url"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -29,7 +28,7 @@ type Element struct {
 }
 
 func (e Element) TimeSerie(timefmt string, x TimeScale, y FloatScale) (charts.Data, error) {
-	ser, err := e.Data.TimeSerie(timefmt, x, y)
+	ser, err := e.resetSource().TimeSerie(timefmt, x, y)
 	if err != nil {
 		return nil, err
 	}
@@ -38,7 +37,7 @@ func (e Element) TimeSerie(timefmt string, x TimeScale, y FloatScale) (charts.Da
 }
 
 func (e Element) NumberSerie(x FloatScale, y FloatScale) (charts.Data, error) {
-	ser, err := e.Data.NumberSerie(x, y)
+	ser, err := e.resetSource().NumberSerie(x, y)
 	if err != nil {
 		return nil, err
 	}
@@ -47,12 +46,28 @@ func (e Element) NumberSerie(x FloatScale, y FloatScale) (charts.Data, error) {
 }
 
 func (e Element) CategorySerie(x StringScale, y FloatScale) (charts.Data, error) {
-	ser, err := e.Data.CategorySerie(x, y)
+	ser, err := e.resetSource().CategorySerie(x, y)
 	if err != nil {
 		return nil, err
 	}
 	ser.Renderer, err = getCategoryRenderer[string, float64](e.Type, e.Style)
 	return ser, err
+}
+
+func (e Element) resetSource() DataSource {
+	if !e.Using.valid() {
+		return e.Data
+	}
+	switch d := e.Data.(type) {
+	case HttpFile:
+		d.Using = e.Using
+		return d
+	case LocalFile:
+		d.Using = e.Using
+		return d
+	default:
+		return e.Data
+	}
 }
 
 type (
@@ -165,15 +180,15 @@ type Expr struct {
 	Expr  ast.Expression
 }
 
-func (e Expr) TimeSerie(string, TimeScale, FloatScale) (ser TimeSerie, err error) {
+func (e Expr) TimeSerie(timefmt string, x TimeScale, y FloatScale) (ser TimeSerie, err error) {
 	return
 }
 
-func (e Expr) NumberSerie(FloatScale, FloatScale) (ser NumberSerie, err error) {
+func (e Expr) NumberSerie(x FloatScale, y FloatScale) (ser NumberSerie, err error) {
 	return
 }
 
-func (e Expr) CategorySerie(StringScale, FloatScale) (ser CategorySerie, err error) {
+func (e Expr) CategorySerie(x StringScale, y FloatScale) (ser CategorySerie, err error) {
 	return
 }
 
@@ -193,16 +208,98 @@ type HttpFile struct {
 	Headers http.Header
 }
 
-func (f HttpFile) TimeSerie(string, TimeScale, FloatScale) (ser TimeSerie, err error) {
-	return
+func (f HttpFile) TimeSerie(timefmt string, x TimeScale, y FloatScale) (ser TimeSerie, err error) {
+	if !f.Using.valid() {
+		return ser, fmt.Errorf("invalid column selector given")
+	}
+	r, err := f.execute()
+	if err != nil {
+		return
+	}
+	defer r.Close()
+
+	get, err := getTimeFunc(f.X, f.Y, timefmt)
+	if err != nil {
+		return
+	}
+	points, err := loadPointsFromReader(r, get)
+	if err != nil {
+		return
+	}
+	points = splitPoints(f.Limit, points)
+
+	ser = createSerie[time.Time, float64](f.Ident, points)
+	ser.X = x
+	ser.Y = y
+	return ser, err
 }
 
-func (f HttpFile) NumberSerie(FloatScale, FloatScale) (ser NumberSerie, err error) {
-	return
+func (f HttpFile) NumberSerie(x FloatScale, y FloatScale) (ser NumberSerie, err error) {
+	if !f.Using.valid() {
+		return ser, fmt.Errorf("invalid column selector given")
+	}
+	r, err := f.execute()
+	if err != nil {
+		return
+	}
+	defer r.Close()
+
+	get := getNumberFunc(f.X, f.Y)
+	points, err := loadPointsFromReader(r, get)
+	if err != nil {
+		return
+	}
+	points = splitPoints(f.Limit, points)
+
+	ser = createSerie[float64, float64](f.Ident, points)
+	ser.X = x
+	ser.Y = y
+	return ser, err
 }
 
-func (f HttpFile) CategorySerie(StringScale, FloatScale) (ser CategorySerie, err error) {
-	return
+func (f HttpFile) CategorySerie(x StringScale, y FloatScale) (ser CategorySerie, err error) {
+	if !f.Using.valid() {
+		return ser, fmt.Errorf("invalid column selector given")
+	}
+	r, err := f.execute()
+	if err != nil {
+		return
+	}
+	defer r.Close()
+
+	get := getCategoryFunc(f.X, f.Y)
+	points, err := loadPointsFromReader(r, get)
+	if err != nil {
+		return
+	}
+	points = splitPoints(f.Limit, points)
+
+	ser = createSerie[string, float64](f.Ident, points)
+	ser.X = x
+	ser.Y = y
+	return ser, nil
+}
+
+func (f HttpFile) execute() (io.ReadCloser, error) {
+	req, err := http.NewRequest(f.Method, f.Uri, strings.NewReader(f.Body))
+	if err != nil {
+		return nil, err
+	}
+	req.Header = f.Headers.Clone()
+	if set := req.Header.Get("Authorization"); f.Token != "" && len(set) == 0 {
+		req.Header.Set("Authorization", fmt.Sprintf("Bearer %s", f.Token))
+	}
+	if f.Token == "" && f.Username != "" && f.Password != "" {
+		req.SetBasicAuth(f.Username, f.Password)
+	}
+	res, err := http.DefaultClient.Do(req)
+	if err != nil {
+		return nil, err
+	}
+	if res.StatusCode >= http.StatusBadRequest {
+		return nil, fmt.Errorf("%d: %s", res.StatusCode, http.StatusText(res.StatusCode))
+	}
+	return res.Body, nil
 }
 
 type LocalData struct {
@@ -264,10 +361,25 @@ func (f LocalFile) Name() string {
 }
 
 func (f LocalFile) TimeSerie(timefmt string, x TimeScale, y FloatScale) (ser TimeSerie, err error) {
-	points, err := loadTimePoints(f, timefmt)
+	if !f.Using.valid() {
+		return ser, fmt.Errorf("invalid column selector given")
+	}
+	r, err := f.open()
 	if err != nil {
 		return
 	}
+	defer r.Close()
+
+	get, err := getTimeFunc(f.X, f.Y, timefmt)
+	if err != nil {
+		return
+	}
+	points, err := loadPointsFromReader(r, get)
+	if err != nil {
+		return
+	}
+	points = splitPoints(f.Limit, points)
+
 	ser = createSerie[time.Time, float64](f.Name(), points)
 	ser.X = x
 	ser.Y = y
@@ -275,10 +387,22 @@ func (f LocalFile) TimeSerie(timefmt string, x TimeScale, y FloatScale) (ser Tim
 }
 
 func (f LocalFile) NumberSerie(x FloatScale, y FloatScale) (ser NumberSerie, err error) {
-	points, err := loadNumberPoints(f)
+	if !f.Using.valid() {
+		return ser, fmt.Errorf("invalid column selector given")
+	}
+	r, err := f.open()
 	if err != nil {
 		return
 	}
+	defer r.Close()
+
+	get := getNumberFunc(f.X, f.Y)
+	points, err := loadPointsFromReader(r, get)
+	if err != nil {
+		return
+	}
+	points = splitPoints(f.Limit, points)
+
 	ser = createSerie[float64, float64](f.Name(), points)
 	ser.X = x
 	ser.Y = y
@@ -286,86 +410,46 @@ func (f LocalFile) NumberSerie(x FloatScale, y FloatScale) (ser NumberSerie, err
 }
 
 func (f LocalFile) CategorySerie(x StringScale, y FloatScale) (ser CategorySerie, err error) {
-	points, err := loadCategoryPoints(f)
+	if !f.Using.valid() {
+		return ser, fmt.Errorf("invalid column selector given")
+	}
+	r, err := f.open()
 	if err != nil {
 		return
 	}
+	defer r.Close()
+
+	get := getCategoryFunc(f.X, f.Y)
+	points, err := loadPointsFromReader(r, get)
+	if err != nil {
+		return
+	}
+	points = splitPoints(f.Limit, points)
+
 	ser = createSerie[string, float64](f.Name(), points)
 	ser.X = x
 	ser.Y = y
 	return ser, nil
 }
 
-func loadCategoryPoints(f LocalFile) ([]charts.Point[string, float64], error) {
-	get := getCategoryFunc(f.X, f.Y)
-	return loadPoints[string, float64](f.Path, f.Limit, get)
+func (f LocalFile) open() (io.ReadCloser, error) {
+	return os.Open(f.Path)
 }
 
-func loadNumberPoints(f LocalFile) ([]charts.Point[float64, float64], error) {
-	get := getNumberFunc(f.X, f.Y)
-	return loadPoints[float64, float64](f.Path, f.Limit, get)
-}
-
-func loadTimePoints(f LocalFile, timefmt string) ([]charts.Point[time.Time, float64], error) {
-	get, err := getTimeFunc(f.X, f.Y, timefmt)
-	if err != nil {
-		return nil, err
+func splitPoints[T, U charts.ScalerConstraint](lim Limit, points []charts.Point[T, U]) []charts.Point[T, U] {
+	if lim.zero() || lim.Offset < 0 || lim.Count < 0 {
+		return points
 	}
-	return loadPoints[time.Time, float64](f.Path, f.Limit, get)
-}
-
-func readFrom(location string) (io.ReadCloser, error) {
-	u, err := url.Parse(location)
-	if err != nil {
-		return nil, err
+	if lim.Offset < len(points) {
+		points = points[lim.Offset:]
 	}
-	switch u.Scheme {
-	case "http", "https":
-		req, err := http.NewRequest(http.MethodGet, u.String(), nil)
-		if err != nil {
-			return nil, err
-		}
-		res, err := http.DefaultClient.Do(req)
-		if err != nil {
-			return nil, err
-		}
-		if res.StatusCode != 200 {
-			return nil, fmt.Errorf("request does not end with success result code")
-		}
-		return res.Body, nil
-	case "", "file":
-		return os.Open(u.Path)
-	default:
-		return nil, fmt.Errorf("%s: unsupported scheme", u.Scheme)
+	if lim.Count < len(points) {
+		points = points[:lim.Count]
 	}
+	return points
 }
 
 type getFunc[T, U charts.ScalerConstraint] func([]string) (charts.Point[T, U], error)
-
-func loadPoints[T, U charts.ScalerConstraint](file string, lim Limit, get getFunc[T, U]) ([]charts.Point[T, U], error) {
-	r, err := readFrom(file)
-	if err != nil {
-		return nil, err
-	}
-	defer r.Close()
-
-	list, err := loadPointsFromReader[T, U](r, get)
-	if err != nil {
-		return nil, err
-	}
-
-	z := len(list)
-	if lim.Offset < 0 {
-		lim.Offset = z + lim.Offset
-	}
-	if lim.Offset > 0 && lim.Offset < z {
-		list = list[lim.Offset:]
-	}
-	if lim.Count > 0 && lim.Count < len(list) {
-		list = list[:lim.Count]
-	}
-	return list, nil
-}
 
 func loadPointsFromReader[T, U charts.ScalerConstraint](r io.Reader, get getFunc[T, U]) ([]charts.Point[T, U], error) {
 	var (
