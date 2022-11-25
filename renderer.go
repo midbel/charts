@@ -380,7 +380,6 @@ func (r PieRenderer[T, U]) difference() float64 {
 
 type GroupRenderer[T ~string, U float64] struct {
 	Style
-	Fill  []string
 	Width float64
 }
 
@@ -388,14 +387,13 @@ func (r GroupRenderer[T, U]) Render(serie Serie[T, U]) svg.Element {
 	if r.Width <= 0 {
 		r.Width = 1
 	}
-	if len(r.Fill) == 0 {
-		r.Fill = Tableau10
-	}
 	var (
+		pal = r.FillList.Clone()
 		grp = classGroup("bar")
 		sub = serie.X.replace(NewRange(0, serie.X.Space()))
 	)
 	for _, pt := range serie.Points {
+		r.FillList = pal.Clone()
 		g := classGroup("group", "bar-group")
 		g.Transform = svg.Translate(serie.X.Scale(pt.X), 0)
 
@@ -406,9 +404,15 @@ func (r GroupRenderer[T, U]) Render(serie Serie[T, U]) svg.Element {
 			}
 			sub = r.reset(dat)
 		}
-		for i, s := range pt.Sub {
-			el := getRect(s, sub, serie.Y, r.Width, r.Fill[i%len(r.Fill)])
-			g.Append(el)
+		for _, s := range pt.Sub {
+			var (
+				width  = sub.Space() * r.Width
+				height = serie.Y.Max() - serie.Y.Scale(s.Y)
+				offset = (sub.Space() - width) / 2
+				rec    = r.Rect(width, height)
+			)
+			rec.Pos = svg.NewPos(sub.Scale(s.X)+offset, serie.Y.Scale(s.Y))
+			g.Append(rec.AsElement())
 		}
 		grp.Append(g.AsElement())
 	}
