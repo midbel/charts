@@ -163,21 +163,29 @@ func numberRenderer[T, U scalerConstraint](kind string, area bool) (charts.Rende
 }
 
 func categoryRenderer[T ~string, U ~float64](kind string, radius float64) (charts.Renderer[T, U], error) {
-	var rdr charts.Renderer[T, U]
+	var (
+		rdr charts.Renderer[T, U]
+		style = charts.DefaultStyle()
+	)
+	style.FillList = charts.Tableau10
+	style.LineWidth = 0
 	switch kind {
 	case "bar", "":
 		rdr = charts.BarRenderer[T, U]{
-			Width: 0.9,
+			Style: style,
+			Width: 0.75,
 		}
 	case "group":
 	case "stack":
 	case "pie":
 		rdr = charts.PieRenderer[T, U]{
+			Style: style,
 			InnerRadius: radius / 2,
 			OuterRadius: radius / 2,
 		}
 	case "donut":
 		rdr = charts.PieRenderer[T, U]{
+			Style: style,
 			InnerRadius: radius / 4,
 			OuterRadius: radius / 2,
 		}

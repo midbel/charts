@@ -223,6 +223,7 @@ func (r PolarRenderer[T, U]) drawCircularTicks(radius float64, stroke svg.Stroke
 }
 
 type SunburstRenderer[T ~string, U ~float64] struct {
+	Style
 	Fill        []string
 	InnerRadius float64
 	OuterRadius float64
@@ -301,6 +302,7 @@ func (r SunburstRenderer[T, U]) distanceFromCenter() float64 {
 }
 
 type PieRenderer[T ~string, U ~float64] struct {
+	Style
 	Fill        []string
 	InnerRadius float64
 	OuterRadius float64
@@ -378,6 +380,7 @@ func (r PieRenderer[T, U]) difference() float64 {
 }
 
 type GroupRenderer[T ~string, U float64] struct {
+	Style
 	Fill  []string
 	Width float64
 }
@@ -414,6 +417,7 @@ func (r GroupRenderer[T, U]) Render(serie Serie[T, U]) svg.Element {
 }
 
 type StackedRenderer[T ~string, U ~float64] struct {
+	Style
 	Fill      []string
 	Width     float64
 	Normalize bool
@@ -460,6 +464,7 @@ func (r StackedRenderer[T, U]) Render(serie Serie[T, U]) svg.Element {
 }
 
 type BarRenderer[T ~string, U ~float64] struct {
+	Style
 	Fill  []string
 	Width float64
 }
@@ -468,13 +473,16 @@ func (r BarRenderer[T, U]) Render(serie Serie[T, U]) svg.Element {
 	if r.Width <= 0 {
 		r.Width = 1
 	}
-	if len(r.Fill) == 0 {
-		r.Fill = Tableau10
-	}
 	grp := classGroup("bar")
-	for i, pt := range serie.Points {
-		el := getRect(pt, serie.X, serie.Y, r.Width, r.Fill[i%len(r.Fill)])
-		grp.Append(el)
+	for _, pt := range serie.Points {
+		var (
+			width  = serie.X.Space() * r.Width
+			height = serie.Y.Max() - serie.Y.Scale(pt.Y)
+			offset = (serie.X.Space() - width) / 2
+			rec    = r.Rect(width, height)
+		)
+		rec.Pos = svg.NewPos(serie.X.Scale(pt.X)+offset, serie.Y.Scale(pt.Y))
+		grp.Append(rec.AsElement())
 	}
 	return grp.AsElement()
 }

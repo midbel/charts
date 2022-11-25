@@ -111,4 +111,4 @@ set <type> with (
 	outer-radius number
 ) [as <ident>]
 
-render [to <file>] <ident> [using [x,]y] <type> [with (...)][,...]
+render [to <file>] [<ident> [using [x,]y] <type> [with (...)][,...]]
