@@ -105,7 +105,7 @@ func (s Style) Path() svg.Path {
 	pat.Stroke.Opacity = s.LineOpacity
 	pat.Stroke.LineJoin = "round"
 	pat.Stroke.LineCap = "round"
-	pat.Fill = svg.NewFill("none")
+	pat.Fill = svg.NewFill(ColorNone)
 
 	switch s.LineType {
 	case StyleStraight, StyleSolid:

@@ -2,7 +2,6 @@ package charts
 
 import (
 	"fmt"
-	"html"
 	"math"
 
 	"github.com/midbel/slices"
@@ -302,7 +301,6 @@ func (r SunburstRenderer[T, U]) distanceFromCenter() float64 {
 
 type PieRenderer[T ~string, U ~float64] struct {
 	Style
-	Fill        []string
 	InnerRadius float64
 	OuterRadius float64
 	Text        TextPosition
@@ -312,16 +310,13 @@ func (r PieRenderer[T, U]) Render(serie Serie[T, U]) svg.Element {
 	if r.InnerRadius <= 0 {
 		r.InnerRadius = r.OuterRadius
 	}
-	if len(r.Fill) == 0 {
-		r.Fill = Tableau10
-	}
 	var (
 		grp   = classGroup("pie")
 		part  = fullcircle / serie.Sum()
 		angle float64
 	)
 	grp.Transform = svg.Translate(serie.X.Max()/2, serie.Y.Max()/2)
-	for i, pt := range serie.Points {
+	for _, pt := range serie.Points {
 		var (
 			rad  = angle * deg2rad
 			val  = any(pt.Y).(float64) * part
@@ -329,12 +324,11 @@ func (r PieRenderer[T, U]) Render(serie Serie[T, U]) svg.Element {
 			pos4 = r.getPos4(rad)
 			pat  svg.Path
 		)
-		pat.Fill = svg.NewFill(r.Fill[i%len(r.Fill)])
+		pat.Fill = svg.NewFill(r.FillList.Next())
+		pat.Fill.Opacity = r.FillOpacity
 		pat.Rendering = "geometricPrecision"
-		pat.Stroke = svg.NewStroke("white", 2)
-		if s, ok := any(pt.X).(string); ok {
-			pat.Title = html.EscapeString(s)
-		}
+		pat.Stroke = svg.NewStroke(r.LineColor, r.LineWidth)
+		pat.Stroke.Opacity = r.LineOpacity
 
 		pat.AbsMoveTo(r.getPos1(rad))
 		pat.AbsArcTo(r.getPos2(angle, val), r.OuterRadius, r.OuterRadius, 0, val > halfcircle, true)
@@ -347,13 +341,6 @@ func (r PieRenderer[T, U]) Render(serie Serie[T, U]) svg.Element {
 		grp.Append(pat.AsElement())
 
 		angle += val
-
-		switch r.Text {
-		case TextAfter:
-		case TextCenter:
-		default:
-		}
-
 	}
 	return grp.AsElement()
 }

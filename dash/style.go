@@ -147,7 +147,37 @@ func getRenderer[T, U charts.ScalerConstraint](kind string, style any) (charts.R
 	return rdr, nil
 }
 
+func getCircularRenderer[T ~string, U float64](kind string, style any) (charts.Renderer[T, U], error) {
+	var (
+		rdr     charts.Renderer[T, U]
+		st, err = getCircularStyle(kind, style)
+	)
+	if err != nil {
+		return nil, err
+	}
+	switch kind {
+	case RenderPie:
+		rdr = charts.PieRenderer[T, U]{
+			Style: st.Style,
+			InnerRadius: st.InnerRadius,
+			OuterRadius: st.OuterRadius,
+		}
+	case RenderSun:
+		rdr = charts.SunburstRenderer[T, U]{
+			Style: st.Style,
+			InnerRadius: st.InnerRadius,
+			OuterRadius: st.OuterRadius,
+		}
+	default:
+		return nil, fmt.Errorf("%s unrecognized chart type", kind)
+	}
+	return rdr, nil
+}
+
 func getCategoryRenderer[T ~string, U float64](kind string, style any) (charts.Renderer[T, U], error) {
+	if kind == RenderPie || kind == RenderSun {
+		return getCircularRenderer[T, U](kind, style)
+	}
 	var (
 		rdr     charts.Renderer[T, U]
 		st, err = getCategoryStyle(kind, style)
@@ -172,18 +202,6 @@ func getCategoryRenderer[T ~string, U float64](kind string, style any) (charts.R
 			Width:     st.Width,
 			Normalize: kind == RenderNormStack,
 		}
-	// case RenderPie:
-	// 	rdr = charts.PieRenderer[T, U]{
-	// 		Style: st.Style,
-	// 		InnerRadius: st.InnerRadius,
-	// 		OuterRadius: st.OuterRadius,
-	// 	}
-	// case RenderSun:
-	// 	rdr = charts.SunburstRenderer[T, U]{
-	// 		Style: st.Style,
-	// 		InnerRadius: st.InnerRadius,
-	// 		OuterRadius: st.OuterRadius,
-	// 	}
 	default:
 		return nil, fmt.Errorf("%s unrecognized chart type", kind)
 	}
