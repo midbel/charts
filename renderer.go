@@ -226,70 +226,64 @@ type SunburstRenderer[T ~string, U ~float64] struct {
 	Fill        []string
 	InnerRadius float64
 	OuterRadius float64
+
+	height float64
+	scaler ringScaler[U]
 }
 
 func (r SunburstRenderer[T, U]) Render(serie Serie[T, U]) svg.Element {
 	if r.InnerRadius <= 0 {
 		r.InnerRadius = r.OuterRadius
 	}
-	if len(r.Fill) == 0 {
-		r.Fill = Tableau10
-	}
-	var (
-		grp    = classGroup("sun")
-		height = (r.OuterRadius - r.InnerRadius) / float64(serie.Depth())
-		frac   = fullcircle / serie.Sum()
-		offset float64
-	)
-	grp.Transform = svg.Translate(serie.X.Max()/2, serie.Y.Max()/2)
-	for i, pt := range serie.Points {
-		var (
-			g svg.Group
-			f = svg.NewFill(r.Fill[i%len(r.Fill)])
-		)
-		g.Id = any(pt.X).(string)
 
-		r.drawPoints(&g, f, pt, offset, frac, 0, height)
-		grp.Append(g.AsElement())
-		offset += any(pt.Y).(float64) * frac
+	r.scaler = ring[U](serie.Sum())
+	r.height = (r.OuterRadius - r.InnerRadius) / float64(serie.Depth())
+
+	var (
+		sun   = classGroup("sun")
+		angle float64
+	)
+	sun.Transform = svg.Translate(serie.X.Max()/2, serie.Y.Max()/2)
+	for _, pt := range serie.Points {
+		var grp svg.Group
+		angle += r.renderPoint(&grp, pt, angle, 0)
+
+		sun.Append(grp.AsElement())
+		r.FillList.Next()
 	}
-	return grp.AsElement()
+	return sun.AsElement()
 }
 
-func (r SunburstRenderer[T, U]) drawPoints(grp *svg.Group, fill svg.Fill, pt Point[T, U], offset, frac, level, height float64) {
+func (r SunburstRenderer[T, U]) renderPoint(grp *svg.Group, pt Point[T, U], offset, level float64) float64 {
 	var (
-		value    = any(pt.Y).(float64) * frac
-		distance = r.distanceFromCenter() + (height * level) + height
+		value    = r.scaler.Scale(pt.Y)
+		distance = r.distanceFromCenter() + (r.height * level) + r.height
 		pos1     = getPosFromAngle(offset*deg2rad, distance)
 		pos2     = getPosFromAngle((offset+value)*deg2rad, distance)
-		pos3     = getPosFromAngle((offset+value)*deg2rad, distance-height)
-		pos4     = getPosFromAngle(offset*deg2rad, distance-height)
-		pat      svg.Path
+		pos3     = getPosFromAngle((offset+value)*deg2rad, distance-r.height)
+		pos4     = getPosFromAngle(offset*deg2rad, distance-r.height)
+		pat      = r.currPath()
 	)
-
-	pat.Fill = fill
-	pat.Rendering = "geometricPrecision"
-	pat.Stroke = svg.NewStroke("white", 2)
 
 	pat.AbsMoveTo(pos1)
 	pat.AbsArcTo(pos2, distance, distance, 0, value > halfcircle, true)
 	pat.AbsLineTo(pos3)
 
 	if pos3.X != pos4.X && pos3.Y != pos4.Y {
-		pat.AbsArcTo(pos4, distance-height, distance-height, 0, value > halfcircle, false)
+		pat.AbsArcTo(pos4, distance-r.height, distance-r.height, 0, value > halfcircle, false)
 	}
 	pat.AbsLineTo(pos1)
+	pat.ClosePath()
 	grp.Append(pat.AsElement())
 
-	level += 1
+	level++
 	if pt.isLeaf() {
-		return
+		return value
 	}
-	for _, p := range pt.Sub {
-		sub := frac * any(p.Y).(float64)
-		r.drawPoints(grp, fill, p, offset, frac, level, height)
-		offset += sub
+	for _, pt := range pt.Sub {
+		offset += r.renderPoint(grp, pt, offset, level)
 	}
+	return value
 }
 
 func (r SunburstRenderer[T, U]) distanceFromCenter() float64 {
@@ -304,31 +298,29 @@ type PieRenderer[T ~string, U ~float64] struct {
 	InnerRadius float64
 	OuterRadius float64
 	Text        TextPosition
+
+	scaler ringScaler[U]
 }
 
 func (r PieRenderer[T, U]) Render(serie Serie[T, U]) svg.Element {
 	if r.InnerRadius <= 0 {
 		r.InnerRadius = r.OuterRadius
 	}
+	r.scaler = ring[U](serie.Sum())
+
 	var (
 		grp   = classGroup("pie")
-		part  = fullcircle / serie.Sum()
 		angle float64
 	)
 	grp.Transform = svg.Translate(serie.X.Max()/2, serie.Y.Max()/2)
 	for _, pt := range serie.Points {
 		var (
 			rad  = angle * deg2rad
-			val  = any(pt.Y).(float64) * part
+			val  = r.scaler.Scale(pt.Y)
 			pos3 = r.getPos3(angle, val)
 			pos4 = r.getPos4(rad)
-			pat  svg.Path
+			pat  = r.defaultPath()
 		)
-		pat.Fill = svg.NewFill(r.FillList.Next())
-		pat.Fill.Opacity = r.FillOpacity
-		pat.Rendering = "geometricPrecision"
-		pat.Stroke = svg.NewStroke(r.LineColor, r.LineWidth)
-		pat.Stroke.Opacity = r.LineOpacity
 
 		pat.AbsMoveTo(r.getPos1(rad))
 		pat.AbsArcTo(r.getPos2(angle, val), r.OuterRadius, r.OuterRadius, 0, val > halfcircle, true)
@@ -651,7 +643,7 @@ func (r LinearRenderer[T, U]) Render(serie Serie[T, U]) svg.Element {
 
 func (r LinearRenderer[T, U]) renderLine(serie Serie[T, U], zero bool) svg.Path {
 	var (
-		pat = r.Path()
+		pat = r.linePath()
 		pos svg.Pos
 		nan bool
 	)
@@ -679,7 +671,7 @@ func (r LinearRenderer[T, U]) renderLine(serie Serie[T, U], zero bool) svg.Path 
 
 func (r LinearRenderer[T, U]) renderStep(serie Serie[T, U], zero bool) svg.Path {
 	var (
-		pat = r.Path()
+		pat = r.linePath()
 		pos = svg.NewPos(serie.X.Min(), serie.Y.Max())
 		ori svg.Pos
 		nan bool
@@ -716,7 +708,7 @@ func (r LinearRenderer[T, U]) renderStep(serie Serie[T, U], zero bool) svg.Path 
 
 func (r LinearRenderer[T, U]) renderStepAfter(serie Serie[T, U], zero bool) svg.Path {
 	var (
-		pat = r.Path()
+		pat = r.linePath()
 		pos svg.Pos
 		ori svg.Pos
 		nan bool
@@ -754,7 +746,7 @@ func (r LinearRenderer[T, U]) renderStepAfter(serie Serie[T, U], zero bool) svg.
 
 func (r LinearRenderer[T, U]) renderStepBefore(serie Serie[T, U], zero bool) svg.Path {
 	var (
-		pat = r.Path()
+		pat = r.linePath()
 		pos svg.Pos
 		ori svg.Pos
 		nan bool
@@ -796,47 +788,20 @@ func (r LinearRenderer[T, U]) renderText(serie Serie[T, U]) svg.Element {
 	switch txt := r.Style.Text(serie.Title); r.Text {
 	case TextBefore:
 		pt := slices.Fst(serie.Points)
-		return getText(txt, 0, serie.Y.Scale(pt.Y), true)
+		txt.Pos = svg.NewPos(0, serie.Y.Scale(pt.Y))
+		txt.Anchor = "start"
+		txt.Pos.X += txt.Font.Size * 0.4
+		return txt.AsElement()
 	case TextAfter:
 		pt := slices.Lst(serie.Points)
-		return getText(txt, serie.X.Scale(pt.X), serie.Y.Scale(pt.Y), false)
+		txt.Pos = svg.NewPos(serie.X.Scale(pt.X), serie.Y.Scale(pt.Y))
+		txt.Anchor = "end"
+		txt.Pos.X -= txt.Font.Size * 0.4
+		return txt.AsElement()
 	default:
 		return nil
 	}
 }
-
-func getText(txt svg.Text, x, y float64, before bool) svg.Element {
-	txt.Pos = svg.NewPos(x, y)
-	if !before {
-		txt.Anchor = "start"
-		txt.Pos.X += txt.Font.Size * 0.4
-	} else {
-		txt.Anchor = "end"
-		txt.Pos.X -= txt.Font.Size * 0.4
-	}
-	return txt.AsElement()
-}
-
-func getRect[T, U ScalerConstraint](pt Point[T, U], x Scaler[T], y Scaler[U], ratio float64, fill string) svg.Element {
-	var (
-		width  = x.Space() * ratio
-		offset = (x.Space() - width) / 2
-		pos    = svg.NewPos(x.Scale(pt.X)+offset, y.Scale(pt.Y))
-		dim    = svg.NewDim(width, y.Max()-pos.Y)
-	)
-	var el svg.Rect
-	el.Pos = pos
-	el.Dim = dim
-	el.Fill = svg.NewFill(fill)
-	return el.AsElement()
-}
-
-const (
-	fullcircle = 360.0
-	halfcircle = 180.0
-	deg2rad    = math.Pi / halfcircle
-	rad2deg    = halfcircle / math.Pi
-)
 
 func getPosFromAngle(angle, radius float64) svg.Pos {
 	var (

@@ -98,14 +98,18 @@ func (s Style) Text(str string) svg.Text {
 	return txt
 }
 
-func (s Style) Path() svg.Path {
-	var pat svg.Path
-	pat.Rendering = "geometricPrecision"
-	pat.Stroke = svg.NewStroke(s.LineColor, s.LineWidth)
-	pat.Stroke.Opacity = s.LineOpacity
+func (s Style) defaultPath() svg.Path {
+	return s.basePath(s.FillList.Next())
+}
+
+func (s Style) currPath() svg.Path {
+	return s.basePath(s.FillList.Curr())
+}
+
+func (s Style) linePath() svg.Path {
+	pat := s.basePath(ColorNone)
 	pat.Stroke.LineJoin = "round"
 	pat.Stroke.LineCap = "round"
-	pat.Fill = svg.NewFill(ColorNone)
 
 	switch s.LineType {
 	case StyleStraight, StyleSolid:
@@ -114,6 +118,19 @@ func (s Style) Path() svg.Path {
 	case StyleDashed:
 		pat.Stroke.DashArray = append(pat.Stroke.DashArray, 10, 5)
 	default:
+	}
+	return pat
+}
+
+func (s Style) basePath(fill string) svg.Path {
+	var pat svg.Path
+	pat.Rendering = "geometricPrecision"
+	pat.Stroke = svg.NewStroke(s.LineColor, s.LineWidth)
+	pat.Stroke.Opacity = s.LineOpacity
+
+	if fill != "" {
+		pat.Fill = svg.NewFill(fill)
+		pat.Fill.Opacity = s.FillOpacity
 	}
 	return pat
 }
@@ -167,12 +184,16 @@ func classGroup(class ...string) svg.Group {
 
 type Palette []string
 
+func (p Palette) Curr() string {
+	return slices.Fst(p)
+}
+
 func (p Palette) Next() string {
 	if len(p) == 0 {
 		return ColorNone
 	}
 	defer slices.ShiftLeft(p)
-	return slices.Fst(p)
+	return p.Curr()
 }
 
 func (p Palette) Clone() Palette {

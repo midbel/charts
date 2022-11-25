@@ -85,20 +85,28 @@ func main() {
 }
 
 func getRenderer(name string, inner, outer float64, normalize bool) (charts.Renderer[string, float64], error) {
-	var rdr charts.Renderer[string, float64]
+	var (
+		rdr   charts.Renderer[string, float64]
+		style = charts.DefaultStyle()
+	)
+	style.FillList = charts.Tableau10
+	style.LineColor = "white"
+	style.LineWidth = 1
 	switch name {
 	case "stacked", "vert", "vertical", "":
 		rdr = charts.StackedRenderer[string, float64]{
+			Style:     style,
 			Width:     0.8,
-			Fill:      charts.Tableau10,
 			Normalize: normalize,
 		}
 	case "group", "horiz", "horizontal":
 		rdr = charts.GroupRenderer[string, float64]{
+			Style: style,
 			Width: 0.8,
 		}
 	case "sun", "sunburst":
 		rdr = charts.SunburstRenderer[string, float64]{
+			Style:       style,
 			InnerRadius: inner,
 			OuterRadius: outer,
 		}

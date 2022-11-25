@@ -2,6 +2,7 @@ package charts
 
 import (
 	"fmt"
+	"math"
 	"time"
 )
 
@@ -276,4 +277,25 @@ func (s stringScaler) replace(rg Range) Scaler[string] {
 
 type scalerReset[T ScalerConstraint] interface {
 	reset([]T) Scaler[T]
+}
+
+const (
+	fullcircle = 360.0
+	halfcircle = 180.0
+	deg2rad    = math.Pi / halfcircle
+	rad2deg    = halfcircle / math.Pi
+)
+
+type ringScaler[T ~float64] struct {
+	fraction float64
+}
+
+func ring[T ~float64](sum float64) ringScaler[T] {
+	return ringScaler[T]{
+		fraction: fullcircle / sum,
+	}
+}
+
+func (r ringScaler[T]) Scale(n T) float64 {
+	return float64(n) * r.fraction
 }

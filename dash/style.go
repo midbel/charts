@@ -158,13 +158,13 @@ func getCircularRenderer[T ~string, U float64](kind string, style any) (charts.R
 	switch kind {
 	case RenderPie:
 		rdr = charts.PieRenderer[T, U]{
-			Style: st.Style,
+			Style:       st.Style,
 			InnerRadius: st.InnerRadius,
 			OuterRadius: st.OuterRadius,
 		}
 	case RenderSun:
 		rdr = charts.SunburstRenderer[T, U]{
-			Style: st.Style,
+			Style:       st.Style,
 			InnerRadius: st.InnerRadius,
 			OuterRadius: st.OuterRadius,
 		}
