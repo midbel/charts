@@ -509,7 +509,7 @@ func (r PointRenderer[T, U]) Render(serie Serie[T, U]) svg.Element {
 // func (r CubicRenderer[T, U]) Render(serie Serie[T, U]) svg.Element {
 // 	var (
 // 		grp = classGroup("line")
-// 		pat = r.LinePath()
+// 		pat = r.Path()
 // 		pos = svg.NewPos(serie.X.Min(), serie.Y.Max())
 // 		ori svg.Pos
 // 	)
@@ -549,6 +549,7 @@ const (
 	CurveStep
 	CurveBefore
 	CurveAfter
+	CurveCubic
 )
 
 func (c CurveType) Classname() []string {
@@ -563,6 +564,8 @@ func (c CurveType) Classname() []string {
 		return []string{"line", "line-step", "step-before"}
 	case CurveAfter:
 		return []string{"line", "line-step", "step-after"}
+	case CurveCubic:
+		return []string{"line", "line-cubic"}
 	}
 }
 
@@ -638,11 +641,11 @@ func (r LinearRenderer[T, U]) Render(serie Serie[T, U]) svg.Element {
 	case CurveLine:
 		pat = r.renderLine(serie, false)
 	case CurveStep:
-		pat = r.renderStep(serie)
+		pat = r.renderStep(serie, false)
 	case CurveBefore:
-		pat = r.renderStepBefore(serie)
+		pat = r.renderStepBefore(serie, false)
 	case CurveAfter:
-		pat = r.renderStepAfter(serie)
+		pat = r.renderStepAfter(serie, false)
 	default:
 		return grp.AsElement()
 	}
@@ -655,7 +658,7 @@ func (r LinearRenderer[T, U]) Render(serie Serie[T, U]) svg.Element {
 
 func (r LinearRenderer[T, U]) renderLine(serie Serie[T, U], zero bool) svg.Path {
 	var (
-		pat = r.LinePath()
+		pat = r.Path()
 		pos svg.Pos
 		nan bool
 	)
@@ -681,9 +684,9 @@ func (r LinearRenderer[T, U]) renderLine(serie Serie[T, U], zero bool) svg.Path 
 	return pat
 }
 
-func (r LinearRenderer[T, U]) renderStep(serie Serie[T, U]) svg.Path {
+func (r LinearRenderer[T, U]) renderStep(serie Serie[T, U], zero bool) svg.Path {
 	var (
-		pat = r.LinePath()
+		pat = r.Path()
 		pos = svg.NewPos(serie.X.Min(), serie.Y.Max())
 		ori svg.Pos
 		nan bool
@@ -718,9 +721,9 @@ func (r LinearRenderer[T, U]) renderStep(serie Serie[T, U]) svg.Path {
 	return pat
 }
 
-func (r LinearRenderer[T, U]) renderStepAfter(serie Serie[T, U]) svg.Path {
+func (r LinearRenderer[T, U]) renderStepAfter(serie Serie[T, U], zero bool) svg.Path {
 	var (
-		pat = r.LinePath()
+		pat = r.Path()
 		pos svg.Pos
 		ori svg.Pos
 		nan bool
@@ -756,9 +759,9 @@ func (r LinearRenderer[T, U]) renderStepAfter(serie Serie[T, U]) svg.Path {
 	return pat
 }
 
-func (r LinearRenderer[T, U]) renderStepBefore(serie Serie[T, U]) svg.Path {
+func (r LinearRenderer[T, U]) renderStepBefore(serie Serie[T, U], zero bool) svg.Path {
 	var (
-		pat = r.LinePath()
+		pat = r.Path()
 		pos svg.Pos
 		ori svg.Pos
 		nan bool

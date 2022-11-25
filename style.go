@@ -97,7 +97,7 @@ func (s Style) Text(str string) svg.Text {
 	return txt
 }
 
-func (s Style) LinePath() svg.Path {
+func (s Style) Path() svg.Path {
 	var pat svg.Path
 	pat.Rendering = "geometricPrecision"
 	pat.Stroke = svg.NewStroke(s.LineColor, s.LineWidth)
