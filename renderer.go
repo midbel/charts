@@ -223,7 +223,6 @@ func (r PolarRenderer[T, U]) drawCircularTicks(radius float64, stroke svg.Stroke
 
 type SunburstRenderer[T ~string, U ~float64] struct {
 	Style
-	Fill        []string
 	InnerRadius float64
 	OuterRadius float64
 
