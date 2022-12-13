@@ -1,7 +1,9 @@
+github.com/midbel/query v0.2.0 h1:A22A9u8o2fsfeon0uC6Xz4yBtsl2xThO9yIlyVfm5nE=
+github.com/midbel/query v0.2.0/go.mod h1:RY+sIxm74H0tkTqpljtrXCNATmBlwQ1A5NxiYuGIDVA=
 github.com/midbel/shlex v0.2.2 h1:UdA75UmVqRvolcWfpzPIp6YVXFQdLXKRLb4w5nMKtGY=
 github.com/midbel/shlex v0.2.2/go.mod h1:AN3Oxs3u28J06GaDWOGYu+OX/hLTyWg9C8gj9cHy18w=
-github.com/midbel/slices v0.4.0 h1:6APc79DW8lUzmDIJbk602EPI9k9f+4VG6SBGkcu+vfA=
-github.com/midbel/slices v0.4.0/go.mod h1:uKstGBCfyQnPPr776jKPo/NMWpiJjYx463lANVMYSgk=
+github.com/midbel/slices v0.7.0 h1:Bbsvb2wX6rygucyhPktI+toxNWL7TPMoZ7rEUmzB3cY=
+github.com/midbel/slices v0.7.0/go.mod h1:uKstGBCfyQnPPr776jKPo/NMWpiJjYx463lANVMYSgk=
 github.com/midbel/slug v0.1.0 h1:Suvs2CZXWpEr0rawMIspkVgp9Qeqikjwjr/VkQA3DVk=
 github.com/midbel/slug v0.1.0/go.mod h1:USdjWfQ1zAFPZEE2HiJLPx2Gs6FhPDsrYd2Vyv3plVU=
 github.com/midbel/svg v0.2.1 h1:yq1KapwEFHsn2Ekf3oO2h081JPJpVuWVf8SKZGU3hXg=
