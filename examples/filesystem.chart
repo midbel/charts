@@ -1,0 +1,18 @@
+set title "projects filesystem"
+set size 800
+
+set xdata string
+set xdomain 0,1
+set ydata number
+set ydomain 0,100000
+
+load data/filesystem.json with (
+	query ".files[] | {x: .name, y: .size, sub: [$]}"
+) as in
+
+set sun with (
+	inner-radius 300
+	outer-radius 320
+)
+
+render to tmp/filesystem.svg in as sun

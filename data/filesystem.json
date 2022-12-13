@@ -1,0 +1,2204 @@
+{
+  "name": "..",
+  "directory": true,
+  "files": [
+    {
+      "name": "buddy",
+      "directory": true,
+      "files": [
+        {
+          "name": "ast",
+          "directory": true,
+          "files": [
+            {
+              "name": "ast.go",
+              "size": 13606
+            },
+            {
+              "name": "debug.go",
+              "size": 6118
+            }
+          ]
+        },
+        {
+          "name": "bin",
+          "directory": true,
+          "files": [
+            {
+              "name": "buddy",
+              "size": 2715390
+            },
+            {
+              "name": "cyclo",
+              "size": 2371333
+            },
+            {
+              "name": "debugast",
+              "size": 2623677
+            }
+          ]
+        },
+        {
+          "name": "builtins",
+          "directory": true,
+          "files": [
+            {
+              "name": "array.go",
+              "size": 842
+            },
+            {
+              "name": "builtins.go",
+              "size": 5948
+            },
+            {
+              "name": "io.go",
+              "size": 1020
+            },
+            {
+              "name": "process.go",
+              "size": 659
+            },
+            {
+              "name": "str.go",
+              "size": 1652
+            },
+            {
+              "name": "time.go",
+              "size": 566
+            }
+          ]
+        },
+        {
+          "name": "cmd",
+          "directory": true,
+          "files": [
+            {
+              "name": "buddy",
+              "directory": true,
+              "files": [
+                {
+                  "name": "main.go",
+                  "size": 1531
+                }
+              ]
+            },
+            {
+              "name": "cyclo",
+              "directory": true,
+              "files": [
+                {
+                  "name": "main.go",
+                  "size": 2609
+                }
+              ]
+            },
+            {
+              "name": "debug",
+              "directory": true,
+              "files": [
+                {
+                  "name": "main.go",
+                  "size": 833
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "name": "eval",
+          "directory": true,
+          "files": [
+            {
+              "name": "binary.go",
+              "size": 3382
+            },
+            {
+              "name": "eval.go",
+              "size": 12796
+            },
+            {
+              "name": "interpret.go",
+              "size": 3594
+            },
+            {
+              "name": "module.go",
+              "size": 3688
+            },
+            {
+              "name": "unary.go",
+              "size": 698
+            }
+          ]
+        },
+        {
+          "name": "examples",
+          "directory": true,
+          "files": [
+            {
+              "name": "fib.bud",
+              "size": 78
+            }
+          ]
+        },
+        {
+          "name": "faults",
+          "directory": true,
+          "files": [
+            {
+              "name": "faults.go",
+              "size": 1332
+            }
+          ]
+        },
+        {
+          "name": "go.mod",
+          "size": 139
+        },
+        {
+          "name": "go.sum",
+          "size": 374
+        },
+        {
+          "name": "parse",
+          "directory": true,
+          "files": [
+            {
+              "name": "parse.go",
+              "size": 23633
+            },
+            {
+              "name": "power.go",
+              "size": 1564
+            }
+          ]
+        },
+        {
+          "name": "scan",
+          "directory": true,
+          "files": [
+            {
+              "name": "scan.go",
+              "size": 8206
+            }
+          ]
+        },
+        {
+          "name": "tmp",
+          "directory": true,
+          "files": [
+            {
+              "name": "braces.bud",
+              "size": 167
+            },
+            {
+              "name": "math.bud",
+              "size": 144
+            },
+            {
+              "name": "scope.bud",
+              "size": 125
+            },
+            {
+              "name": "simple.bud",
+              "size": 83
+            },
+            {
+              "name": "slice.bud",
+              "size": 55
+            },
+            {
+              "name": "time.bud",
+              "size": 215
+            },
+            {
+              "name": "trace.bud",
+              "size": 127
+            },
+            {
+              "name": "visit.bud",
+              "size": 353
+            }
+          ]
+        },
+        {
+          "name": "token",
+          "directory": true,
+          "files": [
+            {
+              "name": "token.go",
+              "size": 3312
+            }
+          ]
+        },
+        {
+          "name": "types",
+          "directory": true,
+          "files": [
+            {
+              "name": "array.go",
+              "size": 3547
+            },
+            {
+              "name": "bool.go",
+              "size": 1792
+            },
+            {
+              "name": "dict.go",
+              "size": 2106
+            },
+            {
+              "name": "env.go",
+              "size": 2046
+            },
+            {
+              "name": "float.go",
+              "size": 3417
+            },
+            {
+              "name": "int.go",
+              "size": 4539
+            },
+            {
+              "name": "string.go",
+              "size": 3131
+            },
+            {
+              "name": "types.go",
+              "size": 2095
+            }
+          ]
+        },
+        {
+          "name": "visitors",
+          "directory": true,
+          "files": [
+            {
+              "name": "cyclo.go",
+              "size": 3609
+            },
+            {
+              "name": "import.go",
+              "size": 5508
+            },
+            {
+              "name": "loop.go",
+              "size": 2998
+            },
+            {
+              "name": "value.go",
+              "size": 10127
+            },
+            {
+              "name": "variables.go",
+              "size": 5793
+            },
+            {
+              "name": "visitors.go",
+              "size": 1733
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "charts",
+      "directory": true,
+      "files": [
+        {
+          "name": "axis.go",
+          "size": 5702
+        },
+        {
+          "name": "bin",
+          "directory": true,
+          "files": [
+            {
+              "name": "build",
+              "size": 8218689
+            },
+            {
+              "name": "decode",
+              "size": 7856154
+            },
+            {
+              "name": "draw",
+              "size": 2711340
+            }
+          ]
+        },
+        {
+          "name": "chart.go",
+          "size": 5394
+        },
+        {
+          "name": "charts.sublime-project",
+          "size": 537
+        },
+        {
+          "name": "charts.sublime-workspace",
+          "size": 335439
+        },
+        {
+          "name": "cmd",
+          "directory": true,
+          "files": [
+            {
+              "name": "build",
+              "directory": true,
+              "files": [
+                {
+                  "name": "main.go",
+                  "size": 546
+                }
+              ]
+            },
+            {
+              "name": "draw",
+              "directory": true,
+              "files": [
+                {
+                  "name": "main.go",
+                  "size": 11353
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "name": "colors.go",
+          "size": 423
+        },
+        {
+          "name": "cover.out",
+          "size": 38052
+        },
+        {
+          "name": "dash",
+          "directory": true,
+          "files": [
+            {
+              "name": "dash.go",
+              "size": 7772
+            },
+            {
+              "name": "datasource.go",
+              "size": 11826
+            },
+            {
+              "name": "domain.go",
+              "size": 2944
+            },
+            {
+              "name": "env.go",
+              "size": 801
+            },
+            {
+              "name": "scale.go",
+              "size": 4116
+            },
+            {
+              "name": "select.go",
+              "size": 2333
+            },
+            {
+              "name": "style.go",
+              "size": 4772
+            },
+            {
+              "name": "themes",
+              "directory": true,
+              "files": [
+                {
+                  "name": "black-green.css",
+                  "size": 91
+                },
+                {
+                  "name": "black-orange.css",
+                  "size": 93
+                }
+              ]
+            },
+            {
+              "name": "timefmt.go",
+              "size": 1911
+            }
+          ]
+        },
+        {
+          "name": "data",
+          "directory": true,
+          "files": [
+            {
+              "name": "AAPL.csv",
+              "size": 73714
+            },
+            {
+              "name": "GOOG.csv",
+              "size": 72530
+            },
+            {
+              "name": "MSFT.csv",
+              "size": 75446
+            },
+            {
+              "name": "TWTR.csv",
+              "size": 70273
+            },
+            {
+              "name": "US.csv",
+              "size": 3516
+            },
+            {
+              "name": "filesystem.json",
+              "size": 0
+            }
+          ]
+        },
+        {
+          "name": "decode",
+          "directory": true,
+          "files": [
+            {
+              "name": "decode.go",
+              "size": 28065
+            },
+            {
+              "name": "decode_test.go",
+              "size": 238
+            },
+            {
+              "name": "errors.go",
+              "size": 450
+            },
+            {
+              "name": "scan.go",
+              "size": 6195
+            },
+            {
+              "name": "testdata",
+              "directory": true,
+              "files": [
+                {
+                  "name": "cell.chart",
+                  "size": 65
+                },
+                {
+                  "name": "include.chart",
+                  "size": 124
+                },
+                {
+                  "name": "sample.chart",
+                  "size": 1437
+                }
+              ]
+            },
+            {
+              "name": "token.go",
+              "size": 1716
+            }
+          ]
+        },
+        {
+          "name": "docs",
+          "directory": true,
+          "files": [
+            {
+              "name": "syntax.chart",
+              "size": 2093
+            }
+          ]
+        },
+        {
+          "name": "examples",
+          "directory": true,
+          "files": [
+            {
+              "name": "category.go",
+              "size": 3229
+            },
+            {
+              "name": "dashboard.chart",
+              "size": 1154
+            },
+            {
+              "name": "filesystem.chart",
+              "size": 203
+            },
+            {
+              "name": "functions.chart",
+              "size": 376
+            },
+            {
+              "name": "group.go",
+              "size": 2166
+            },
+            {
+              "name": "hierarchy.go",
+              "size": 4620
+            },
+            {
+              "name": "pie.chart",
+              "size": 451
+            },
+            {
+              "name": "polar.go",
+              "size": 1431
+            },
+            {
+              "name": "pop.chart",
+              "size": 1581
+            },
+            {
+              "name": "stock.chart",
+              "size": 872
+            },
+            {
+              "name": "stock.go",
+              "size": 3516
+            },
+            {
+              "name": "trigono.chart",
+              "size": 660
+            }
+          ]
+        },
+        {
+          "name": "go.mod",
+          "size": 264
+        },
+        {
+          "name": "go.sum",
+          "size": 656
+        },
+        {
+          "name": "renderer.go",
+          "size": 18501
+        },
+        {
+          "name": "scaler.go",
+          "size": 5010
+        },
+        {
+          "name": "serie.go",
+          "size": 1795
+        },
+        {
+          "name": "shapes.go",
+          "size": 860
+        },
+        {
+          "name": "style.go",
+          "size": 3759
+        },
+        {
+          "name": "tmp",
+          "directory": true,
+          "files": [
+            {
+              "name": "bar.svg",
+              "size": 24094
+            },
+            {
+              "name": "dashboard.svg",
+              "size": 176440
+            },
+            {
+              "name": "geo.go",
+              "size": 1310
+            },
+            {
+              "name": "goog.svg",
+              "size": 20890
+            },
+            {
+              "name": "group.svg",
+              "size": 9352
+            },
+            {
+              "name": "heredoc.chart",
+              "size": 751
+            },
+            {
+              "name": "pie.svg",
+              "size": 13224
+            },
+            {
+              "name": "polar.svg",
+              "size": 11041
+            },
+            {
+              "name": "pop.svg",
+              "size": 302808
+            },
+            {
+              "name": "stacked.svg",
+              "size": 69540
+            },
+            {
+              "name": "stock.css",
+              "size": 348
+            },
+            {
+              "name": "stock.svg",
+              "size": 73001
+            },
+            {
+              "name": "sun.svg",
+              "size": 129854
+            },
+            {
+              "name": "test.svg",
+              "size": 70744
+            },
+            {
+              "name": "trigono.svg",
+              "size": 9733
+            },
+            {
+              "name": "us.svg",
+              "size": 30090
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "fig",
+      "directory": true,
+      "files": [
+        {
+          "name": "LICENSE",
+          "size": 1066
+        },
+        {
+          "name": "README.md",
+          "size": 2677
+        },
+        {
+          "name": "ast.go",
+          "size": 14688
+        },
+        {
+          "name": "cmd",
+          "directory": true,
+          "files": [
+            {
+              "name": "test",
+              "directory": true,
+              "files": [
+                {
+                  "name": "main.go",
+                  "size": 2384
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "name": "data",
+          "directory": true,
+          "files": [
+            {
+              "name": "basic.fig",
+              "size": 772
+            },
+            {
+              "name": "sample.fig",
+              "size": 566
+            }
+          ]
+        },
+        {
+          "name": "debug.go",
+          "size": 718
+        },
+        {
+          "name": "decode.go",
+          "size": 16866
+        },
+        {
+          "name": "decode_test.go",
+          "size": 4891
+        },
+        {
+          "name": "env.go",
+          "size": 1175
+        },
+        {
+          "name": "go.mod",
+          "size": 38
+        },
+        {
+          "name": "macro.go",
+          "size": 16089
+        },
+        {
+          "name": "parse.go",
+          "size": 8509
+        },
+        {
+          "name": "parser_test.go",
+          "size": 405
+        },
+        {
+          "name": "scan.go",
+          "size": 10110
+        },
+        {
+          "name": "testdata",
+          "directory": true,
+          "files": [
+            {
+              "name": "include.fig",
+              "size": 178
+            },
+            {
+              "name": "spec.fig",
+              "size": 2785
+            }
+          ]
+        },
+        {
+          "name": "token.go",
+          "size": 2149
+        }
+      ]
+    },
+    {
+      "name": "gotcl",
+      "directory": true,
+      "files": [
+        {
+          "name": "LICENSE",
+          "size": 1066
+        },
+        {
+          "name": "bin",
+          "directory": true,
+          "files": [
+            {
+              "name": "gotcl",
+              "size": 3419301
+            }
+          ]
+        },
+        {
+          "name": "cmd",
+          "directory": true,
+          "files": [
+            {
+              "name": "gotcl",
+              "directory": true,
+              "files": [
+                {
+                  "name": "main.go",
+                  "size": 2006
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "name": "data",
+          "directory": true,
+          "files": [
+            {
+              "name": "incr.tcl",
+              "size": 3046
+            },
+            {
+              "name": "mini.tcl",
+              "size": 1204
+            },
+            {
+              "name": "op.tcl",
+              "size": 124
+            }
+          ]
+        },
+        {
+          "name": "env",
+          "directory": true,
+          "files": [
+            {
+              "name": "conv.go",
+              "size": 1868
+            },
+            {
+              "name": "env.go",
+              "size": 613
+            },
+            {
+              "name": "link.go",
+              "size": 197
+            },
+            {
+              "name": "value.go",
+              "size": 7478
+            }
+          ]
+        },
+        {
+          "name": "expr",
+          "directory": true,
+          "files": [
+            {
+              "name": "expr.go",
+              "size": 2341
+            },
+            {
+              "name": "parser.go",
+              "size": 5292
+            },
+            {
+              "name": "types",
+              "directory": true,
+              "files": [
+                {
+                  "name": "bool.go",
+                  "size": 2859
+                },
+                {
+                  "name": "int.go",
+                  "size": 4691
+                },
+                {
+                  "name": "real.go",
+                  "size": 4066
+                },
+                {
+                  "name": "value.go",
+                  "size": 2518
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "name": "glob",
+          "directory": true,
+          "files": [
+            {
+              "name": "glob.go",
+              "size": 2748
+            }
+          ]
+        },
+        {
+          "name": "go.mod",
+          "size": 135
+        },
+        {
+          "name": "go.sum",
+          "size": 167
+        },
+        {
+          "name": "interp",
+          "directory": true,
+          "files": [
+            {
+              "name": "exec.go",
+              "size": 9728
+            },
+            {
+              "name": "files.go",
+              "size": 3999
+            },
+            {
+              "name": "frame.go",
+              "size": 556
+            },
+            {
+              "name": "interp.go",
+              "size": 10421
+            },
+            {
+              "name": "namespace.go",
+              "size": 4268
+            },
+            {
+              "name": "parse.go",
+              "size": 2772
+            }
+          ]
+        },
+        {
+          "name": "stdlib",
+          "directory": true,
+          "files": [
+            {
+              "name": "array.go",
+              "size": 3261
+            },
+            {
+              "name": "clock",
+              "directory": true,
+              "files": [
+                {
+                  "name": "clock.go",
+                  "size": 1478
+                }
+              ]
+            },
+            {
+              "name": "clock.go",
+              "size": 1808
+            },
+            {
+              "name": "env.go",
+              "size": 1617
+            },
+            {
+              "name": "eval.go",
+              "size": 13524
+            },
+            {
+              "name": "file.go",
+              "size": 6885
+            },
+            {
+              "name": "fileutil.go",
+              "size": 1250
+            },
+            {
+              "name": "info.go",
+              "size": 6147
+            },
+            {
+              "name": "interp.go",
+              "size": 2851
+            },
+            {
+              "name": "io.go",
+              "size": 6960
+            },
+            {
+              "name": "ioutil",
+              "directory": true,
+              "files": [
+                {
+                  "name": "ioutil.go",
+                  "size": 3987
+                }
+              ]
+            },
+            {
+              "name": "list.go",
+              "size": 10578
+            },
+            {
+              "name": "math.go",
+              "size": 14757
+            },
+            {
+              "name": "namespace.go",
+              "size": 3114
+            },
+            {
+              "name": "prefix.go",
+              "size": 1644
+            },
+            {
+              "name": "stdlib.go",
+              "size": 5906
+            },
+            {
+              "name": "strings.go",
+              "size": 9141
+            },
+            {
+              "name": "strutil",
+              "directory": true,
+              "files": [
+                {
+                  "name": "strutil.go",
+                  "size": 2750
+                }
+              ]
+            },
+            {
+              "name": "utils.go",
+              "size": 1834
+            }
+          ]
+        },
+        {
+          "name": "word",
+          "directory": true,
+          "files": [
+            {
+              "name": "scanner.go",
+              "size": 9338
+            },
+            {
+              "name": "split.go",
+              "size": 279
+            },
+            {
+              "name": "word.go",
+              "size": 2157
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "maestro",
+      "directory": true,
+      "files": [
+        {
+          "name": "LICENSE",
+          "size": 1066
+        },
+        {
+          "name": "README.md",
+          "size": 24390
+        },
+        {
+          "name": "cmd",
+          "directory": true,
+          "files": [
+            {
+              "name": "maestro",
+              "directory": true,
+              "files": [
+                {
+                  "name": "main.go",
+                  "size": 6569
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "name": "command.go",
+          "size": 9772
+        },
+        {
+          "name": "ctree.go",
+          "size": 5111
+        },
+        {
+          "name": "data",
+          "directory": true,
+          "files": [
+            {
+              "name": "TODOS.md",
+              "size": 5779
+            },
+            {
+              "name": "demo.mf",
+              "size": 2386
+            },
+            {
+              "name": "include.mf",
+              "size": 1000
+            },
+            {
+              "name": "maestro.fig",
+              "size": 883
+            },
+            {
+              "name": "sample.sh",
+              "size": 357
+            }
+          ]
+        },
+        {
+          "name": "decode.go",
+          "size": 28071
+        },
+        {
+          "name": "decode_test.go",
+          "size": 1174
+        },
+        {
+          "name": "go.mod",
+          "size": 417
+        },
+        {
+          "name": "go.sum",
+          "size": 1559
+        },
+        {
+          "name": "http.go",
+          "size": 2849
+        },
+        {
+          "name": "internal",
+          "directory": true,
+          "files": [
+            {
+              "name": "copyslice",
+              "directory": true,
+              "files": [
+                {
+                  "name": "copy.go",
+                  "size": 785
+                }
+              ]
+            },
+            {
+              "name": "env",
+              "directory": true,
+              "files": [
+                {
+                  "name": "env.go",
+                  "size": 1301
+                },
+                {
+                  "name": "env_test.go",
+                  "size": 700
+                }
+              ]
+            },
+            {
+              "name": "help",
+              "directory": true,
+              "files": [
+                {
+                  "name": "help.go",
+                  "size": 1565
+                }
+              ]
+            },
+            {
+              "name": "stack",
+              "directory": true,
+              "files": [
+                {
+                  "name": "stack.go",
+                  "size": 1073
+                }
+              ]
+            },
+            {
+              "name": "stdio",
+              "directory": true,
+              "files": [
+                {
+                  "name": "stdio.go",
+                  "size": 614
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "name": "maestro.go",
+          "size": 17208
+        },
+        {
+          "name": "maestro.mf",
+          "size": 3621
+        },
+        {
+          "name": "options.go",
+          "size": 699
+        },
+        {
+          "name": "scan.go",
+          "size": 10212
+        },
+        {
+          "name": "schedule",
+          "directory": true,
+          "files": [
+            {
+              "name": "runner.go",
+              "size": 2827
+            },
+            {
+              "name": "schedule.go",
+              "size": 4410
+            },
+            {
+              "name": "schedule_test.go",
+              "size": 6096
+            },
+            {
+              "name": "ticker.go",
+              "size": 5375
+            }
+          ]
+        },
+        {
+          "name": "schedule.go",
+          "size": 3256
+        },
+        {
+          "name": "testdata",
+          "directory": true,
+          "files": [
+            {
+              "name": "inc.mf",
+              "size": 258
+            },
+            {
+              "name": "sample.mf",
+              "size": 2392
+            }
+          ]
+        },
+        {
+          "name": "token.go",
+          "size": 2579
+        },
+        {
+          "name": "validate.go",
+          "size": 8611
+        }
+      ]
+    },
+    {
+      "name": "packit",
+      "directory": true,
+      "files": [
+        {
+          "name": "LICENSE",
+          "size": 1066
+        },
+        {
+          "name": "README.md",
+          "size": 47
+        },
+        {
+          "name": "apk",
+          "directory": true,
+          "files": [
+            {
+              "name": "apk.go",
+              "size": 7612
+            },
+            {
+              "name": "control.go",
+              "size": 1792
+            },
+            {
+              "name": "control.tpl",
+              "size": 437
+            }
+          ]
+        },
+        {
+          "name": "cmd",
+          "directory": true,
+          "files": [
+            {
+              "name": "packit",
+              "directory": true,
+              "files": [
+                {
+                  "name": "main.go",
+                  "size": 6348
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "name": "data",
+          "directory": true,
+          "files": [
+            {
+              "name": "sample.fig",
+              "size": 2047
+            }
+          ]
+        },
+        {
+          "name": "deb",
+          "directory": true,
+          "files": [
+            {
+              "name": "changelog.tpl",
+              "size": 239
+            },
+            {
+              "name": "control.go",
+              "size": 3173
+            },
+            {
+              "name": "control.tpl",
+              "size": 812
+            },
+            {
+              "name": "deb.go",
+              "size": 15027
+            }
+          ]
+        },
+        {
+          "name": "go.mod",
+          "size": 281
+        },
+        {
+          "name": "go.sum",
+          "size": 1070
+        },
+        {
+          "name": "licenses",
+          "directory": true,
+          "files": [
+            {
+              "name": "apache-2.0.tpl",
+              "size": 576
+            },
+            {
+              "name": "bsd-2.tpl",
+              "size": 1290
+            },
+            {
+              "name": "bsd-3.tpl",
+              "size": 1482
+            },
+            {
+              "name": "mit.tpl",
+              "size": 1077
+            }
+          ]
+        },
+        {
+          "name": "packit.go",
+          "size": 8468
+        },
+        {
+          "name": "rpm",
+          "directory": true,
+          "files": [
+            {
+              "name": "rpm.go",
+              "size": 24277
+            }
+          ]
+        },
+        {
+          "name": "text",
+          "directory": true,
+          "files": [
+            {
+              "name": "template.go",
+              "size": 539
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "query",
+      "directory": true,
+      "files": [
+        {
+          "name": "comma",
+          "directory": true,
+          "files": [
+            {
+              "name": "builtins.go",
+              "size": 8139
+            },
+            {
+              "name": "comma.go",
+              "size": 1238
+            },
+            {
+              "name": "index.go",
+              "size": 5818
+            },
+            {
+              "name": "parse.go",
+              "size": 12832
+            }
+          ]
+        },
+        {
+          "name": "cover.out",
+          "size": 27159
+        },
+        {
+          "name": "data",
+          "directory": true,
+          "files": [
+            {
+              "name": "filesystem.json",
+              "size": 1211
+            },
+            {
+              "name": "sample.json",
+              "size": 520
+            }
+          ]
+        },
+        {
+          "name": "debug.go",
+          "size": 2221
+        },
+        {
+          "name": "errors.go",
+          "size": 333
+        },
+        {
+          "name": "examples",
+          "directory": true,
+          "files": [
+            {
+              "name": "debug.go",
+              "size": 214
+            },
+            {
+              "name": "get.go",
+              "size": 457
+            },
+            {
+              "name": "index.go",
+              "size": 713
+            },
+            {
+              "name": "json.go",
+              "size": 429
+            },
+            {
+              "name": "lsjson.go",
+              "size": 1607
+            }
+          ]
+        },
+        {
+          "name": "filter.go",
+          "size": 9554
+        },
+        {
+          "name": "filter_test.go",
+          "size": 3533
+        },
+        {
+          "name": "go.mod",
+          "size": 117
+        },
+        {
+          "name": "go.sum",
+          "size": 330
+        },
+        {
+          "name": "parse.go",
+          "size": 11087
+        },
+        {
+          "name": "parse_test.go",
+          "size": 9542
+        },
+        {
+          "name": "query.go",
+          "size": 9314
+        },
+        {
+          "name": "testdata",
+          "directory": true,
+          "files": [
+            {
+              "name": "sample.json",
+              "size": 670
+            }
+          ]
+        },
+        {
+          "name": "tmp",
+          "directory": true,
+          "files": [
+            {
+              "name": "syntax.jq",
+              "size": 958
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "saj",
+      "directory": true,
+      "files": [
+        {
+          "name": "cover.out",
+          "size": 8492
+        },
+        {
+          "name": "data",
+          "directory": true,
+          "files": [
+            {
+              "name": "glossary.json",
+              "size": 583
+            },
+            {
+              "name": "menu.json",
+              "size": 872
+            },
+            {
+              "name": "webapp.json",
+              "size": 3467
+            },
+            {
+              "name": "widget.json",
+              "size": 603
+            }
+          ]
+        },
+        {
+          "name": "go.mod",
+          "size": 38
+        },
+        {
+          "name": "saj.go",
+          "size": 8433
+        },
+        {
+          "name": "saj_test.go",
+          "size": 2110
+        }
+      ]
+    },
+    {
+      "name": "sax",
+      "directory": true,
+      "files": [
+        {
+          "name": "LICENSE",
+          "size": 1066
+        },
+        {
+          "name": "examples",
+          "directory": true,
+          "files": [
+            {
+              "name": "demo.go",
+              "size": 1184
+            }
+          ]
+        },
+        {
+          "name": "go.mod",
+          "size": 38
+        },
+        {
+          "name": "sax.go",
+          "size": 14923
+        }
+      ]
+    },
+    {
+      "name": "shlex",
+      "directory": true,
+      "files": [
+        {
+          "name": "LICENCE",
+          "size": 1066
+        },
+        {
+          "name": "cover.out",
+          "size": 5404
+        },
+        {
+          "name": "go.mod",
+          "size": 40
+        },
+        {
+          "name": "shlex.go",
+          "size": 4866
+        },
+        {
+          "name": "shlex_test.go",
+          "size": 2396
+        }
+      ]
+    },
+    {
+      "name": "slices",
+      "directory": true,
+      "files": [
+        {
+          "name": "combine.go",
+          "size": 1799
+        },
+        {
+          "name": "combine_test.go",
+          "size": 3236
+        },
+        {
+          "name": "go.mod",
+          "size": 41
+        },
+        {
+          "name": "ring.go",
+          "size": 446
+        },
+        {
+          "name": "slices.go",
+          "size": 4670
+        },
+        {
+          "name": "slices_test.go",
+          "size": 1376
+        },
+        {
+          "name": "stack.go",
+          "size": 403
+        }
+      ]
+    },
+    {
+      "name": "slug",
+      "directory": true,
+      "files": [
+        {
+          "name": "go.mod",
+          "size": 39
+        },
+        {
+          "name": "slug.go",
+          "size": 632
+        },
+        {
+          "name": "slug_test.go",
+          "size": 576
+        }
+      ]
+    },
+    {
+      "name": "svg",
+      "directory": true,
+      "files": [
+        {
+          "name": "attrs.go",
+          "size": 10061
+        },
+        {
+          "name": "go.mod",
+          "size": 38
+        },
+        {
+          "name": "gradient.go",
+          "size": 590
+        },
+        {
+          "name": "layout",
+          "directory": true,
+          "files": [
+            {
+              "name": "border.go",
+              "size": 505
+            },
+            {
+              "name": "grid.go",
+              "size": 1035
+            },
+            {
+              "name": "layout.go",
+              "size": 193
+            }
+          ]
+        },
+        {
+          "name": "node.go",
+          "size": 2431
+        },
+        {
+          "name": "svg.go",
+          "size": 15196
+        },
+        {
+          "name": "utils.go",
+          "size": 106
+        }
+      ]
+    },
+    {
+      "name": "tish",
+      "directory": true,
+      "files": [
+        {
+          "name": "builtin.go",
+          "size": 11560
+        },
+        {
+          "name": "builtins",
+          "directory": true,
+          "files": [
+            {
+              "name": "cowsay",
+              "directory": true,
+              "files": [
+                {
+                  "name": "main.go",
+                  "size": 504
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "name": "cmd",
+          "directory": true,
+          "files": [
+            {
+              "name": "tish",
+              "directory": true,
+              "files": [
+                {
+                  "name": "main.go",
+                  "size": 3155
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "name": "command.go",
+          "size": 3871
+        },
+        {
+          "name": "data",
+          "directory": true,
+          "files": [
+            {
+              "name": "build.sh",
+              "size": 403
+            },
+            {
+              "name": "loc.sh",
+              "size": 101
+            }
+          ]
+        },
+        {
+          "name": "dirs.go",
+          "size": 1767
+        },
+        {
+          "name": "env.go",
+          "size": 1905
+        },
+        {
+          "name": "go.mod",
+          "size": 167
+        },
+        {
+          "name": "go.sum",
+          "size": 533
+        },
+        {
+          "name": "history.go",
+          "size": 275
+        },
+        {
+          "name": "internal",
+          "directory": true,
+          "files": [
+            {
+              "name": "parser",
+              "directory": true,
+              "files": [
+                {
+                  "name": "expand.go",
+                  "size": 1886
+                },
+                {
+                  "name": "parser.go",
+                  "size": 27135
+                },
+                {
+                  "name": "parser_test.go",
+                  "size": 2946
+                },
+                {
+                  "name": "scan.go",
+                  "size": 18829
+                },
+                {
+                  "name": "scan_test.go",
+                  "size": 2788
+                }
+              ]
+            },
+            {
+              "name": "stack",
+              "directory": true,
+              "files": [
+                {
+                  "name": "stack.go",
+                  "size": 1073
+                }
+              ]
+            },
+            {
+              "name": "stdio",
+              "directory": true,
+              "files": [
+                {
+                  "name": "stdio.go",
+                  "size": 745
+                }
+              ]
+            },
+            {
+              "name": "token",
+              "directory": true,
+              "files": [
+                {
+                  "name": "keywords.go",
+                  "size": 635
+                },
+                {
+                  "name": "token.go",
+                  "size": 4985
+                }
+              ]
+            },
+            {
+              "name": "words",
+              "directory": true,
+              "files": [
+                {
+                  "name": "env.go",
+                  "size": 292
+                },
+                {
+                  "name": "exec.go",
+                  "size": 2138
+                },
+                {
+                  "name": "expand.go",
+                  "size": 15151
+                },
+                {
+                  "name": "expand_test.go",
+                  "size": 3111
+                },
+                {
+                  "name": "expr.go",
+                  "size": 5581
+                },
+                {
+                  "name": "expr_test.go",
+                  "size": 1449
+                },
+                {
+                  "name": "tests.go",
+                  "size": 6712
+                },
+                {
+                  "name": "tests_test.go",
+                  "size": 2198
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "name": "options.go",
+          "size": 1603
+        },
+        {
+          "name": "shell.go",
+          "size": 16834
+        },
+        {
+          "name": "shell_test.go",
+          "size": 3844
+        }
+      ]
+    },
+    {
+      "name": "toml",
+      "directory": true,
+      "files": [
+        {
+          "name": "LICENSE",
+          "size": 1066
+        },
+        {
+          "name": "README.md",
+          "size": 2825
+        },
+        {
+          "name": "ast.go",
+          "size": 5482
+        },
+        {
+          "name": "cmd",
+          "directory": true,
+          "files": [
+            {
+              "name": "convert",
+              "directory": true,
+              "files": [
+                {
+                  "name": "main.go",
+                  "size": 691
+                }
+              ]
+            },
+            {
+              "name": "dump",
+              "directory": true,
+              "files": [
+                {
+                  "name": "main.go",
+                  "size": 586
+                }
+              ]
+            },
+            {
+              "name": "format",
+              "directory": true,
+              "files": [
+                {
+                  "name": "main.go",
+                  "size": 3753
+                }
+              ]
+            },
+            {
+              "name": "scan",
+              "directory": true,
+              "files": [
+                {
+                  "name": "main.go",
+                  "size": 391
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "name": "data",
+          "directory": true,
+          "files": [
+            {
+              "name": "format.toml",
+              "size": 274
+            },
+            {
+              "name": "package.toml",
+              "size": 1206
+            },
+            {
+              "name": "server.toml",
+              "size": 886
+            }
+          ]
+        },
+        {
+          "name": "dump.go",
+          "size": 1916
+        },
+        {
+          "name": "format.go",
+          "size": 16962
+        },
+        {
+          "name": "go.mod",
+          "size": 39
+        },
+        {
+          "name": "parse.go",
+          "size": 5103
+        },
+        {
+          "name": "parse_test.go",
+          "size": 971
+        },
+        {
+          "name": "scan.go",
+          "size": 12981
+        },
+        {
+          "name": "scan_test.go",
+          "size": 9503
+        },
+        {
+          "name": "testdata",
+          "directory": true,
+          "files": [
+            {
+              "name": "array2.bad.toml",
+              "size": 32
+            },
+            {
+              "name": "arrays.toml",
+              "size": 355
+            },
+            {
+              "name": "booleans.toml",
+              "size": 27
+            },
+            {
+              "name": "dates.toml",
+              "size": 496
+            },
+            {
+              "name": "example.toml",
+              "size": 545
+            },
+            {
+              "name": "fruits1.bad.toml",
+              "size": 112
+            },
+            {
+              "name": "fruits1.toml",
+              "size": 252
+            },
+            {
+              "name": "fruits2.bad.toml",
+              "size": 112
+            },
+            {
+              "name": "fruits2.toml",
+              "size": 177
+            },
+            {
+              "name": "inline1.bad.toml",
+              "size": 69
+            },
+            {
+              "name": "inline2.bad.toml",
+              "size": 68
+            },
+            {
+              "name": "inline3.bad.toml",
+              "size": 66
+            },
+            {
+              "name": "inlines.toml",
+              "size": 206
+            },
+            {
+              "name": "key1.bad.toml",
+              "size": 42
+            },
+            {
+              "name": "key2.bad.toml",
+              "size": 55
+            },
+            {
+              "name": "key3.bad.toml",
+              "size": 41
+            },
+            {
+              "name": "key4.bad.toml",
+              "size": 65
+            },
+            {
+              "name": "key5.bad.toml",
+              "size": 72
+            },
+            {
+              "name": "keys.toml",
+              "size": 472
+            },
+            {
+              "name": "number1.bad.toml",
+              "size": 48
+            },
+            {
+              "name": "number2.bad.toml",
+              "size": 15
+            },
+            {
+              "name": "numbers.toml",
+              "size": 372
+            },
+            {
+              "name": "package.toml",
+              "size": 745
+            },
+            {
+              "name": "strings.toml",
+              "size": 460
+            },
+            {
+              "name": "table1.bad.toml",
+              "size": 64
+            },
+            {
+              "name": "table2.bad.toml",
+              "size": 23
+            },
+            {
+              "name": "table3.bad.toml",
+              "size": 110
+            },
+            {
+              "name": "table4.bad.toml",
+              "size": 66
+            },
+            {
+              "name": "table5.bad.toml",
+              "size": 55
+            },
+            {
+              "name": "table6.bad.toml",
+              "size": 162
+            },
+            {
+              "name": "tables.toml",
+              "size": 561
+            },
+            {
+              "name": "unicode-hard.toml",
+              "size": 2097
+            },
+            {
+              "name": "zeros.bad.toml",
+              "size": 51
+            }
+          ]
+        },
+        {
+          "name": "token.go",
+          "size": 3370
+        },
+        {
+          "name": "toml.go",
+          "size": 11928
+        },
+        {
+          "name": "toml_test.go",
+          "size": 3324
+        }
+      ]
+    },
+    {
+      "name": "uuid",
+      "directory": true,
+      "files": [
+        {
+          "name": "LICENCE",
+          "size": 1066
+        },
+        {
+          "name": "cmd",
+          "directory": true,
+          "files": [
+            {
+              "name": "genuuid",
+              "directory": true,
+              "files": [
+                {
+                  "name": "main.go",
+                  "size": 750
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "name": "go.mod",
+          "size": 39
+        },
+        {
+          "name": "uuid.go",
+          "size": 1654
+        }
+      ]
+    }
+  ]
+}
