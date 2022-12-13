@@ -707,6 +707,8 @@ func (d *Decoder) decodeHttpFile(fi *dash.HttpFile) error {
 			fi.X, err = d.getInt()
 		case "ycol":
 			fi.Y, err = d.decodeSelect()
+		case "query":
+			fi.Query, err = d.getString()
 		case "username":
 			fi.Username, err = d.getString()
 		case "password":
@@ -776,6 +778,8 @@ func (d *Decoder) decodeLocalFile(fi *dash.LocalFile) error {
 			fi.X, err = d.getInt()
 		case "ycol":
 			fi.Y, err = d.decodeSelect()
+		case "query":
+			fi.Query, err = d.getString()
 		default:
 			err = d.optionError("file")
 		}

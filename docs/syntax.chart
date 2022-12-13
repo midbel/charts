@@ -10,6 +10,8 @@ load <location> [limit [offset,]count] [using [x,]y] [with (
 	xcol   number
 	ycol   selection
 
+	transform query
+
 	username string
 	password string
 	token    string

@@ -2,6 +2,7 @@ package dash
 
 import (
 	"encoding/csv"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"io"
@@ -15,6 +16,7 @@ import (
 
 	"github.com/midbel/buddy/ast"
 	"github.com/midbel/charts"
+	"github.com/midbel/query"
 	"github.com/midbel/shlex"
 	"github.com/midbel/slices"
 )
@@ -195,6 +197,7 @@ func (e Expr) CategorySerie(x StringScale, y FloatScale) (ser CategorySerie, err
 type HttpFile struct {
 	Uri   string
 	Ident string
+	Query string
 	Using
 	Limit
 
@@ -349,6 +352,7 @@ func (d LocalData) CategorySerie(x StringScale, y FloatScale) (ser CategorySerie
 type LocalFile struct {
 	Path  string
 	Ident string
+	Query string
 	Using
 	Limit
 }
@@ -410,6 +414,14 @@ func (f LocalFile) NumberSerie(x FloatScale, y FloatScale) (ser NumberSerie, err
 }
 
 func (f LocalFile) CategorySerie(x StringScale, y FloatScale) (ser CategorySerie, err error) {
+	if points, ok, err := getPointsFromJSON[string, float64](f.Path, f.Query); ok {
+		if err == nil {
+			ser = createSerie[string, float64](f.Name(), points)
+			ser.X = x
+			ser.Y = y
+		}
+		return ser, err
+	}
 	if !f.Using.valid() {
 		return ser, fmt.Errorf("invalid column selector given")
 	}
@@ -548,4 +560,54 @@ func createSerie[T, U charts.ScalerConstraint](ident string, points []charts.Poi
 		Title:  ident,
 		Points: points,
 	}
+}
+
+func getPointsFromJSON[T, U charts.ScalerConstraint](file string, q string) ([]charts.Point[T, U], bool, error) {
+	if filepath.Ext(file) != ".json" || q == "" {
+		return nil, false, nil
+	}
+	rc, err := os.Open(file)
+	if err != nil {
+		return nil, true, err
+	}
+	defer rc.Close()
+
+	var data []point[T, U]
+	if q == "" {
+		return transform(data), true, json.NewDecoder(rc).Decode(&data)
+	}
+	doc, err := query.Execute(rc, q)
+	if err != nil {
+		return nil, true, err
+	}
+	return transform(data), true, json.NewDecoder(strings.NewReader(doc)).Decode(&data)
+}
+
+func transform[T, U charts.ScalerConstraint](ps []point[T, U]) []charts.Point[T, U] {
+	var res []charts.Point[T, U]
+	for i := range ps {
+		res = append(res, ps[i].Point)
+	}
+	return res
+}
+
+type point[T, U charts.ScalerConstraint] struct {
+	charts.Point[T, U]
+}
+
+func (p *point[T, U]) UnmarshalJSON(buf []byte) error {
+	x := struct {
+		X   T
+		Y   U
+		Sub []point[T, U]
+	}{}
+	if err := json.Unmarshal(buf, &x); err != nil {
+		return err
+	}
+	p.X = x.X
+	p.Y = x.Y
+	for i := range x.Sub {
+		p.Sub = append(p.Sub, x.Sub[i].Point)
+	}
+	return nil
 }
