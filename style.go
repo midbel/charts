@@ -192,7 +192,7 @@ func (p Palette) Next() string {
 	if len(p) == 0 {
 		return ColorNone
 	}
-	defer slices.ShiftLeft(p)
+	defer slices.RotateLeft(p)
 	return p.Curr()
 }
 
