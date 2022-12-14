@@ -1,8 +1,9 @@
 set title "projects filesystem"
-set size 800
+set size 920
+set padding 60
 
 set xdata string
-set xdomain 0,1
+set xdomain buddy,charts,fig,gotcl,maestro,packit,query,saj,sax,shlex,slices,slug,svg,tish,toml,uuid
 set ydata number
 set ydomain 0,100000
 
@@ -11,8 +12,11 @@ load data/filesystem.json with (
 ) as in
 
 set sun with (
-	inner-radius 300
-	outer-radius 320
+	inner-radius 100
+	outer-radius 400
+	fill-list "#f7ba0b","#d4652f","#a02128","#904684","#154889","#317f43","#9b9b9b","#7b5141","#f4f4f4","#282828"
+	line-color white
+	line-width 0
 )
 
 render to tmp/filesystem.svg in as sun

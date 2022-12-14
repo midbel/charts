@@ -21,24 +21,6 @@
           ]
         },
         {
-          "name": "bin",
-          "directory": true,
-          "files": [
-            {
-              "name": "buddy",
-              "size": 2715390
-            },
-            {
-              "name": "cyclo",
-              "size": 2371333
-            },
-            {
-              "name": "debugast",
-              "size": 2623677
-            }
-          ]
-        },
-        {
           "name": "builtins",
           "directory": true,
           "files": [
@@ -183,44 +165,6 @@
           ]
         },
         {
-          "name": "tmp",
-          "directory": true,
-          "files": [
-            {
-              "name": "braces.bud",
-              "size": 167
-            },
-            {
-              "name": "math.bud",
-              "size": 144
-            },
-            {
-              "name": "scope.bud",
-              "size": 125
-            },
-            {
-              "name": "simple.bud",
-              "size": 83
-            },
-            {
-              "name": "slice.bud",
-              "size": 55
-            },
-            {
-              "name": "time.bud",
-              "size": 215
-            },
-            {
-              "name": "trace.bud",
-              "size": 127
-            },
-            {
-              "name": "visit.bud",
-              "size": 353
-            }
-          ]
-        },
-        {
           "name": "token",
           "directory": true,
           "files": [
@@ -309,24 +253,6 @@
           "size": 5702
         },
         {
-          "name": "bin",
-          "directory": true,
-          "files": [
-            {
-              "name": "build",
-              "size": 8218689
-            },
-            {
-              "name": "decode",
-              "size": 7856154
-            },
-            {
-              "name": "draw",
-              "size": 2711340
-            }
-          ]
-        },
-        {
           "name": "chart.go",
           "size": 5394
         },
@@ -336,7 +262,7 @@
         },
         {
           "name": "charts.sublime-workspace",
-          "size": 335439
+          "size": 169776
         },
         {
           "name": "cmd",
@@ -382,7 +308,7 @@
             },
             {
               "name": "datasource.go",
-              "size": 11826
+              "size": 13473
             },
             {
               "name": "domain.go",
@@ -394,7 +320,7 @@
             },
             {
               "name": "scale.go",
-              "size": 4116
+              "size": 4146
             },
             {
               "name": "select.go",
@@ -425,42 +351,12 @@
           ]
         },
         {
-          "name": "data",
-          "directory": true,
-          "files": [
-            {
-              "name": "AAPL.csv",
-              "size": 73714
-            },
-            {
-              "name": "GOOG.csv",
-              "size": 72530
-            },
-            {
-              "name": "MSFT.csv",
-              "size": 75446
-            },
-            {
-              "name": "TWTR.csv",
-              "size": 70273
-            },
-            {
-              "name": "US.csv",
-              "size": 3516
-            },
-            {
-              "name": "filesystem.json",
-              "size": 0
-            }
-          ]
-        },
-        {
           "name": "decode",
           "directory": true,
           "files": [
             {
               "name": "decode.go",
-              "size": 28065
+              "size": 28163
             },
             {
               "name": "decode_test.go",
@@ -504,7 +400,7 @@
           "files": [
             {
               "name": "syntax.chart",
-              "size": 2093
+              "size": 2111
             }
           ]
         },
@@ -522,7 +418,7 @@
             },
             {
               "name": "filesystem.chart",
-              "size": 203
+              "size": 546
             },
             {
               "name": "functions.chart",
@@ -564,15 +460,15 @@
         },
         {
           "name": "go.mod",
-          "size": 264
+          "size": 296
         },
         {
           "name": "go.sum",
-          "size": 656
+          "size": 821
         },
         {
           "name": "renderer.go",
-          "size": 18501
+          "size": 18473
         },
         {
           "name": "scaler.go",
@@ -588,77 +484,7 @@
         },
         {
           "name": "style.go",
-          "size": 3759
-        },
-        {
-          "name": "tmp",
-          "directory": true,
-          "files": [
-            {
-              "name": "bar.svg",
-              "size": 24094
-            },
-            {
-              "name": "dashboard.svg",
-              "size": 176440
-            },
-            {
-              "name": "geo.go",
-              "size": 1310
-            },
-            {
-              "name": "goog.svg",
-              "size": 20890
-            },
-            {
-              "name": "group.svg",
-              "size": 9352
-            },
-            {
-              "name": "heredoc.chart",
-              "size": 751
-            },
-            {
-              "name": "pie.svg",
-              "size": 13224
-            },
-            {
-              "name": "polar.svg",
-              "size": 11041
-            },
-            {
-              "name": "pop.svg",
-              "size": 302808
-            },
-            {
-              "name": "stacked.svg",
-              "size": 69540
-            },
-            {
-              "name": "stock.css",
-              "size": 348
-            },
-            {
-              "name": "stock.svg",
-              "size": 73001
-            },
-            {
-              "name": "sun.svg",
-              "size": 129854
-            },
-            {
-              "name": "test.svg",
-              "size": 70744
-            },
-            {
-              "name": "trigono.svg",
-              "size": 9733
-            },
-            {
-              "name": "us.svg",
-              "size": 30090
-            }
-          ]
+          "size": 3760
         }
       ]
     },
@@ -691,20 +517,6 @@
                   "size": 2384
                 }
               ]
-            }
-          ]
-        },
-        {
-          "name": "data",
-          "directory": true,
-          "files": [
-            {
-              "name": "basic.fig",
-              "size": 772
-            },
-            {
-              "name": "sample.fig",
-              "size": 566
             }
           ]
         },
@@ -773,16 +585,6 @@
           "size": 1066
         },
         {
-          "name": "bin",
-          "directory": true,
-          "files": [
-            {
-              "name": "gotcl",
-              "size": 3419301
-            }
-          ]
-        },
-        {
           "name": "cmd",
           "directory": true,
           "files": [
@@ -795,24 +597,6 @@
                   "size": 2006
                 }
               ]
-            }
-          ]
-        },
-        {
-          "name": "data",
-          "directory": true,
-          "files": [
-            {
-              "name": "incr.tcl",
-              "size": 3046
-            },
-            {
-              "name": "mini.tcl",
-              "size": 1204
-            },
-            {
-              "name": "op.tcl",
-              "size": 124
             }
           ]
         },
@@ -1079,32 +863,6 @@
           "size": 5111
         },
         {
-          "name": "data",
-          "directory": true,
-          "files": [
-            {
-              "name": "TODOS.md",
-              "size": 5779
-            },
-            {
-              "name": "demo.mf",
-              "size": 2386
-            },
-            {
-              "name": "include.mf",
-              "size": 1000
-            },
-            {
-              "name": "maestro.fig",
-              "size": 883
-            },
-            {
-              "name": "sample.sh",
-              "size": 357
-            }
-          ]
-        },
-        {
           "name": "decode.go",
           "size": 28071
         },
@@ -1297,16 +1055,6 @@
           ]
         },
         {
-          "name": "data",
-          "directory": true,
-          "files": [
-            {
-              "name": "sample.fig",
-              "size": 2047
-            }
-          ]
-        },
-        {
           "name": "deb",
           "directory": true,
           "files": [
@@ -1415,20 +1163,6 @@
           "size": 27159
         },
         {
-          "name": "data",
-          "directory": true,
-          "files": [
-            {
-              "name": "filesystem.json",
-              "size": 1211
-            },
-            {
-              "name": "sample.json",
-              "size": 520
-            }
-          ]
-        },
-        {
           "name": "debug.go",
           "size": 2221
         },
@@ -1458,7 +1192,7 @@
             },
             {
               "name": "lsjson.go",
-              "size": 1607
+              "size": 1874
             }
           ]
         },
@@ -1480,7 +1214,7 @@
         },
         {
           "name": "parse.go",
-          "size": 11087
+          "size": 11092
         },
         {
           "name": "parse_test.go",
@@ -1488,7 +1222,7 @@
         },
         {
           "name": "query.go",
-          "size": 9314
+          "size": 9336
         },
         {
           "name": "testdata",
@@ -1497,16 +1231,6 @@
             {
               "name": "sample.json",
               "size": 670
-            }
-          ]
-        },
-        {
-          "name": "tmp",
-          "directory": true,
-          "files": [
-            {
-              "name": "syntax.jq",
-              "size": 958
             }
           ]
         }
@@ -1519,28 +1243,6 @@
         {
           "name": "cover.out",
           "size": 8492
-        },
-        {
-          "name": "data",
-          "directory": true,
-          "files": [
-            {
-              "name": "glossary.json",
-              "size": 583
-            },
-            {
-              "name": "menu.json",
-              "size": 872
-            },
-            {
-              "name": "webapp.json",
-              "size": 3467
-            },
-            {
-              "name": "widget.json",
-              "size": 603
-            }
-          ]
         },
         {
           "name": "go.mod",
@@ -1755,20 +1457,6 @@
           "size": 3871
         },
         {
-          "name": "data",
-          "directory": true,
-          "files": [
-            {
-              "name": "build.sh",
-              "size": 403
-            },
-            {
-              "name": "loc.sh",
-              "size": 101
-            }
-          ]
-        },
-        {
           "name": "dirs.go",
           "size": 1767
         },
@@ -1965,24 +1653,6 @@
                   "size": 391
                 }
               ]
-            }
-          ]
-        },
-        {
-          "name": "data",
-          "directory": true,
-          "files": [
-            {
-              "name": "format.toml",
-              "size": 274
-            },
-            {
-              "name": "package.toml",
-              "size": 1206
-            },
-            {
-              "name": "server.toml",
-              "size": 886
             }
           ]
         },

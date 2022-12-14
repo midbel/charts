@@ -245,6 +245,7 @@ func (r SunburstRenderer[T, U]) Render(serie Serie[T, U]) svg.Element {
 	sun.Transform = svg.Translate(serie.X.Max()/2, serie.Y.Max()/2)
 	for _, pt := range serie.Points {
 		var grp svg.Group
+		grp.Id = fmt.Sprintf("%v", pt.X)
 		angle += r.renderPoint(&grp, pt, angle, 0)
 
 		sun.Append(grp.AsElement())
@@ -263,14 +264,12 @@ func (r SunburstRenderer[T, U]) renderPoint(grp *svg.Group, pt Point[T, U], offs
 		pos4     = getPosFromAngle(offset*deg2rad, distance-r.height)
 		pat      = r.currPath()
 	)
+	pat.Id = fmt.Sprintf("%v", pt.X)
 
 	pat.AbsMoveTo(pos1)
 	pat.AbsArcTo(pos2, distance, distance, 0, value > halfcircle, true)
 	pat.AbsLineTo(pos3)
-
-	if pos3.X != pos4.X && pos3.Y != pos4.Y {
-		pat.AbsArcTo(pos4, distance-r.height, distance-r.height, 0, value > halfcircle, false)
-	}
+	pat.AbsArcTo(pos4, distance-r.height, distance-r.height, 0, value > halfcircle, false)
 	pat.AbsLineTo(pos1)
 	pat.ClosePath()
 	grp.Append(pat.AsElement())
@@ -324,9 +323,7 @@ func (r PieRenderer[T, U]) Render(serie Serie[T, U]) svg.Element {
 		pat.AbsMoveTo(r.getPos1(rad))
 		pat.AbsArcTo(r.getPos2(angle, val), r.OuterRadius, r.OuterRadius, 0, val > halfcircle, true)
 		pat.AbsLineTo(pos3)
-		if pos3.X != pos4.X && pos3.Y != pos4.Y {
-			pat.AbsArcTo(pos4, r.difference(), r.difference(), 0, val > halfcircle, false)
-		}
+		pat.AbsArcTo(pos4, r.difference(), r.difference(), 0, val > halfcircle, false)
 		pat.AbsLineTo(r.getPos1(rad))
 		pat.ClosePath()
 		grp.Append(pat.AsElement())
