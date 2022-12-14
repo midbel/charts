@@ -28,14 +28,6 @@ load {expr} as <ident>
 
 load $(command) as <ident>
 
-note: only csv supported now - extension to json/xml to be written
-
-column selectors:
-- sum of columns:            c0+...+c9
-- range of columns:          c0:c9
-- sum range of columns:      c0:+c9
-- list of columns/selectors: y0,...,y9
-
 set title string
 set theme string
 

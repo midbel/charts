@@ -1,19 +1,19 @@
 set title "projects filesystem"
-set size 920
-set padding 60
+set size 640
+set padding 20
 
 set xdata string
 set xdomain buddy,charts,fig,gotcl,maestro,packit,query,saj,sax,shlex,slices,slug,svg,tish,toml,uuid
 set ydata number
 set ydomain 0,100000
 
-load data/filesystem.json with (
+load "http://localhost:8080/filesystem.json" with (
 	query ".files[] | {x: .name, y: .size, sub: [$]}"
 ) as in
 
 set sun with (
-	inner-radius 100
-	outer-radius 400
+	inner-radius 60
+	outer-radius 300
 	fill-list "#f7ba0b","#d4652f","#a02128","#904684","#154889","#317f43","#9b9b9b","#7b5141","#f4f4f4","#282828"
 	line-color white
 	line-width 0

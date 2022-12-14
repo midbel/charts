@@ -21,6 +21,8 @@ type Renderer[T, U ScalerConstraint] interface {
 }
 
 type PolarRenderer[T ~string, U ~float64] struct {
+	Style
+
 	Fill       []string
 	Radius     float64
 	Ticks      int
@@ -231,7 +233,7 @@ type SunburstRenderer[T ~string, U ~float64] struct {
 }
 
 func (r SunburstRenderer[T, U]) Render(serie Serie[T, U]) svg.Element {
-	if r.InnerRadius <= 0 {
+	if r.InnerRadius < 0 {
 		r.InnerRadius = r.OuterRadius
 	}
 

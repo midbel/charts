@@ -120,7 +120,7 @@ func (e Exec) TimeSerie(timefmt string, x TimeScale, y FloatScale) (ser TimeSeri
 	if err != nil {
 		return
 	}
-	points, err := loadPointsFromReader(strings.NewReader(out), get)
+	points, err := readPoints(strings.NewReader(out), get)
 	if err != nil {
 		return
 	}
@@ -137,7 +137,7 @@ func (e Exec) NumberSerie(x FloatScale, y FloatScale) (ser NumberSerie, err erro
 	}
 
 	get := getNumberFunc(0, SelectSingle(1))
-	points, err := loadPointsFromReader(strings.NewReader(out), get)
+	points, err := readPoints(strings.NewReader(out), get)
 	if err != nil {
 		return
 	}
@@ -154,7 +154,7 @@ func (e Exec) CategorySerie(x StringScale, y FloatScale) (ser CategorySerie, err
 	}
 
 	get := getCategoryFunc(0, SelectSingle(1))
-	points, err := loadPointsFromReader(strings.NewReader(out), get)
+	points, err := readPoints(strings.NewReader(out), get)
 	if err != nil {
 		return
 	}
@@ -212,20 +212,31 @@ type HttpFile struct {
 }
 
 func (f HttpFile) TimeSerie(timefmt string, x TimeScale, y FloatScale) (ser TimeSerie, err error) {
-	if !f.Using.valid() {
-		return ser, fmt.Errorf("invalid column selector given")
-	}
-	r, err := f.execute()
+	r, js, err := f.execute()
 	if err != nil {
 		return
 	}
 	defer r.Close()
 
+	if js {
+		points, err := readJSON[time.Time, float64](r, f.Query)
+		if err != nil {
+			return ser, err
+		}
+		ser = createSerie[time.Time, float64](f.Ident, points)
+		ser.X = x
+		ser.Y = y
+		return ser, nil
+	}
+	if !f.Using.valid() {
+		return ser, fmt.Errorf("invalid column selector given")
+	}
+
 	get, err := getTimeFunc(f.X, f.Y, timefmt)
 	if err != nil {
 		return
 	}
-	points, err := loadPointsFromReader(r, get)
+	points, err := readPoints(r, get)
 	if err != nil {
 		return
 	}
@@ -238,17 +249,28 @@ func (f HttpFile) TimeSerie(timefmt string, x TimeScale, y FloatScale) (ser Time
 }
 
 func (f HttpFile) NumberSerie(x FloatScale, y FloatScale) (ser NumberSerie, err error) {
-	if !f.Using.valid() {
-		return ser, fmt.Errorf("invalid column selector given")
-	}
-	r, err := f.execute()
+	r, js, err := f.execute()
 	if err != nil {
 		return
 	}
 	defer r.Close()
 
+	if js {
+		points, err := readJSON[float64, float64](r, f.Query)
+		if err != nil {
+			return ser, err
+		}
+		ser = createSerie[float64, float64](f.Ident, points)
+		ser.X = x
+		ser.Y = y
+		return ser, nil
+	}
+	if !f.Using.valid() {
+		return ser, fmt.Errorf("invalid column selector given")
+	}
+
 	get := getNumberFunc(f.X, f.Y)
-	points, err := loadPointsFromReader(r, get)
+	points, err := readPoints(r, get)
 	if err != nil {
 		return
 	}
@@ -261,17 +283,28 @@ func (f HttpFile) NumberSerie(x FloatScale, y FloatScale) (ser NumberSerie, err 
 }
 
 func (f HttpFile) CategorySerie(x StringScale, y FloatScale) (ser CategorySerie, err error) {
-	if !f.Using.valid() {
-		return ser, fmt.Errorf("invalid column selector given")
-	}
-	r, err := f.execute()
+	r, js, err := f.execute()
 	if err != nil {
 		return
 	}
 	defer r.Close()
 
+	if js {
+		points, err := readJSON[string, float64](r, f.Query)
+		if err != nil {
+			return ser, err
+		}
+		ser = createSerie[string, float64](f.Ident, points)
+		ser.X = x
+		ser.Y = y
+		return ser, nil
+	}
+	if !f.Using.valid() {
+		return ser, fmt.Errorf("invalid column selector given")
+	}
+
 	get := getCategoryFunc(f.X, f.Y)
-	points, err := loadPointsFromReader(r, get)
+	points, err := readPoints(r, get)
 	if err != nil {
 		return
 	}
@@ -283,10 +316,10 @@ func (f HttpFile) CategorySerie(x StringScale, y FloatScale) (ser CategorySerie,
 	return ser, nil
 }
 
-func (f HttpFile) execute() (io.ReadCloser, error) {
+func (f HttpFile) execute() (io.ReadCloser, bool, error) {
 	req, err := http.NewRequest(f.Method, f.Uri, strings.NewReader(f.Body))
 	if err != nil {
-		return nil, err
+		return nil, false, err
 	}
 	req.Header = f.Headers.Clone()
 	if set := req.Header.Get("Authorization"); f.Token != "" && len(set) == 0 {
@@ -297,12 +330,13 @@ func (f HttpFile) execute() (io.ReadCloser, error) {
 	}
 	res, err := http.DefaultClient.Do(req)
 	if err != nil {
-		return nil, err
+		return nil, false, err
 	}
 	if res.StatusCode >= http.StatusBadRequest {
-		return nil, fmt.Errorf("%d: %s", res.StatusCode, http.StatusText(res.StatusCode))
+		return nil, false, fmt.Errorf("%d: %s", res.StatusCode, http.StatusText(res.StatusCode))
 	}
-	return res.Body, nil
+	js := res.Header.Get("content-type") == "application/json"
+	return res.Body, js, nil
 }
 
 type LocalData struct {
@@ -315,7 +349,7 @@ func (d LocalData) TimeSerie(timefmt string, x TimeScale, y FloatScale) (ser Tim
 	if err != nil {
 		return
 	}
-	points, err := loadPointsFromReader(strings.NewReader(d.Content), get)
+	points, err := readPoints(strings.NewReader(d.Content), get)
 	if err != nil {
 		return
 	}
@@ -327,7 +361,7 @@ func (d LocalData) TimeSerie(timefmt string, x TimeScale, y FloatScale) (ser Tim
 
 func (d LocalData) NumberSerie(x FloatScale, y FloatScale) (ser NumberSerie, err error) {
 	get := getNumberFunc(0, SelectSingle(1))
-	points, err := loadPointsFromReader(strings.NewReader(d.Content), get)
+	points, err := readPoints(strings.NewReader(d.Content), get)
 	if err != nil {
 		return
 	}
@@ -339,7 +373,7 @@ func (d LocalData) NumberSerie(x FloatScale, y FloatScale) (ser NumberSerie, err
 
 func (d LocalData) CategorySerie(x StringScale, y FloatScale) (ser CategorySerie, err error) {
 	get := getCategoryFunc(0, SelectSingle(1))
-	points, err := loadPointsFromReader(strings.NewReader(d.Content), get)
+	points, err := readPoints(strings.NewReader(d.Content), get)
 	if err != nil {
 		return
 	}
@@ -365,7 +399,7 @@ func (f LocalFile) Name() string {
 }
 
 func (f LocalFile) TimeSerie(timefmt string, x TimeScale, y FloatScale) (ser TimeSerie, err error) {
-	if points, ok, err := getPointsFromJSON[time.Time, float64](f.Path, f.Query); ok {
+	if points, ok, err := pointsFromJSON[time.Time, float64](f.Path, f.Query); ok {
 		if err == nil {
 			ser = createSerie[time.Time, float64](f.Name(), points)
 			ser.X = x
@@ -386,7 +420,7 @@ func (f LocalFile) TimeSerie(timefmt string, x TimeScale, y FloatScale) (ser Tim
 	if err != nil {
 		return
 	}
-	points, err := loadPointsFromReader(r, get)
+	points, err := readPoints(r, get)
 	if err != nil {
 		return
 	}
@@ -399,7 +433,7 @@ func (f LocalFile) TimeSerie(timefmt string, x TimeScale, y FloatScale) (ser Tim
 }
 
 func (f LocalFile) NumberSerie(x FloatScale, y FloatScale) (ser NumberSerie, err error) {
-	if points, ok, err := getPointsFromJSON[float64, float64](f.Path, f.Query); ok {
+	if points, ok, err := pointsFromJSON[float64, float64](f.Path, f.Query); ok {
 		if err == nil {
 			ser = createSerie[float64, float64](f.Name(), points)
 			ser.X = x
@@ -417,7 +451,7 @@ func (f LocalFile) NumberSerie(x FloatScale, y FloatScale) (ser NumberSerie, err
 	defer r.Close()
 
 	get := getNumberFunc(f.X, f.Y)
-	points, err := loadPointsFromReader(r, get)
+	points, err := readPoints(r, get)
 	if err != nil {
 		return
 	}
@@ -430,7 +464,7 @@ func (f LocalFile) NumberSerie(x FloatScale, y FloatScale) (ser NumberSerie, err
 }
 
 func (f LocalFile) CategorySerie(x StringScale, y FloatScale) (ser CategorySerie, err error) {
-	if points, ok, err := getPointsFromJSON[string, float64](f.Path, f.Query); ok {
+	if points, ok, err := pointsFromJSON[string, float64](f.Path, f.Query); ok {
 		if err == nil {
 			ser = createSerie[string, float64](f.Name(), points)
 			ser.X = x
@@ -448,7 +482,7 @@ func (f LocalFile) CategorySerie(x StringScale, y FloatScale) (ser CategorySerie
 	defer r.Close()
 
 	get := getCategoryFunc(f.X, f.Y)
-	points, err := loadPointsFromReader(r, get)
+	points, err := readPoints(r, get)
 	if err != nil {
 		return
 	}
@@ -479,7 +513,7 @@ func splitPoints[T, U charts.ScalerConstraint](lim Limit, points []charts.Point[
 
 type getFunc[T, U charts.ScalerConstraint] func([]string) (charts.Point[T, U], error)
 
-func loadPointsFromReader[T, U charts.ScalerConstraint](r io.Reader, get getFunc[T, U]) ([]charts.Point[T, U], error) {
+func readPoints[T, U charts.ScalerConstraint](r io.Reader, get getFunc[T, U]) ([]charts.Point[T, U], error) {
 	var (
 		rs   = csv.NewReader(r)
 		list []charts.Point[T, U]
@@ -578,7 +612,7 @@ func createSerie[T, U charts.ScalerConstraint](ident string, points []charts.Poi
 	}
 }
 
-func getPointsFromJSON[T, U charts.ScalerConstraint](file string, q string) ([]charts.Point[T, U], bool, error) {
+func pointsFromJSON[T, U charts.ScalerConstraint](file string, q string) ([]charts.Point[T, U], bool, error) {
 	if filepath.Ext(file) != ".json" || q == "" {
 		return nil, false, nil
 	}
@@ -588,21 +622,29 @@ func getPointsFromJSON[T, U charts.ScalerConstraint](file string, q string) ([]c
 	}
 	defer rc.Close()
 
-	var	data []point[T, U]
-	if q == "" {
-		if err := json.NewDecoder(rc).Decode(&data); err != nil {
-			return nil, true, err
-		}
-		return transform(data), true, nil
-	}
-	doc, err := query.Execute(rc, q)
+	points, err := readJSON[T, U](rc, q)
 	if err != nil {
 		return nil, true, err
 	}
-	if err := json.NewDecoder(strings.NewReader(doc)).Decode(&data); err != nil {
-		return nil, true, err
+	return points, true, nil
+}
+
+func readJSON[T, U charts.ScalerConstraint](r io.Reader, q string) ([]charts.Point[T, U], error) {
+	var data []point[T, U]
+	if q == "" {
+		if err := json.NewDecoder(r).Decode(&data); err != nil {
+			return nil, err
+		}
+		return transform(data), nil
 	}
-	return transform(data), true, nil
+	doc, err := query.Execute(r, q)
+	if err != nil {
+		return nil, err
+	}
+	if err := json.NewDecoder(strings.NewReader(doc)).Decode(&data); err != nil {
+		return nil, err
+	}
+	return transform(data), nil
 }
 
 func transform[T, U charts.ScalerConstraint](ps []point[T, U]) []charts.Point[T, U] {
