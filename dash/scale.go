@@ -73,7 +73,7 @@ func (s listScaler) NumberScale(rg charts.Range, reverse bool) (charts.Scaler[fl
 }
 
 func (s listScaler) CategoryScale(rg charts.Range) (charts.Scaler[string], error) {
-	return nil, nil
+	return charts.StringScaler(s.values, rg), nil
 }
 
 type fileScaler struct {
