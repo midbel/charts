@@ -365,6 +365,14 @@ func (f LocalFile) Name() string {
 }
 
 func (f LocalFile) TimeSerie(timefmt string, x TimeScale, y FloatScale) (ser TimeSerie, err error) {
+	if points, ok, err := getPointsFromJSON[time.Time, float64](f.Path, f.Query); ok {
+		if err == nil {
+			ser = createSerie[time.Time, float64](f.Name(), points)
+			ser.X = x
+			ser.Y = y
+		}
+		return ser, err
+	}
 	if !f.Using.valid() {
 		return ser, fmt.Errorf("invalid column selector given")
 	}
@@ -391,6 +399,14 @@ func (f LocalFile) TimeSerie(timefmt string, x TimeScale, y FloatScale) (ser Tim
 }
 
 func (f LocalFile) NumberSerie(x FloatScale, y FloatScale) (ser NumberSerie, err error) {
+	if points, ok, err := getPointsFromJSON[float64, float64](f.Path, f.Query); ok {
+		if err == nil {
+			ser = createSerie[float64, float64](f.Name(), points)
+			ser.X = x
+			ser.Y = y
+		}
+		return ser, err
+	}
 	if !f.Using.valid() {
 		return ser, fmt.Errorf("invalid column selector given")
 	}
