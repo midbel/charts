@@ -572,15 +572,21 @@ func getPointsFromJSON[T, U charts.ScalerConstraint](file string, q string) ([]c
 	}
 	defer rc.Close()
 
-	var data []point[T, U]
+	var	data []point[T, U]
 	if q == "" {
-		return transform(data), true, json.NewDecoder(rc).Decode(&data)
+		if err := json.NewDecoder(rc).Decode(&data); err != nil {
+			return nil, true, err
+		}
+		return transform(data), true, nil
 	}
 	doc, err := query.Execute(rc, q)
 	if err != nil {
 		return nil, true, err
 	}
-	return transform(data), true, json.NewDecoder(strings.NewReader(doc)).Decode(&data)
+	if err := json.NewDecoder(strings.NewReader(doc)).Decode(&data); err != nil {
+		return nil, true, err
+	}
+	return transform(data), true, nil
 }
 
 func transform[T, U charts.ScalerConstraint](ps []point[T, U]) []charts.Point[T, U] {
@@ -604,10 +610,18 @@ func (p *point[T, U]) UnmarshalJSON(buf []byte) error {
 	if err := json.Unmarshal(buf, &x); err != nil {
 		return err
 	}
+	var sum float64
+	for _, y := range x.Sub {
+		p.Sub = append(p.Sub, y.Point)
+		if v, ok := any(y.Y).(float64); ok {
+			sum += v
+		}
+	}
 	p.X = x.X
-	p.Y = x.Y
-	for i := range x.Sub {
-		p.Sub = append(p.Sub, x.Sub[i].Point)
+	if _, ok := any(p.Y).(float64); ok && len(x.Sub) > 0 {
+		p.Y, _ = any(sum).(U)
+	} else {
+		p.Y = x.Y
 	}
 	return nil
 }
