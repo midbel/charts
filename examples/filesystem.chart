@@ -7,7 +7,7 @@ set xdomain buddy,charts,fig,gotcl,maestro,packit,query,saj,sax,shlex,slices,slu
 set ydata number
 set ydomain 0,100000
 
-load "http://localhost:8080/filesystem.json" with (
+load "data/filesystem.json" with (
 	query ".files[] | {x: .name, y: .size, sub: [$]}"
 ) as in
 
